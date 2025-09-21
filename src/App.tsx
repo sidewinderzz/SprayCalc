@@ -1,7 +1,234 @@
-  // Save settings to cookies
+import React, { useState, useEffect } from 'react';
+
+const AgSprayCalculator = () => {
+  const [products, setProducts] = useState([
+    { id: 1, name: 'Product 1', rate: 0, unit: 'oz/acre', tankAmount: 0, outputFormat: 'auto' }
+  ]);
+  const [tankSize, setTankSize] = useState(0);
+  const [applicationRate, setApplicationRate] = useState(0);
+  const [copyFeedback, setCopyFeedback] = useState('');
+  
+  // Field operations data
+  const [fieldSize, setFieldSize] = useState(0);
+  const [implementWidth, setImplementWidth] = useState(0);
+  const [speed, setSpeed] = useState(0);
+  const [fillTime, setFillTime] = useState(0);
+  
+  // Format selection
+  const [openFormatMenuId, setOpenFormatMenuId] = useState(null);
+  
+  // Current time state for ETA calculation
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Feedback for saved settings
+  const [settingsFeedback, setSettingsFeedback] = useState('');
+  
+  // Update current time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    
+    return () => clearInterval(timer);
+  }, []);
+  
+  // Load saved settings on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // Custom color theme
+  const colors = {
+    primary: '#498a5a',
+    secondary: '#d1c343',
+    primaryLight: '#76a886',
+    primaryDark: '#2d6840',
+    secondaryLight: '#e4d97b',
+    secondaryDark: '#b2a529',
+    lightText: '#1c291f'
+  };
+
+  // Available output formats
+  const outputFormats = [
+    {value: 'auto', label: 'Auto (Default)'},
+    {value: 'floz', label: 'Fluid Ounces Only'},
+    {value: 'gal', label: 'Gallons (Decimal)'},
+    {value: 'gal_oz', label: 'Gallons & Ounces'},
+    {value: 'qt', label: 'Quarts'},
+    {value: 'pt', label: 'Pints'},
+    {value: 'cups', label: 'Cups'}
+  ];
+
+  // Calculate acres per tank
+  const acresPerTank = applicationRate > 0 ? tankSize / applicationRate : 0;
+
+  // Convert any rate to oz based on unit type
+  const convertToOz = (rate, unit) => {
+    if (unit.startsWith('oz')) return rate;
+    if (unit.startsWith('pt')) return rate * 16;
+    if (unit.startsWith('qt')) return rate * 32;
+    if (unit.startsWith('gal')) return rate * 128;
+    if (unit.startsWith('lb')) return rate * 16;
+    if (unit.startsWith('g')) return rate * 0.033814;
+    return rate;
+  };
+
+  // Calculate amount for a single product
+  const calculateAmount = (rate, unit, currentTankSize = tankSize, currentAppRate = applicationRate) => {
+    if (!rate || rate === 0) return 0;
+    
+    let amount = 0;
+    const currentAcresPerTank = currentAppRate > 0 ? currentTankSize / currentAppRate : 0;
+    
+    if (unit.includes('per') && unit.includes('gal')) {
+      const gallonsMatch = unit.match(/per (\d+) gal/);
+      if (gallonsMatch && gallonsMatch[1]) {
+        const gallonsReferenced = parseInt(gallonsMatch[1]);
+        const rateInOz = convertToOz(rate, unit);
+        amount = (rateInOz * currentTankSize) / gallonsReferenced;
+      }
+    } 
+    else if (unit.includes('/acre')) {
+      const rateInOz = convertToOz(rate, unit);
+      amount = rateInOz * currentAcresPerTank;
+    }
+    
+    return amount;
+  };
+
+  // Calculate total product needed for entire field
+  const calculateFieldAmount = (rate, unit, totalAcres) => {
+    if (!rate || rate === 0 || !totalAcres) return 0;
+    
+    let amount = 0;
+    
+    if (unit.includes('per') && unit.includes('gal')) {
+      // For concentration units, calculate based on total spray volume
+      const totalSprayVolume = totalAcres * applicationRate;
+      const gallonsMatch = unit.match(/per (\d+) gal/);
+      if (gallonsMatch && gallonsMatch[1]) {
+        const gallonsReferenced = parseInt(gallonsMatch[1]);
+        const rateInOz = convertToOz(rate, unit);
+        amount = (rateInOz * totalSprayVolume) / gallonsReferenced;
+      }
+    } 
+    else if (unit.includes('/acre')) {
+      const rateInOz = convertToOz(rate, unit);
+      amount = rateInOz * totalAcres;
+    }
+    
+    return amount;
+  };
+
+  // Format the output amount in appropriate units
+  const formatOutput = (value, format) => {
+    if (value === 0) return '0 fl oz';
+    
+    switch(format) {
+      case 'floz':
+        return `${value.toFixed(1)} fl oz`;
+        
+      case 'gal':
+        const gallonsOnly = (value / 128).toFixed(2);
+        return `${gallonsOnly} gal`;
+        
+      case 'gal_oz':
+        const gallons = Math.floor(value / 128);
+        const ozRemaining = (value % 128).toFixed(1);
+        if (parseFloat(ozRemaining) === 0) {
+          return `${gallons} gal`;
+        } else {
+          return `${gallons} gal ${ozRemaining} fl oz`;
+        }
+        
+      case 'qt':
+        const quarts = (value / 32).toFixed(2);
+        return `${quarts} qt`;
+        
+      case 'pt':
+        const pints = (value / 16).toFixed(2);
+        return `${pints} pt`;
+        
+      case 'cups':
+        const cups = (value / 8).toFixed(2);
+        return `${cups} cups`;
+        
+      case 'auto':
+      default:
+        if (value < 256) {
+          return `${value.toFixed(1)} fl oz`;
+        } 
+        else {
+          const gallonsAuto = Math.floor(value / 128);
+          const ozRemainingAuto = (value % 128).toFixed(1);
+          
+          const totalGallons = value / 128;
+          const is25GallonMultiple = Math.abs(totalGallons / 2.5 - Math.round(totalGallons / 2.5)) < 0.01;
+          
+          let result = '';
+          
+          if (parseFloat(ozRemainingAuto) === 0) {
+            result = `${gallonsAuto} gal`;
+          } else {
+            result = `${gallonsAuto} gal ${ozRemainingAuto} fl oz`;
+          }
+          
+          if (is25GallonMultiple) {
+            const jugs = Math.round(totalGallons / 2.5);
+            result += ` (${jugs} × 2.5 gal jugs)`;
+          }
+          
+          return result;
+        }
+    }
+  };
+
+  // Format product amounts for purchase planning
+  const formatPurchaseAmount = (totalOunces) => {
+    if (totalOunces === 0) return { display: '0 fl oz', containers: [] };
+
+    const totalGallons = totalOunces / 128;
+    
+    // Common container sizes (in gallons)
+    const containerSizes = [
+      { size: 2.5, name: '2.5 gal jug' },
+      { size: 1, name: '1 gal jug' },
+      { size: 0.5, name: '0.5 gal (64 fl oz)' },
+      { size: 0.25, name: '1 qt (32 fl oz)' },
+      { size: 0.125, name: '1 pt (16 fl oz)' }
+    ];
+
+    // Find best container combination
+    let suggestions = [];
+    
+    for (let container of containerSizes) {
+      const containerCount = Math.ceil(totalGallons / container.size);
+      const totalContainerVolume = containerCount * container.size * 128; // Convert to fl oz
+      const wasteOz = totalContainerVolume - totalOunces;
+      const wastePercent = (wasteOz / totalContainerVolume) * 100;
+      
+      suggestions.push({
+        count: containerCount,
+        size: container.name,
+        totalVolume: totalContainerVolume,
+        waste: wasteOz,
+        wastePercent: wastePercent,
+        display: `${containerCount} × ${container.name}`
+      });
+    }
+
+    // Sort by waste percentage (prefer less waste)
+    suggestions.sort((a, b) => a.wastePercent - b.wastePercent);
+
+    return {
+      display: formatOutput(totalOunces, 'auto'),
+      containers: suggestions.slice(0, 3) // Show top 3 options
+    };
+  };
+
+  // Save settings to localStorage
   const saveSettings = () => {
     try {
-      // Create the settings object
       const settings = {
         tankSize,
         applicationRate,
@@ -12,10 +239,7 @@
         fillTime
       };
       
-      // Save to localStorage (better than cookies for larger data)
       localStorage.setItem('agSprayCalcSettings', JSON.stringify(settings));
-      
-      // Show feedback
       setSettingsFeedback('Settings saved!');
       setTimeout(() => setSettingsFeedback(''), 2000);
     } catch (err) {
@@ -25,16 +249,14 @@
     }
   };
   
-  // Load settings from cookies
+  // Load settings from localStorage
   const loadSettings = () => {
     try {
-      // Get saved settings
       const savedSettings = localStorage.getItem('agSprayCalcSettings');
       
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         
-        // Apply saved settings
         if (settings.tankSize) setTankSize(settings.tankSize);
         if (settings.applicationRate) setApplicationRate(settings.applicationRate);
         if (settings.products) setProducts(settings.products);
@@ -43,7 +265,6 @@
         if (settings.speed) setSpeed(settings.speed);
         if (settings.fillTime) setFillTime(settings.fillTime);
         
-        // Recalculate product amounts
         setTimeout(() => {
           if (settings.products) {
             setProducts(currentProducts => 
@@ -76,174 +297,6 @@
       console.error('Failed to clear settings:', err);
       setTimeout(() => setSettingsFeedback(''), 2000);
     }
-  };import React, { useState, useEffect } from 'react';
-
-const AgSprayCalculator = () => {
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Product 1', rate: 0, unit: 'oz/acre', tankAmount: 0, outputFormat: 'auto' }
-  ]);
-  const [tankSize, setTankSize] = useState(0);
-  const [applicationRate, setApplicationRate] = useState(0);
-  const [copyFeedback, setCopyFeedback] = useState('');
-  
-  // Field operations data
-  const [fieldSize, setFieldSize] = useState(0);
-  const [implementWidth, setImplementWidth] = useState(0);
-  const [speed, setSpeed] = useState(0);
-  const [fillTime, setFillTime] = useState(0);
-  
-  // Format selection
-  const [openFormatMenuId, setOpenFormatMenuId] = useState(null);
-  
-  // Current time state for ETA calculation
-  const [currentTime, setCurrentTime] = useState(new Date());
-  
-  // Feedback for saved settings
-  const [settingsFeedback, setSettingsFeedback] = useState('');
-  
-  // Update current time every minute
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
-    
-    return () => clearInterval(timer);
-  }, []);
-  
-  // Load saved settings on component mount
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  // Custom color theme
-  const colors = {
-    primary: '#498a5a', // Green
-    secondary: '#d1c343', // Yellow
-    primaryLight: '#76a886',
-    primaryDark: '#2d6840',
-    secondaryLight: '#e4d97b',
-    secondaryDark: '#b2a529',
-    lightText: '#1c291f'
-  };
-
-  // Available output formats
-  const outputFormats = [
-    {value: 'auto', label: 'Auto (Default)'},
-    {value: 'floz', label: 'Fluid Ounces Only'},
-    {value: 'gal', label: 'Gallons (Decimal)'},
-    {value: 'gal_oz', label: 'Gallons & Ounces'},
-    {value: 'qt', label: 'Quarts'},
-    {value: 'pt', label: 'Pints'},
-    {value: 'cups', label: 'Cups'}
-  ];
-
-  // Calculate acres per tank
-  const acresPerTank = applicationRate > 0 ? tankSize / applicationRate : 0;
-
-  // Convert any rate to oz based on unit type
-  const convertToOz = (rate, unit) => {
-    if (unit.startsWith('oz')) return rate;
-    if (unit.startsWith('pt')) return rate * 16; // 1 pint = 16 fl oz
-    if (unit.startsWith('qt')) return rate * 32; // 1 quart = 32 fl oz
-    if (unit.startsWith('gal')) return rate * 128; // 1 gallon = 128 fl oz
-    if (unit.startsWith('lb')) return rate * 16; // Approximation
-    if (unit.startsWith('g')) return rate * 0.033814; // g to fl oz conversion
-    return rate; // Default fallback
-  };
-
-  // Calculate amount for a single product
-  const calculateAmount = (rate, unit, currentTankSize = tankSize, currentAppRate = applicationRate) => {
-    if (!rate || rate === 0) return 0;
-    
-    let amount = 0;
-    
-    // Calculate acres per tank based on current values
-    const currentAcresPerTank = currentAppRate > 0 ? currentTankSize / currentAppRate : 0;
-    
-    // Handle "per X gal" units (concentrations)
-    if (unit.includes('per') && unit.includes('gal')) {
-      const gallonsMatch = unit.match(/per (\d+) gal/);
-      if (gallonsMatch && gallonsMatch[1]) {
-        const gallonsReferenced = parseInt(gallonsMatch[1]);
-        const rateInOz = convertToOz(rate, unit);
-        amount = (rateInOz * currentTankSize) / gallonsReferenced;
-      }
-    } 
-    // Handle per acre units 
-    else if (unit.includes('/acre')) {
-      const rateInOz = convertToOz(rate, unit);
-      amount = rateInOz * currentAcresPerTank;
-    }
-    
-    return amount;
-  };
-
-  // Format the output amount in appropriate units
-  const formatOutput = (value, format) => {
-    if (value === 0) return '0 fl oz';
-    
-    // Force specific output format based on selection
-    switch(format) {
-      case 'floz':
-        return `${value.toFixed(1)} fl oz`;
-        
-      case 'gal':
-        const gallonsOnly = (value / 128).toFixed(2);
-        return `${gallonsOnly} gal`;
-        
-      case 'gal_oz':
-        const gallons = Math.floor(value / 128);
-        const ozRemaining = (value % 128).toFixed(1);
-        if (parseFloat(ozRemaining) === 0) {
-          return `${gallons} gal`;
-        } else {
-          return `${gallons} gal ${ozRemaining} fl oz`;
-        }
-        
-      case 'qt':
-        const quarts = (value / 32).toFixed(2);
-        return `${quarts} qt`;
-        
-      case 'pt':
-        const pints = (value / 16).toFixed(2);
-        return `${pints} pt`;
-        
-      case 'cups':
-        const cups = (value / 8).toFixed(2);
-        return `${cups} cups`;
-        
-      case 'auto':
-      default:
-        // If less than 2 gallons (256 fl oz), show only in fl oz
-        if (value < 256) {
-          return `${value.toFixed(1)} fl oz`;
-        } 
-        // For larger amounts, show in gallons
-        else {
-          const gallonsAuto = Math.floor(value / 128);
-          const ozRemainingAuto = (value % 128).toFixed(1);
-          
-          // Calculate if it's a clean multiple of 2.5 gallons
-          const totalGallons = value / 128;
-          const is25GallonMultiple = Math.abs(totalGallons / 2.5 - Math.round(totalGallons / 2.5)) < 0.01;
-          
-          let result = '';
-          
-          if (parseFloat(ozRemainingAuto) === 0) {
-            result = `${gallonsAuto} gal`;
-          } else {
-            result = `${gallonsAuto} gal ${ozRemainingAuto} fl oz`;
-          }
-          
-          // Add note about 2.5 gallon jugs if applicable
-          if (is25GallonMultiple) {
-            const jugs = Math.round(totalGallons / 2.5);
-            result += ` (${jugs} × 2.5 gal jugs)`;
-          }
-          
-          return result;
-        }
-    }
   };
 
   // Generate summary text for clipboard
@@ -255,14 +308,28 @@ const AgSprayCalculator = () => {
     text += `Application Rate: ${applicationRate} GPA\n`;
     text += `Acres Per Tank: ${acresPerTank.toFixed(2)}\n\n`;
     
-    text += `PRODUCTS TO ADD:\n`;
+    text += `PRODUCTS TO ADD PER TANK:\n`;
     products.forEach(product => {
       text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat)}\n`;
     });
+
+    if (fieldSize) {
+      text += `\nFIELD PURCHASE PLANNING:\n`;
+      text += `Field Size: ${fieldSize} acres\n`;
+      text += `Total Spray Volume: ${(fieldSize * applicationRate).toFixed(0)} gallons\n\n`;
+      text += `TOTAL PRODUCTS TO PURCHASE:\n`;
+      products.forEach(product => {
+        const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
+        const purchaseInfo = formatPurchaseAmount(totalAmount);
+        text += `${product.name}: ${purchaseInfo.display}\n`;
+        if (purchaseInfo.containers.length > 0) {
+          text += `  Suggested: ${purchaseInfo.containers[0].display}\n`;
+        }
+      });
+    }
     
     if (fieldSize && implementWidth && speed) {
       text += `\nFIELD OPERATIONS:\n`;
-      text += `Field Size: ${fieldSize} acres\n`;
       text += `Implement Width: ${implementWidth} ft\n`;
       text += `Speed: ${speed} mph\n`;
       text += `Fill Time: ${fillTime} minutes\n\n`;
@@ -273,9 +340,7 @@ const AgSprayCalculator = () => {
       const totalFillTimeHours = (fillTime / 60) * tanksNeeded;
       const totalJobHours = sprayHours + totalFillTimeHours;
       const effectiveAcresPerHour = fieldSize / totalJobHours;
-      const totalGallons = fieldSize * applicationRate;
       
-      // Calculate ETA
       const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
       
       const formatTime = (hours) => {
@@ -284,7 +349,6 @@ const AgSprayCalculator = () => {
         return `${wholeHours} hr ${minutes} min`;
       };
       
-      // Format ETA for clipboard
       const formatETAText = (date) => {
         const hours = date.getHours();
         const minutes = date.getMinutes();
@@ -317,7 +381,6 @@ const AgSprayCalculator = () => {
       text += `Working Rate: ${acresPerHour.toFixed(1)} acres/hour\n`;
       text += `Effective Rate (with filling): ${effectiveAcresPerHour.toFixed(1)} acres/hour\n`;
       text += `Tanks Needed: ${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})\n`;
-      text += `Total Gallons: ${totalGallons.toFixed(0)} gallons\n`;
       text += `Spray Time: ${formatTime(sprayHours)}\n`;
       text += `Total Fill Time: ${formatTime(totalFillTimeHours)}\n`;
       text += `Estimated Job Completion: ${formatTime(totalJobHours)}\n`;
@@ -327,16 +390,14 @@ const AgSprayCalculator = () => {
     return text;
   };
   
-  // Copy summary to clipboard with fallback method
+  // Copy summary to clipboard
   const copyToClipboard = async () => {
     const text = generateSummaryText();
     
     try {
-      // Primary method using Clipboard API
       await navigator.clipboard.writeText(text);
       setCopyFeedback('Copied to clipboard!');
     } catch (err) {
-      // Fallback method for browsers with restricted clipboard access
       const textArea = document.createElement('textarea');
       textArea.value = text;
       document.body.appendChild(textArea);
@@ -347,25 +408,13 @@ const AgSprayCalculator = () => {
       console.error('Used fallback copy method due to:', err);
     }
     
-    // Clear feedback after 2 seconds
     setTimeout(() => setCopyFeedback(''), 2000);
-  };
-
-  // Update tank amounts for all products
-  const updateAllProducts = () => {
-    setProducts(currentProducts => 
-      currentProducts.map(product => ({
-        ...product,
-        tankAmount: calculateAmount(product.rate, product.unit)
-      }))
-    );
   };
 
   // Set tank size with validation
   const handleTankSizeChange = (value) => {
     const newValue = parseFloat(value) || 0;
     setTankSize(newValue);
-    // Update product amounts immediately in the same function
     setProducts(currentProducts => 
       currentProducts.map(product => ({
         ...product,
@@ -378,7 +427,6 @@ const AgSprayCalculator = () => {
   const handleApplicationRateChange = (value) => {
     const newValue = parseFloat(value) || 0;
     setApplicationRate(newValue);
-    // Update product amounts immediately in the same function
     setProducts(currentProducts => 
       currentProducts.map(product => ({
         ...product,
@@ -395,7 +443,6 @@ const AgSprayCalculator = () => {
           const updatedProduct = { 
             ...product, 
             [field]: value,
-            // Immediately calculate the new tank amount if rate or unit changes
             tankAmount: (field === 'rate' || field === 'unit') 
               ? calculateAmount(
                   field === 'rate' ? value : product.rate,
@@ -448,7 +495,6 @@ const AgSprayCalculator = () => {
 
   // Calculate field operations estimates
   const calculateFieldOperations = () => {
-    // Check if tank information is missing
     if (!tankSize || !applicationRate) {
       return (
         <div className="p-3 rounded" style={{backgroundColor: colors.secondaryLight + '30'}}>
@@ -457,7 +503,6 @@ const AgSprayCalculator = () => {
       );
     }
     
-    // Check if field operation inputs are missing
     if (!speed || !implementWidth || !fieldSize || !acresPerTank) {
       return (
         <div className="p-3 rounded" style={{backgroundColor: colors.secondaryLight + '30'}}>
@@ -475,48 +520,29 @@ const AgSprayCalculator = () => {
       );
     }
     
-    // Acres per hour calculation (without filling time)
-    // Formula: (speed (mph) * width (ft) * 0.1212) = acres/hr
-    // 0.1212 is the conversion factor
     const acresPerHour = speed * implementWidth * 0.1212;
-    
-    // Number of tanks needed
     const tanksNeeded = fieldSize / acresPerTank;
-    
-    // Total spray time (not including filling)
     const sprayHours = fieldSize / acresPerHour;
-    
-    // Total fill time in hours
     const totalFillTimeHours = (fillTime / 60) * tanksNeeded;
-    
-    // Total job time (spray + fill)
     const totalJobHours = sprayHours + totalFillTimeHours;
-    
-    // Acres per hour with filling time factored in
     const effectiveAcresPerHour = fieldSize / totalJobHours;
-    
-    // Total gallons to be sprayed
     const totalGallons = fieldSize * applicationRate;
     
-    // Calculate ETA
     const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
     
-    // Format time to hours and minutes
     const formatTime = (hours) => {
       const wholeHours = Math.floor(hours);
       const minutes = Math.round((hours - wholeHours) * 60);
       return `${wholeHours} hr ${minutes} min`;
     };
     
-    // Format ETA as time
     const formatETA = (date) => {
       const hours = date.getHours();
       const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
-      const formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+      const formattedHours = hours % 12 || 12;
       const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
       
-      // Get day information
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -768,6 +794,80 @@ const AgSprayCalculator = () => {
         </div>
       </div>
 
+      {/* NEW SECTION: Product Purchase Planning */}
+      {fieldSize > 0 && (
+        <div 
+          className="p-4 rounded-lg mb-6"
+          style={{backgroundColor: colors.secondary + '20'}}
+        >
+          <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>
+            Product Purchase Planning
+          </h2>
+          <div className="mb-3">
+            <p className="text-sm mb-2">
+              For <strong>{fieldSize} acres</strong> at <strong>{applicationRate} GPA</strong> 
+              (Total spray volume: <strong>{(fieldSize * applicationRate).toFixed(0)} gallons</strong>)
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {products.map((product) => {
+              const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
+              const purchaseInfo = formatPurchaseAmount(totalAmount);
+              
+              return (
+                <div 
+                  key={`purchase-${product.id}`}
+                  className="p-4 rounded-lg border"
+                  style={{
+                    backgroundColor: 'white',
+                    borderColor: colors.secondary + '70'
+                  }}
+                >
+                  <h3 className="font-bold mb-2" style={{color: colors.primaryDark}}>
+                    {product.name}
+                  </h3>
+                  <div className="mb-2">
+                    <span className="text-sm">Total needed: </span>
+                    <span className="font-bold text-lg">{purchaseInfo.display}</span>
+                  </div>
+                  
+                  {purchaseInfo.containers.length > 0 && (
+                    <div className="mt-3">
+                      <h4 className="text-sm font-medium mb-2">Purchase Options:</h4>
+                      {purchaseInfo.containers.map((option, index) => (
+                        <div 
+                          key={index}
+                          className="p-2 mb-2 rounded text-sm"
+                          style={{
+                            backgroundColor: index === 0 
+                              ? colors.secondary + '30' 
+                              : colors.primary + '10',
+                            border: index === 0 
+                              ? `2px solid ${colors.secondary}` 
+                              : `1px solid ${colors.primary}30`
+                          }}
+                        >
+                          <div className="font-medium">{option.display}</div>
+                          <div className="text-xs mt-1">
+                            Waste: {option.waste.toFixed(1)} fl oz ({option.wastePercent.toFixed(1)}%)
+                          </div>
+                          {index === 0 && (
+                            <div className="text-xs mt-1 font-medium" style={{color: colors.primaryDark}}>
+                              ← Recommended
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div 
         className="p-4 rounded-lg"
         style={{backgroundColor: colors.secondaryLight + '20'}}
@@ -868,7 +968,7 @@ const AgSprayCalculator = () => {
       </div>
       
       <div className="mt-4 text-sm opacity-70" style={{color: colors.primaryDark}}>
-        <p>Note: Always verify calculations against product labels and follow all safety guidelines.</p>
+        <p>© 2025 GDM</p>
       </div>
     </div>
   </div>
