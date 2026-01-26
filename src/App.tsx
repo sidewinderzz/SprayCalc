@@ -358,7 +358,6 @@ const AgSprayCalculator = () => {
     text += `=============================\n\n`;
     text += `MIX INFORMATION:\n`;
     text += `Fill Volume: ${fillVolume} gallons\n`;
-    if (tankCapacity) text += `Tank Capacity: ${tankCapacity} gallons\n`;
     text += `Application Rate: ${applicationRate} GPA\n`;
     text += `Acres Per Fill: ${acresPerFill.toFixed(2)}\n\n`;
     

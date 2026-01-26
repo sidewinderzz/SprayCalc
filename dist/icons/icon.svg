@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#498a5a"/>
+  <g fill="#ffffff">
+    <!-- Spray droplet -->
+    <path d="M256 80c-8 0-15 4-20 10l-80 120c-20 30-32 65-32 100 0 70 60 130 132 130s132-60 132-130c0-35-12-70-32-100l-80-120c-5-6-12-10-20-10zm0 320c-50 0-92-40-92-90 0-25 9-50 24-72l68-100 68 100c15 22 24 47 24 72 0 50-42 90-92 90z"/>
+    <!-- Calculator lines -->
+    <rect x="180" y="280" width="60" height="8" rx="4"/>
+    <rect x="270" y="280" width="60" height="8" rx="4"/>
+    <rect x="180" y="310" width="60" height="8" rx="4"/>
+    <rect x="270" y="310" width="60" height="8" rx="4"/>
+    <rect x="180" y="340" width="150" height="8" rx="4"/>
+  </g>
+</svg>
