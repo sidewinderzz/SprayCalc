@@ -25,6 +25,9 @@ const AgSprayCalculator = () => {
   
   // Tips/Info module state
   const [showTips, setShowTips] = useState(false);
+
+  // Acres per fill input state (allows free typing)
+  const [acresPerFillInput, setAcresPerFillInput] = useState('');
   
   // Update current time every minute
   useEffect(() => {
@@ -64,6 +67,15 @@ const AgSprayCalculator = () => {
 
   // Calculate acres per fill
   const acresPerFill = applicationRate > 0 ? fillVolume / applicationRate : 0;
+
+  // Sync acres per fill input when fillVolume or applicationRate changes externally
+  useEffect(() => {
+    if (applicationRate > 0 && fillVolume > 0) {
+      setAcresPerFillInput((fillVolume / applicationRate).toFixed(2));
+    } else {
+      setAcresPerFillInput('');
+    }
+  }, [fillVolume, applicationRate]);
 
   // Calculate suggested fill volume based on field size
   const calculateSuggestedFillVolume = () => {
@@ -502,9 +514,14 @@ const AgSprayCalculator = () => {
     );
   };
 
-  // Set acres per fill - calculates new application rate from fill volume
-  const handleAcresPerFillChange = (value) => {
-    const newAcresPerFill = parseFloat(value) || 0;
+  // Handle acres per fill input change (just update the input, don't calculate yet)
+  const handleAcresPerFillInputChange = (value) => {
+    setAcresPerFillInput(value);
+  };
+
+  // Apply acres per fill change on blur - calculates new application rate from fill volume
+  const handleAcresPerFillBlur = () => {
+    const newAcresPerFill = parseFloat(acresPerFillInput) || 0;
     if (newAcresPerFill > 0 && fillVolume > 0) {
       const newApplicationRate = fillVolume / newAcresPerFill;
       setApplicationRate(newApplicationRate);
@@ -854,8 +871,9 @@ const AgSprayCalculator = () => {
             <label className="block text-sm font-medium mb-1">Acres Per Fill</label>
             <input
               type="number"
-              value={acresPerFill > 0 ? acresPerFill.toFixed(2) : ''}
-              onChange={(e) => handleAcresPerFillChange(e.target.value)}
+              value={acresPerFillInput}
+              onChange={(e) => handleAcresPerFillInputChange(e.target.value)}
+              onBlur={handleAcresPerFillBlur}
               className="w-full p-2 border rounded text-black"
               min="0"
               step="0.1"
