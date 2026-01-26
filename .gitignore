@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output (uncomment if you don't want to deploy from repo)
+# dist/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
