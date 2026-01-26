@@ -81,7 +81,7 @@ const AgSprayCalculator = () => {
     
     // For larger fields, suggest a fill volume that divides nicely
     // Find the largest common volume that goes into total spray evenly (or close to it)
-    for (let volume of commonVolumes.reverse()) {
+    for (let volume of [...commonVolumes].reverse()) {
       const mixes = totalSprayNeeded / volume;
       if (mixes >= 2 && mixes <= 10) { // Between 2-10 mixes is reasonable
         return volume;
