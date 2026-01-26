@@ -494,12 +494,27 @@ const AgSprayCalculator = () => {
   const handleApplicationRateChange = (value) => {
     const newValue = parseFloat(value) || 0;
     setApplicationRate(newValue);
-    setProducts(currentProducts => 
+    setProducts(currentProducts =>
       currentProducts.map(product => ({
         ...product,
         tankAmount: calculateAmount(product.rate, product.unit, fillVolume, newValue)
       }))
     );
+  };
+
+  // Set acres per fill - calculates new application rate from fill volume
+  const handleAcresPerFillChange = (value) => {
+    const newAcresPerFill = parseFloat(value) || 0;
+    if (newAcresPerFill > 0 && fillVolume > 0) {
+      const newApplicationRate = fillVolume / newAcresPerFill;
+      setApplicationRate(newApplicationRate);
+      setProducts(currentProducts =>
+        currentProducts.map(product => ({
+          ...product,
+          tankAmount: calculateAmount(product.rate, product.unit, fillVolume, newApplicationRate)
+        }))
+      );
+    }
   };
 
   // Handle product changes 
@@ -836,13 +851,16 @@ const AgSprayCalculator = () => {
             />
           </div>
           <div>
-            <div className="block text-sm font-medium mb-1">Acres Per Fill</div>
-            <div className="w-full p-2 border rounded font-bold" style={{
-              backgroundColor: colors.primary + '20',
-              borderColor: colors.primary + '40'
-            }}>
-              {acresPerFill.toFixed(2)}
-            </div>
+            <label className="block text-sm font-medium mb-1">Acres Per Fill</label>
+            <input
+              type="number"
+              value={acresPerFill > 0 ? acresPerFill.toFixed(2) : ''}
+              onChange={(e) => handleAcresPerFillChange(e.target.value)}
+              className="w-full p-2 border rounded text-black"
+              min="0"
+              step="0.1"
+              placeholder="Auto-calculated"
+            />
           </div>
         </div>
         
