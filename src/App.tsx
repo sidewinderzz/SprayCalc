@@ -702,7 +702,7 @@ const AgSprayCalculator = () => {
         }}
       >
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Ag Spray Mixing Calculator</h1>
+        <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Spray Calc</h1>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowTips(!showTips)}
