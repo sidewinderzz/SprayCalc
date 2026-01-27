@@ -706,7 +706,7 @@ const AgSprayCalculator = () => {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowTips(!showTips)}
-            className="px-3 py-1 rounded-lg text-sm"
+            className="px-3 py-1 rounded-lg text-sm h-10"
             style={{
               backgroundColor: showTips ? colors.secondary : 'transparent',
               color: showTips ? 'white' : colors.primary,
@@ -718,7 +718,7 @@ const AgSprayCalculator = () => {
           </button>
           <button 
             onClick={saveSettings}
-            className="px-3 py-1 rounded-lg text-sm"
+            className="px-3 py-1 rounded-lg text-sm h-10"
             style={{
               backgroundColor: colors.primary,
               color: 'white'
@@ -729,7 +729,7 @@ const AgSprayCalculator = () => {
           </button>
           <button 
             onClick={clearSettings}
-            className="px-3 py-1 rounded-lg text-sm"
+            className="px-3 py-1 rounded-lg text-sm h-10"
             style={{
               backgroundColor: 'transparent',
               color: colors.primaryDark,
