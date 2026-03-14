@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const AgSprayCalculator = () => {
   const [products, setProducts] = useState([
@@ -7,41 +7,74 @@ const AgSprayCalculator = () => {
   const [fillVolume, setFillVolume] = useState(0);
   const [applicationRate, setApplicationRate] = useState(0);
   const [copyFeedback, setCopyFeedback] = useState('');
-  
+
   // Field operations data
   const [fieldSize, setFieldSize] = useState(0);
   const [implementWidth, setImplementWidth] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [fillTime, setFillTime] = useState(0);
-  
+
   // Format selection
   const [openFormatMenuId, setOpenFormatMenuId] = useState(null);
-  
+
   // Current time state for ETA calculation
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
   // Feedback for saved settings
   const [settingsFeedback, setSettingsFeedback] = useState('');
-  
+
   // Tips/Info module state
   const [showTips, setShowTips] = useState(false);
 
   // Acres per fill input state (allows free typing)
   const [acresPerFillInput, setAcresPerFillInput] = useState('');
-  
+
+  // Saved mixes state
+  const [savedMixes, setSavedMixes] = useState<Array<{name: string, data: any}>>([]);
+
+  // 3-dot menu state
+  const [showThreeDotMenu, setShowThreeDotMenu] = useState(false);
+  const threeDotRef = useRef<HTMLDivElement>(null);
+
+  // Save Mix dialog state
+  const [showSaveMixDialog, setShowSaveMixDialog] = useState(false);
+  const [mixNameInput, setMixNameInput] = useState('');
+  const mixNameInputRef = useRef<HTMLInputElement>(null);
+
   // Update current time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
-    
+
     return () => clearInterval(timer);
   }, []);
-  
-  // Load saved settings on component mount
+
+  // Load saved settings and mixes on component mount
   useEffect(() => {
     loadSettings();
+    loadAllMixes();
   }, []);
+
+  // Close 3-dot menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (threeDotRef.current && !threeDotRef.current.contains(e.target as Node)) {
+        setShowThreeDotMenu(false);
+      }
+    };
+    if (showThreeDotMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showThreeDotMenu]);
+
+  // Focus mix name input when dialog opens
+  useEffect(() => {
+    if (showSaveMixDialog && mixNameInputRef.current) {
+      mixNameInputRef.current.focus();
+    }
+  }, [showSaveMixDialog]);
 
   // Custom color theme
   const colors = {
@@ -80,27 +113,22 @@ const AgSprayCalculator = () => {
   // Calculate suggested fill volume based on field size
   const calculateSuggestedFillVolume = () => {
     if (!fieldSize || !applicationRate) return null;
-    
+
     const totalSprayNeeded = fieldSize * applicationRate;
-    
-    // Suggest common practical fill volumes
+
     const commonVolumes = [10, 25, 50, 100, 200, 300, 500, 1000];
-    
-    // If total spray needed is small, suggest exact amount rounded up to nearest 5
+
     if (totalSprayNeeded <= 50) {
       return Math.ceil(totalSprayNeeded / 5) * 5;
     }
-    
-    // For larger fields, suggest a fill volume that divides nicely
-    // Find the largest common volume that goes into total spray evenly (or close to it)
+
     for (let volume of [...commonVolumes].reverse()) {
       const mixes = totalSprayNeeded / volume;
-      if (mixes >= 2 && mixes <= 10) { // Between 2-10 mixes is reasonable
+      if (mixes >= 2 && mixes <= 10) {
         return volume;
       }
     }
-    
-    // Default to a practical size based on field size
+
     if (totalSprayNeeded <= 100) return 50;
     if (totalSprayNeeded <= 500) return 100;
     if (totalSprayNeeded <= 1000) return 200;
@@ -110,12 +138,12 @@ const AgSprayCalculator = () => {
   // Calculate mix planning for the field
   const calculateMixPlanning = () => {
     if (!fieldSize || !applicationRate || !fillVolume) return null;
-    
+
     const totalSprayNeeded = fieldSize * applicationRate;
     const fullMixes = Math.floor(totalSprayNeeded / fillVolume);
     const remainingSpray = totalSprayNeeded - (fullMixes * fillVolume);
     const remainingAcres = remainingSpray / applicationRate;
-    
+
     return {
       totalSprayNeeded,
       fullMixes,
@@ -139,10 +167,10 @@ const AgSprayCalculator = () => {
   // Calculate amount for a single product
   const calculateAmount = (rate, unit, currentFillVolume = fillVolume, currentAppRate = applicationRate) => {
     if (!rate || rate === 0) return 0;
-    
+
     let amount = 0;
     const currentAcresPerFill = currentAppRate > 0 ? currentFillVolume / currentAppRate : 0;
-    
+
     if (unit.includes('per') && unit.includes('gal')) {
       const gallonsMatch = unit.match(/per (\d+) gal/);
       if (gallonsMatch && gallonsMatch[1]) {
@@ -150,23 +178,22 @@ const AgSprayCalculator = () => {
         const rateInOz = convertToOz(rate, unit);
         amount = (rateInOz * currentFillVolume) / gallonsReferenced;
       }
-    } 
+    }
     else if (unit.includes('/acre')) {
       const rateInOz = convertToOz(rate, unit);
       amount = rateInOz * currentAcresPerFill;
     }
-    
+
     return amount;
   };
 
   // Calculate total product needed for entire field
   const calculateFieldAmount = (rate, unit, totalAcres) => {
     if (!rate || rate === 0 || !totalAcres) return 0;
-    
+
     let amount = 0;
-    
+
     if (unit.includes('per') && unit.includes('gal')) {
-      // For concentration units, calculate based on total spray volume
       const totalSprayVolume = totalAcres * applicationRate;
       const gallonsMatch = unit.match(/per (\d+) gal/);
       if (gallonsMatch && gallonsMatch[1]) {
@@ -174,27 +201,27 @@ const AgSprayCalculator = () => {
         const rateInOz = convertToOz(rate, unit);
         amount = (rateInOz * totalSprayVolume) / gallonsReferenced;
       }
-    } 
+    }
     else if (unit.includes('/acre')) {
       const rateInOz = convertToOz(rate, unit);
       amount = rateInOz * totalAcres;
     }
-    
+
     return amount;
   };
 
   // Format the output amount in appropriate units
   const formatOutput = (value, format) => {
     if (value === 0) return '0 fl oz';
-    
+
     switch(format) {
       case 'floz':
         return `${value.toFixed(1)} fl oz`;
-        
+
       case 'gal':
         const gallonsOnly = (value / 128).toFixed(2);
         return `${gallonsOnly} gal`;
-        
+
       case 'gal_oz':
         const gallons = Math.floor(value / 128);
         const ozRemaining = (value % 128).toFixed(1);
@@ -203,44 +230,44 @@ const AgSprayCalculator = () => {
         } else {
           return `${gallons} gal ${ozRemaining} fl oz`;
         }
-        
+
       case 'qt':
         const quarts = (value / 32).toFixed(2);
         return `${quarts} qt`;
-        
+
       case 'pt':
         const pints = (value / 16).toFixed(2);
         return `${pints} pt`;
-        
+
       case 'cups':
         const cups = (value / 8).toFixed(2);
         return `${cups} cups`;
-        
+
       case 'auto':
       default:
         if (value < 256) {
           return `${value.toFixed(1)} fl oz`;
-        } 
+        }
         else {
           const gallonsAuto = Math.floor(value / 128);
           const ozRemainingAuto = (value % 128).toFixed(1);
-          
+
           const totalGallons = value / 128;
           const is25GallonMultiple = Math.abs(totalGallons / 2.5 - Math.round(totalGallons / 2.5)) < 0.01;
-          
+
           let result = '';
-          
+
           if (parseFloat(ozRemainingAuto) === 0) {
             result = `${gallonsAuto} gal`;
           } else {
             result = `${gallonsAuto} gal ${ozRemainingAuto} fl oz`;
           }
-          
+
           if (is25GallonMultiple) {
             const jugs = Math.round(totalGallons / 2.5);
             result += ` (${jugs} × 2.5 gal jugs)`;
           }
-          
+
           return result;
         }
     }
@@ -251,8 +278,7 @@ const AgSprayCalculator = () => {
     if (totalOunces === 0) return { display: '0 fl oz', containers: [] };
 
     const totalGallons = totalOunces / 128;
-    
-    // Common container sizes (in gallons)
+
     const containerSizes = [
       { size: 2.5, name: '2.5 gal jug' },
       { size: 1, name: '1 gal jug' },
@@ -261,15 +287,14 @@ const AgSprayCalculator = () => {
       { size: 0.125, name: '1 pt (16 fl oz)' }
     ];
 
-    // Find best container combination
     let suggestions = [];
-    
+
     for (let container of containerSizes) {
       const containerCount = Math.ceil(totalGallons / container.size);
-      const totalContainerVolume = containerCount * container.size * 128; // Convert to fl oz
+      const totalContainerVolume = containerCount * container.size * 128;
       const wasteOz = totalContainerVolume - totalOunces;
       const wastePercent = (wasteOz / totalContainerVolume) * 100;
-      
+
       suggestions.push({
         count: containerCount,
         size: container.name,
@@ -280,48 +305,120 @@ const AgSprayCalculator = () => {
       });
     }
 
-    // Sort by waste percentage (prefer less waste)
     suggestions.sort((a, b) => a.wastePercent - b.wastePercent);
 
     return {
       display: formatOutput(totalOunces, 'auto'),
-      containers: suggestions.slice(0, 3) // Show top 3 options
+      containers: suggestions.slice(0, 3)
     };
   };
 
-  // Save settings to localStorage
-  const saveSettings = () => {
+  // Get current mix data snapshot
+  const getCurrentMixData = () => ({
+    fillVolume,
+    applicationRate,
+    products,
+    fieldSize,
+    implementWidth,
+    speed,
+    fillTime
+  });
+
+  // Load all saved mixes from localStorage
+  const loadAllMixes = () => {
     try {
-      const settings = {
-        fillVolume,
-        applicationRate,
-        products,
-        fieldSize,
-        implementWidth,
-        speed,
-        fillTime
-      };
-      
-      localStorage.setItem('agSprayCalcSettings', JSON.stringify(settings));
-      setSettingsFeedback('Settings saved!');
-      setTimeout(() => setSettingsFeedback(''), 2000);
+      const raw = localStorage.getItem('agSprayCalcMixes');
+      if (raw) {
+        const mixes = JSON.parse(raw);
+        setSavedMixes(Array.isArray(mixes) ? mixes : []);
+      }
     } catch (err) {
-      setSettingsFeedback('Error saving settings');
-      console.error('Failed to save settings:', err);
-      setTimeout(() => setSettingsFeedback(''), 2000);
+      console.error('Failed to load saved mixes:', err);
     }
   };
-  
-  // Load settings from localStorage
+
+  // Open the Save Mix dialog
+  const openSaveMixDialog = () => {
+    setMixNameInput('');
+    setShowSaveMixDialog(true);
+    setShowThreeDotMenu(false);
+  };
+
+  // Save a named mix
+  const saveMix = () => {
+    const name = mixNameInput.trim();
+    if (!name) return;
+
+    try {
+      const mixData = getCurrentMixData();
+      const existing = [...savedMixes];
+      const idx = existing.findIndex(m => m.name === name);
+      if (idx >= 0) {
+        existing[idx] = { name, data: mixData };
+      } else {
+        existing.push({ name, data: mixData });
+      }
+      setSavedMixes(existing);
+      localStorage.setItem('agSprayCalcMixes', JSON.stringify(existing));
+      // Also keep legacy single-settings save
+      localStorage.setItem('agSprayCalcSettings', JSON.stringify(mixData));
+      setShowSaveMixDialog(false);
+      setMixNameInput('');
+      setSettingsFeedback(`"${name}" saved!`);
+      setTimeout(() => setSettingsFeedback(''), 2500);
+    } catch (err) {
+      console.error('Failed to save mix:', err);
+      setSettingsFeedback('Error saving mix');
+      setTimeout(() => setSettingsFeedback(''), 2500);
+    }
+  };
+
+  // Load a saved mix into the calculator
+  const loadMix = (mixData: any) => {
+    try {
+      if (mixData.fillVolume !== undefined) setFillVolume(mixData.fillVolume);
+      if (mixData.applicationRate !== undefined) setApplicationRate(mixData.applicationRate);
+      if (mixData.products) setProducts(mixData.products);
+      if (mixData.fieldSize !== undefined) setFieldSize(mixData.fieldSize);
+      if (mixData.implementWidth !== undefined) setImplementWidth(mixData.implementWidth);
+      if (mixData.speed !== undefined) setSpeed(mixData.speed);
+      if (mixData.fillTime !== undefined) setFillTime(mixData.fillTime);
+
+      setTimeout(() => {
+        if (mixData.products) {
+          setProducts(current =>
+            current.map(p => ({
+              ...p,
+              tankAmount: calculateAmount(p.rate, p.unit, mixData.fillVolume, mixData.applicationRate)
+            }))
+          );
+        }
+      }, 100);
+
+      setShowThreeDotMenu(false);
+      setSettingsFeedback('Mix loaded!');
+      setTimeout(() => setSettingsFeedback(''), 2500);
+    } catch (err) {
+      console.error('Failed to load mix:', err);
+    }
+  };
+
+  // Delete a saved mix
+  const deleteMix = (name: string) => {
+    const updated = savedMixes.filter(m => m.name !== name);
+    setSavedMixes(updated);
+    localStorage.setItem('agSprayCalcMixes', JSON.stringify(updated));
+  };
+
+  // Load settings from localStorage (startup)
   const loadSettings = () => {
     try {
       const savedSettings = localStorage.getItem('agSprayCalcSettings');
-      
+
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
-        
+
         if (settings.fillVolume) setFillVolume(settings.fillVolume);
-        // Legacy support for old tankSize
         if (settings.tankSize && !settings.fillVolume) setFillVolume(settings.tankSize);
         if (settings.applicationRate) setApplicationRate(settings.applicationRate);
         if (settings.products) setProducts(settings.products);
@@ -329,16 +426,16 @@ const AgSprayCalculator = () => {
         if (settings.implementWidth) setImplementWidth(settings.implementWidth);
         if (settings.speed) setSpeed(settings.speed);
         if (settings.fillTime) setFillTime(settings.fillTime);
-        
+
         setTimeout(() => {
           if (settings.products) {
-            setProducts(currentProducts => 
+            setProducts(currentProducts =>
               currentProducts.map(product => ({
                 ...product,
                 tankAmount: calculateAmount(
-                  product.rate, 
-                  product.unit, 
-                  settings.fillVolume || settings.tankSize, 
+                  product.rate,
+                  product.unit,
+                  settings.fillVolume || settings.tankSize,
                   settings.applicationRate
                 )
               }))
@@ -350,17 +447,25 @@ const AgSprayCalculator = () => {
       console.error('Failed to load settings:', err);
     }
   };
-  
-  // Clear all saved settings
+
+  // Clear current settings (reset inputs)
   const clearSettings = () => {
     try {
       localStorage.removeItem('agSprayCalcSettings');
-      setSettingsFeedback('Settings cleared!');
-      setTimeout(() => setSettingsFeedback(''), 2000);
+      setFillVolume(0);
+      setApplicationRate(0);
+      setProducts([{ id: 1, name: 'Product 1', rate: 0, unit: 'oz/acre', tankAmount: 0, outputFormat: 'auto' }]);
+      setFieldSize(0);
+      setImplementWidth(0);
+      setSpeed(0);
+      setFillTime(0);
+      setShowThreeDotMenu(false);
+      setSettingsFeedback('Calculator cleared!');
+      setTimeout(() => setSettingsFeedback(''), 2500);
     } catch (err) {
-      setSettingsFeedback('Error clearing settings');
       console.error('Failed to clear settings:', err);
-      setTimeout(() => setSettingsFeedback(''), 2000);
+      setSettingsFeedback('Error clearing');
+      setTimeout(() => setSettingsFeedback(''), 2500);
     }
   };
 
@@ -372,7 +477,7 @@ const AgSprayCalculator = () => {
     text += `Fill Volume: ${fillVolume} gallons\n`;
     text += `Application Rate: ${applicationRate} GPA\n`;
     text += `Acres Per Fill: ${acresPerFill.toFixed(2)}\n\n`;
-    
+
     text += `PRODUCTS TO ADD PER MIX:\n`;
     products.forEach(product => {
       text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat)}\n`;
@@ -385,7 +490,7 @@ const AgSprayCalculator = () => {
         text += `Field Size: ${fieldSize} acres\n`;
         text += `Total Spray Volume: ${mixPlanning.totalSprayNeeded.toFixed(0)} gallons\n`;
         text += `Full Mixes Needed: ${mixPlanning.fullMixes}\n`;
-        
+
         if (mixPlanning.hasPartialMix) {
           text += `Partial Mix: ${mixPlanning.remainingSpray.toFixed(1)} gallons for ${mixPlanning.remainingAcres.toFixed(2)} acres\n`;
           text += `\nPRODUCTS FOR PARTIAL MIX:\n`;
@@ -395,7 +500,7 @@ const AgSprayCalculator = () => {
           });
         }
       }
-      
+
       text += `\nTOTAL PRODUCT QUANTITIES REQUIRED:\n`;
       products.forEach(product => {
         const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
@@ -406,57 +511,57 @@ const AgSprayCalculator = () => {
         }
       });
     }
-    
+
     if (fieldSize && implementWidth && speed) {
       text += `\nFIELD OPERATIONS:\n`;
       text += `Implement Width: ${implementWidth} ft\n`;
       text += `Speed: ${speed} mph\n`;
       text += `Fill Time: ${fillTime} minutes\n\n`;
-      
+
       const acresPerHour = speed * implementWidth * 0.1212;
       const tanksNeeded = fieldSize / acresPerFill;
       const sprayHours = fieldSize / acresPerHour;
       const totalFillTimeHours = (fillTime / 60) * tanksNeeded;
       const totalJobHours = sprayHours + totalFillTimeHours;
       const effectiveAcresPerHour = fieldSize / totalJobHours;
-      
+
       const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
-      
+
       const formatTime = (hours) => {
         const wholeHours = Math.floor(hours);
         const minutes = Math.round((hours - wholeHours) * 60);
         return `${wholeHours} hr ${minutes} min`;
       };
-      
+
       const formatETAText = (date) => {
         const hours = date.getHours();
         const minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
         const formattedHours = hours % 12 || 12;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-        
+
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         let dayPrefix = '';
-        
-        if (date.getDate() === today.getDate() && 
-            date.getMonth() === today.getMonth() && 
+
+        if (date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
             date.getFullYear() === today.getFullYear()) {
           dayPrefix = 'Today at ';
-        } else if (date.getDate() === tomorrow.getDate() && 
-                  date.getMonth() === tomorrow.getMonth() && 
+        } else if (date.getDate() === tomorrow.getDate() &&
+                  date.getMonth() === tomorrow.getMonth() &&
                   date.getFullYear() === tomorrow.getFullYear()) {
           dayPrefix = 'Tomorrow at ';
         } else {
           const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
           dayPrefix = `${days[date.getDay()]} at `;
         }
-        
+
         return `${dayPrefix}${formattedHours}:${formattedMinutes} ${ampm}`;
       };
-      
+
       text += `Working Rate: ${acresPerHour.toFixed(1)} acres/hour\n`;
       text += `Effective Rate (with filling): ${effectiveAcresPerHour.toFixed(1)} acres/hour\n`;
       text += `Mixes Needed: ${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})\n`;
@@ -465,17 +570,17 @@ const AgSprayCalculator = () => {
       text += `Estimated Job Completion: ${formatTime(totalJobHours)}\n`;
       text += `Estimated Finish Time: ${formatETAText(completionTime)}\n`;
     }
-    
+
     return text;
   };
-  
+
   // Copy summary to clipboard
   const copyToClipboard = async () => {
     const text = generateSummaryText();
-    
+
     try {
       await navigator.clipboard.writeText(text);
-      setCopyFeedback('Copied to clipboard!');
+      setCopyFeedback('Copied!');
     } catch (err) {
       const textArea = document.createElement('textarea');
       textArea.value = text;
@@ -483,10 +588,9 @@ const AgSprayCalculator = () => {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopyFeedback('Copied to clipboard!');
-      console.error('Used fallback copy method due to:', err);
+      setCopyFeedback('Copied!');
     }
-    
+
     setTimeout(() => setCopyFeedback(''), 2000);
   };
 
@@ -494,7 +598,7 @@ const AgSprayCalculator = () => {
   const handleFillVolumeChange = (value) => {
     const newValue = parseFloat(value) || 0;
     setFillVolume(newValue);
-    setProducts(currentProducts => 
+    setProducts(currentProducts =>
       currentProducts.map(product => ({
         ...product,
         tankAmount: calculateAmount(product.rate, product.unit, newValue, applicationRate)
@@ -514,12 +618,12 @@ const AgSprayCalculator = () => {
     );
   };
 
-  // Handle acres per fill input change (just update the input, don't calculate yet)
+  // Handle acres per fill input change
   const handleAcresPerFillInputChange = (value) => {
     setAcresPerFillInput(value);
   };
 
-  // Apply acres per fill change on blur - calculates new application rate from fill volume
+  // Apply acres per fill change on blur
   const handleAcresPerFillBlur = () => {
     const newAcresPerFill = parseFloat(acresPerFillInput) || 0;
     if (newAcresPerFill > 0 && fillVolume > 0) {
@@ -534,15 +638,15 @@ const AgSprayCalculator = () => {
     }
   };
 
-  // Handle product changes 
+  // Handle product changes
   const handleProductChange = (id, field, value) => {
     setProducts(currentProducts =>
       currentProducts.map(product => {
         if (product.id === id) {
-          const updatedProduct = { 
-            ...product, 
+          const updatedProduct = {
+            ...product,
             [field]: value,
-            tankAmount: (field === 'rate' || field === 'unit') 
+            tankAmount: (field === 'rate' || field === 'unit')
               ? calculateAmount(
                   field === 'rate' ? value : product.rate,
                   field === 'unit' ? value : product.unit,
@@ -576,10 +680,10 @@ const AgSprayCalculator = () => {
   // Add a new product to the list
   const addNewProduct = () => {
     const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    const newProduct = { 
-      id: newId, 
-      name: `Product ${newId}`, 
-      rate: 0, 
+    const newProduct = {
+      id: newId,
+      name: `Product ${newId}`,
+      rate: 0,
       unit: 'oz/acre',
       tankAmount: 0,
       outputFormat: 'auto'
@@ -601,7 +705,7 @@ const AgSprayCalculator = () => {
         </div>
       );
     }
-    
+
     if (!speed || !implementWidth || !fieldSize || !acresPerFill) {
       return (
         <div className="p-3 rounded" style={{backgroundColor: colors.secondaryLight + '30'}}>
@@ -618,7 +722,7 @@ const AgSprayCalculator = () => {
         </div>
       );
     }
-    
+
     const acresPerHour = speed * implementWidth * 0.1212;
     const mixesNeeded = fieldSize / acresPerFill;
     const sprayHours = fieldSize / acresPerHour;
@@ -626,44 +730,44 @@ const AgSprayCalculator = () => {
     const totalJobHours = sprayHours + totalFillTimeHours;
     const effectiveAcresPerHour = fieldSize / totalJobHours;
     const totalGallons = fieldSize * applicationRate;
-    
+
     const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
-    
+
     const formatTime = (hours) => {
       const wholeHours = Math.floor(hours);
       const minutes = Math.round((hours - wholeHours) * 60);
       return `${wholeHours} hr ${minutes} min`;
     };
-    
+
     const formatETA = (date) => {
       const hours = date.getHours();
       const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       const formattedHours = hours % 12 || 12;
       const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-      
+
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
+
       let dayPrefix = '';
-      
-      if (date.getDate() === today.getDate() && 
-          date.getMonth() === today.getMonth() && 
+
+      if (date.getDate() === today.getDate() &&
+          date.getMonth() === today.getMonth() &&
           date.getFullYear() === today.getFullYear()) {
         dayPrefix = 'Today at ';
-      } else if (date.getDate() === tomorrow.getDate() && 
-                date.getMonth() === tomorrow.getMonth() && 
+      } else if (date.getDate() === tomorrow.getDate() &&
+                date.getMonth() === tomorrow.getMonth() &&
                 date.getFullYear() === tomorrow.getFullYear()) {
         dayPrefix = 'Tomorrow at ';
       } else {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         dayPrefix = `${days[date.getDay()]} at `;
       }
-      
+
       return `${dayPrefix}${formattedHours}:${formattedMinutes} ${ampm}`;
     };
-    
+
     return (
       <div className="grid grid-cols-1 gap-2">
         <p>• Working rate: <strong>{acresPerHour.toFixed(1)} acres/hour</strong></p>
@@ -679,11 +783,11 @@ const AgSprayCalculator = () => {
   };
 
   const unitOptions = [
-    'oz/acre', 
-    'pt/acre', 
-    'qt/acre', 
-    'gal/acre', 
-    'lb/acre', 
+    'oz/acre',
+    'pt/acre',
+    'qt/acre',
+    'gal/acre',
+    'lb/acre',
     'g/acre',
     'oz per 100 gal',
     'pt per 100 gal',
@@ -692,8 +796,62 @@ const AgSprayCalculator = () => {
   ];
 
   return (
-    <div className="p-4 bg-gray-50">
-      <div 
+    <div className="min-h-screen bg-gray-50">
+      {/* Save Mix Dialog Modal */}
+      {showSaveMixDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSaveMixDialog(false); }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm"
+            style={{border: `2px solid ${colors.primary}`}}
+          >
+            <h3 className="text-lg font-bold mb-1" style={{color: colors.primaryDark}}>Save Mix</h3>
+            <p className="text-sm mb-4" style={{color: colors.lightText + '99'}}>
+              Enter a name to save the current mix settings for quick recall.
+            </p>
+            <input
+              ref={mixNameInputRef}
+              type="text"
+              value={mixNameInput}
+              onChange={(e) => setMixNameInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveMix(); if (e.key === 'Escape') setShowSaveMixDialog(false); }}
+              placeholder="e.g. Corn Herbicide Mix"
+              className="w-full p-3 border-2 rounded-lg text-black mb-4 text-base"
+              style={{borderColor: colors.primary + '60'}}
+            />
+            {savedMixes.find(m => m.name === mixNameInput.trim()) && (
+              <p className="text-xs mb-3 px-2 py-1 rounded" style={{backgroundColor: colors.secondary + '30', color: colors.secondaryDark}}>
+                A mix with this name already exists — it will be overwritten.
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaveMixDialog(false)}
+                className="flex-1 py-3 rounded-lg font-medium border"
+                style={{borderColor: colors.primary + '50', color: colors.primaryDark}}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveMix}
+                disabled={!mixNameInput.trim()}
+                className="flex-1 py-3 rounded-lg font-medium text-white"
+                style={{
+                  backgroundColor: mixNameInput.trim() ? colors.primary : colors.primaryLight,
+                  opacity: mixNameInput.trim() ? 1 : 0.6
+                }}
+              >
+                Save Mix
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
         className="rounded-lg mx-auto p-4 sm:p-6 shadow-md"
         style={{
           backgroundColor: 'white',
@@ -701,599 +859,684 @@ const AgSprayCalculator = () => {
           maxWidth: "min(100%, 1000px)"
         }}
       >
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Spray Calc</h1>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowTips(!showTips)}
-            className="px-3 py-1 rounded-lg text-sm h-10"
-            style={{
-              backgroundColor: showTips ? colors.secondary : 'transparent',
-              color: showTips ? 'white' : colors.primary,
-              border: `1px solid ${colors.primary}`
-            }}
-            title="Show app tips and functionality guide"
-          >
-            Tips
-          </button>
-          <button 
-            onClick={saveSettings}
-            className="px-3 py-1 rounded-lg text-sm h-10"
-            style={{
-              backgroundColor: colors.primary,
-              color: 'white'
-            }}
-            title="Save your current calculator settings"
-          >
-            Save Settings
-          </button>
-          <button 
-            onClick={clearSettings}
-            className="px-3 py-1 rounded-lg text-sm h-10"
-            style={{
-              backgroundColor: 'transparent',
-              color: colors.primaryDark,
-              border: `1px solid ${colors.primary}`
-            }}
-            title="Clear saved settings"
-          >
-            Clear
-          </button>
-          {settingsFeedback && (
-            <div className="px-2 py-1 text-sm rounded" style={{backgroundColor: colors.secondaryLight}}>
-              {settingsFeedback}
-            </div>
-          )}
-        </div>
-      </div>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Spray Calc</h1>
 
-      {/* Tips/Info Module */}
-      {showTips && (
-        <div 
-          className="p-4 rounded-lg mb-6 border-2"
-          style={{
-            backgroundColor: colors.secondary + '10',
-            borderColor: colors.secondary
-          }}
-        >
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-bold" style={{color: colors.primaryDark}}>
-              How to Use This Calculator
-            </h2>
-            <button 
-              onClick={() => setShowTips(false)}
-              className="text-lg px-2 py-1 rounded hover:bg-gray-200"
-              title="Close tips"
+          <div className="flex items-center gap-2">
+            {/* Feedback toast */}
+            {settingsFeedback && (
+              <div
+                className="px-3 py-1.5 text-sm rounded-lg font-medium"
+                style={{backgroundColor: colors.secondaryLight, color: colors.primaryDark}}
+              >
+                {settingsFeedback}
+              </div>
+            )}
+
+            {/* Save Mix Button */}
+            <button
+              onClick={openSaveMixDialog}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+              style={{backgroundColor: colors.primary}}
+              title="Save this mix for quick recall"
             >
-              ✕
+              Save Mix
             </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Getting Started */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Getting Started</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>1. Set your mix info:</strong> Enter your fill volume (how much spray you're making) and application rate (GPA)</p>
-                  <p><strong>2. Add products:</strong> Click "+ Add Product" and enter each chemical's rate and unit</p>
-                  <p><strong>3. Enter field size:</strong> Add your field acreage to get purchase planning and mix breakdowns</p>
+
+            {/* 3-dot Menu */}
+            <div className="relative" ref={threeDotRef}>
+              <button
+                onClick={() => setShowThreeDotMenu(!showThreeDotMenu)}
+                className="flex items-center justify-center w-10 h-10 rounded-lg"
+                style={{
+                  backgroundColor: showThreeDotMenu ? colors.primary + '20' : 'transparent',
+                  border: `1px solid ${colors.primary}50`,
+                  color: colors.primaryDark
+                }}
+                title="More options"
+                aria-label="More options"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </button>
+
+              {/* 3-dot Dropdown Menu */}
+              {showThreeDotMenu && (
+                <div
+                  className="absolute right-0 mt-2 rounded-xl shadow-xl border z-40 overflow-hidden"
+                  style={{
+                    backgroundColor: 'white',
+                    borderColor: colors.primary + '30',
+                    minWidth: '260px',
+                    maxWidth: '90vw'
+                  }}
+                >
+                  {/* Saved Mixes Section */}
+                  <div className="px-4 pt-3 pb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{color: colors.primaryLight}}>
+                      Saved Mixes
+                    </p>
+                    {savedMixes.length === 0 ? (
+                      <p className="text-sm py-2" style={{color: colors.lightText + '80'}}>
+                        No saved mixes yet. Hit "Save Mix" to save your first one.
+                      </p>
+                    ) : (
+                      <div className="space-y-1 max-h-60 overflow-y-auto">
+                        {savedMixes.map((mix) => (
+                          <div
+                            key={mix.name}
+                            className="flex items-center gap-2 rounded-lg px-2 py-2"
+                            style={{backgroundColor: colors.primary + '08'}}
+                          >
+                            <button
+                              onClick={() => loadMix(mix.data)}
+                              className="flex-1 text-left text-sm font-medium truncate"
+                              style={{color: colors.primaryDark}}
+                            >
+                              {mix.name}
+                            </button>
+                            <button
+                              onClick={() => deleteMix(mix.name)}
+                              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-xs hover:bg-red-100 hover:text-red-600"
+                              style={{color: colors.primaryLight}}
+                              title={`Delete "${mix.name}"`}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{borderTop: `1px solid ${colors.primary}20`}} />
+
+                  {/* Menu Actions */}
+                  <div className="py-1">
+                    <button
+                      onClick={() => { setShowTips(!showTips); setShowThreeDotMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left"
+                      style={{color: colors.lightText}}
+                    >
+                      <span className="text-base">💡</span>
+                      {showTips ? 'Hide Tips' : 'Show Tips'}
+                    </button>
+                    <button
+                      onClick={clearSettings}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left"
+                      style={{color: '#c0392b'}}
+                    >
+                      <span className="text-base">🗑</span>
+                      Clear Calculator
+                    </button>
+                  </div>
                 </div>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Smart Features</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>• Smart suggestions:</strong> Get fill volume recommendations based on your field size</p>
-                  <p><strong>• Mix planning:</strong> See exactly how many full mixes + partial mixes you need</p>
-                  <p><strong>• Purchase optimization:</strong> Get container suggestions to minimize waste</p>
-                  <p><strong>• Field timing:</strong> Calculate spray time and completion estimates</p>
-                </div>
-              </div>
+              )}
             </div>
-            
-            {/* Features & Tips */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Key Features</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>Product Quantities:</strong> Shows total products to buy AND exact amounts for each mix</p>
-                  <p><strong>Partial mixes:</strong> Calculates reduced chemical amounts for remaining acres</p>
-                  <p><strong>Multiple formats:</strong> Click any amount to change display units (oz, gal, qt, etc.)</p>
-                  <p><strong>Field operations:</strong> Enter implement width, speed, and fill time for job estimates</p>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Pro Tips</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>• Save settings:</strong> Your data is automatically saved when you click "Save Settings"</p>
-                  <p><strong>• Copy summary:</strong> Click the clipboard icon to copy all info to share or print</p>
-                  <p><strong>• Fill volume strategy:</strong> For small fields, use exact spray amount. For large fields, use consistent fill volumes</p>
-                  <p><strong>• Rate units:</strong> Use "/acre" for per-acre rates or "per X gal" for concentration rates</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Examples Section */}
-          <div className="mt-6 p-4 rounded" style={{backgroundColor: 'white', border: `1px solid ${colors.primary}30`}}>
-            <h3 className="font-bold text-lg mb-3" style={{color: colors.primary}}>Example Scenarios</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <h4 className="font-medium mb-2" style={{color: colors.primaryDark}}>Small Field (5 acres):</h4>
-                <p>• 10 GPA rate = 50 gallons total needed</p>
-                <p>• Suggestion: Use 50-gallon fill (1 mix)</p>
-                <p>• Perfect - no waste, no partial mix</p>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2" style={{color: colors.primaryDark}}>Large Field (45 acres):</h4>
-                <p>• 15 GPA rate = 675 gallons total needed</p>
-                <p>• Suggestion: Use 100-gallon fills</p>
-                <p>• Result: 6 full mixes + 1 partial (75 gal)</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 p-3 rounded text-center text-sm" style={{backgroundColor: colors.primaryLight + '20'}}>
-            <p><strong>Remember:</strong> Always verify calculations against product labels and follow all safety guidelines. This calculator is a planning tool - use your professional judgment!</p>
           </div>
         </div>
-      )}
 
-      <div 
-        className="p-4 rounded-lg mb-6" 
-        style={{backgroundColor: colors.primaryLight + '30'}}
-      >
-        <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>Mix Information</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Fill Volume (gallons)</label>
-            <input
-              type="number"
-              value={fillVolume}
-              onChange={(e) => handleFillVolumeChange(e.target.value)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Application Rate (GPA)</label>
-            <input
-              type="number"
-              value={applicationRate}
-              onChange={(e) => handleApplicationRateChange(e.target.value)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Acres Per Fill</label>
-            <input
-              type="number"
-              value={acresPerFillInput}
-              onChange={(e) => handleAcresPerFillInputChange(e.target.value)}
-              onBlur={handleAcresPerFillBlur}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-              step="0.1"
-              placeholder="Auto-calculated"
-            />
-          </div>
-        </div>
-        
-        {/* Suggested Fill Volume */}
-        {fieldSize > 0 && applicationRate > 0 && (() => {
-          const suggested = calculateSuggestedFillVolume();
-          if (suggested && suggested !== fillVolume) {
-            return (
-              <div className="mt-3 p-3 rounded" style={{backgroundColor: colors.secondary + '20'}}>
-                <p className="text-sm">
-                  <strong>Suggestion:</strong> For {fieldSize} acres, consider using{' '}
-                  <button 
-                    onClick={() => handleFillVolumeChange(suggested)}
-                    className="underline font-bold"
-                    style={{color: colors.primaryDark}}
-                  >
-                    {suggested} gallons
-                  </button>{' '}
-                  as your fill volume
-                </p>
-              </div>
-            );
-          }
-          return null;
-        })()}
-      </div>
-
-      <div 
-        className="p-4 rounded-lg mb-6"
-        style={{backgroundColor: colors.secondaryLight + '30'}}
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-          <h2 className="font-bold" style={{color: colors.primaryDark}}>Products</h2>
-          
-          <button 
-            onClick={addNewProduct}
-            className="px-3 py-1 rounded-lg"
+        {/* Tips/Info Module */}
+        {showTips && (
+          <div
+            className="p-4 rounded-lg mb-6 border-2"
             style={{
-              backgroundColor: colors.primary,
-              color: 'white'
+              backgroundColor: colors.secondary + '10',
+              borderColor: colors.secondary
             }}
           >
-            + Add Product
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map((product) => (
-            <div 
-              key={product.id} 
-              className="p-4 rounded-lg border"
-              style={{
-                backgroundColor: 'white',
-                borderColor: colors.primary + '70'
-              }}
-            >
-              <div className="flex justify-between items-center mb-3">
-                <input
-                  type="text"
-                  value={product.name}
-                  onChange={(e) => handleProductChange(product.id, 'name', e.target.value)}
-                  className="w-3/4 p-2 border rounded text-black font-bold"
-                  placeholder="Product Name"
-                />
-                <button 
-                  onClick={() => removeProduct(product.id)}
-                  className="p-1 rounded hover:bg-red-500 hover:text-white"
-                  title="Remove Product"
-                  style={{color: colors.primaryDark}}
-                >
-                  ✕
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold" style={{color: colors.primaryDark}}>
+                How to Use This Calculator
+              </h2>
+              <button
+                onClick={() => setShowTips(false)}
+                className="text-lg px-2 py-1 rounded hover:bg-gray-200 min-w-[36px] min-h-[36px]"
+                title="Close tips"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Rate</label>
-                  <input
-                    type="number"
-                    value={product.rate}
-                    onChange={(e) => handleProductChange(product.id, 'rate', parseFloat(e.target.value) || 0)}
-                    className="w-full p-2 border rounded text-black"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Unit</label>
-                  <select
-                    value={product.unit}
-                    onChange={(e) => handleProductChange(product.id, 'unit', e.target.value)}
-                    className="w-full p-2 border rounded text-black"
-                  >
-                    {unitOptions.map(unit => (
-                      <option key={unit} value={unit}>{unit}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Amount for Tank</label>
-                <div className="relative">
-                  <div 
-                    className="w-full p-2 border rounded font-bold cursor-pointer"
-                    style={{
-                      backgroundColor: colors.primary + '20',
-                      borderColor: colors.primary + '50'
-                    }}
-                    onClick={() => toggleFormatMenu(product.id)}
-                  >
-                    {formatOutput(product.tankAmount, product.outputFormat)}
+                  <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Getting Started</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>1. Set your mix info:</strong> Enter your fill volume (how much spray you're making) and application rate (GPA)</p>
+                    <p><strong>2. Add products:</strong> Click "+ Add Product" and enter each chemical's rate and unit</p>
+                    <p><strong>3. Enter field size:</strong> Add your field acreage to get purchase planning and mix breakdowns</p>
                   </div>
-                  
-                  {openFormatMenuId === product.id && (
-                    <div 
-                      className="absolute z-10 mt-1 w-full border rounded shadow-lg"
-                      style={{
-                        backgroundColor: 'white',
-                        borderColor: colors.primary + '50'
-                      }}
-                    >
-                      <ul>
-                        {outputFormats.map(format => (
-                          <li 
-                            key={format.value}
-                            className="px-3 py-2 cursor-pointer"
-                            style={{
-                              backgroundColor: product.outputFormat === format.value 
-                                ? colors.primary + '20'
-                                : 'transparent'
-                            }}
-                            onClick={() => selectFormat(product.id, format.value)}
-                          >
-                            {format.label}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Smart Features</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>• Smart suggestions:</strong> Get fill volume recommendations based on your field size</p>
+                    <p><strong>• Mix planning:</strong> See exactly how many full mixes + partial mixes you need</p>
+                    <p><strong>• Purchase optimization:</strong> Get container suggestions to minimize waste</p>
+                    <p><strong>• Field timing:</strong> Calculate spray time and completion estimates</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Key Features</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Product Quantities:</strong> Shows total products to buy AND exact amounts for each mix</p>
+                    <p><strong>Partial mixes:</strong> Calculates reduced chemical amounts for remaining acres</p>
+                    <p><strong>Multiple formats:</strong> Click any amount to change display units (oz, gal, qt, etc.)</p>
+                    <p><strong>Field operations:</strong> Enter implement width, speed, and fill time for job estimates</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-lg mb-2" style={{color: colors.primary}}>Pro Tips</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>• Save mixes:</strong> Click "Save Mix" to save a named mix for quick recall from the ⋮ menu</p>
+                    <p><strong>• Copy summary:</strong> Click the clipboard icon to copy all info to share or print</p>
+                    <p><strong>• Fill volume strategy:</strong> For small fields, use exact spray amount. For large fields, use consistent fill volumes</p>
+                    <p><strong>• Rate units:</strong> Use "/acre" for per-acre rates or "per X gal" for concentration rates</p>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Product Quantities Required */}
-      {fieldSize > 0 && (
-        <div 
+            <div className="mt-6 p-4 rounded" style={{backgroundColor: 'white', border: `1px solid ${colors.primary}30`}}>
+              <h3 className="font-bold text-lg mb-3" style={{color: colors.primary}}>Example Scenarios</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h4 className="font-medium mb-2" style={{color: colors.primaryDark}}>Small Field (5 acres):</h4>
+                  <p>• 10 GPA rate = 50 gallons total needed</p>
+                  <p>• Suggestion: Use 50-gallon fill (1 mix)</p>
+                  <p>• Perfect - no waste, no partial mix</p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2" style={{color: colors.primaryDark}}>Large Field (45 acres):</h4>
+                  <p>• 15 GPA rate = 675 gallons total needed</p>
+                  <p>• Suggestion: Use 100-gallon fills</p>
+                  <p>• Result: 6 full mixes + 1 partial (75 gal)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 rounded text-center text-sm" style={{backgroundColor: colors.primaryLight + '20'}}>
+              <p><strong>Remember:</strong> Always verify calculations against product labels and follow all safety guidelines. This calculator is a planning tool - use your professional judgment!</p>
+            </div>
+          </div>
+        )}
+
+        {/* Mix Information */}
+        <div
           className="p-4 rounded-lg mb-6"
-          style={{backgroundColor: colors.secondary + '20'}}
+          style={{backgroundColor: colors.primaryLight + '30'}}
         >
-          <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>
-            Product Quantities Required
-          </h2>
-          
-          {/* Mix Planning Summary */}
-          {(() => {
-            const mixPlanning = calculateMixPlanning();
-            if (mixPlanning) {
+          <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>Mix Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Fill Volume (gallons)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={fillVolume || ''}
+                onChange={(e) => handleFillVolumeChange(e.target.value)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Application Rate (GPA)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={applicationRate || ''}
+                onChange={(e) => handleApplicationRateChange(e.target.value)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Acres Per Fill</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={acresPerFillInput}
+                onChange={(e) => handleAcresPerFillInputChange(e.target.value)}
+                onBlur={handleAcresPerFillBlur}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                step="0.1"
+                placeholder="Auto-calculated"
+              />
+            </div>
+          </div>
+
+          {/* Suggested Fill Volume */}
+          {fieldSize > 0 && applicationRate > 0 && (() => {
+            const suggested = calculateSuggestedFillVolume();
+            if (suggested && suggested !== fillVolume) {
               return (
-                <div className="mb-4 p-3 rounded" style={{backgroundColor: 'white'}}>
-                  <h3 className="font-bold mb-2" style={{color: colors.primary}}>Mix Planning</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p>• Field size: <strong>{fieldSize} acres</strong></p>
-                      <p>• Total spray needed: <strong>{mixPlanning.totalSprayNeeded.toFixed(0)} gallons</strong></p>
-                      <p>• Full mixes needed: <strong>{mixPlanning.fullMixes}</strong></p>
-                    </div>
-                    <div>
-                      {mixPlanning.hasPartialMix ? (
-                        <>
-                          <p>• Partial mix: <strong>{mixPlanning.remainingSpray.toFixed(1)} gallons</strong></p>
-                          <p>• Remaining acres: <strong>{mixPlanning.remainingAcres.toFixed(2)} acres</strong></p>
-                        </>
-                      ) : (
-                        <p className="text-green-600 font-medium">✓ Perfect fit - no partial mix needed</p>
-                      )}
-                    </div>
-                  </div>
+                <div className="mt-3 p-3 rounded-lg" style={{backgroundColor: colors.secondary + '20'}}>
+                  <p className="text-sm">
+                    <strong>Suggestion:</strong> For {fieldSize} acres, consider using{' '}
+                    <button
+                      onClick={() => handleFillVolumeChange(suggested)}
+                      className="underline font-bold"
+                      style={{color: colors.primaryDark}}
+                    >
+                      {suggested} gallons
+                    </button>{' '}
+                    as your fill volume
+                  </p>
                 </div>
               );
             }
             return null;
           })()}
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Total Quantities */}
-            <div>
-              <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Total Product to Purchase</h3>
-              <div className="space-y-3">
-                {products.map((product) => {
-                  const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
-                  const purchaseInfo = formatPurchaseAmount(totalAmount);
-                  
-                  return (
-                    <div 
-                      key={`purchase-${product.id}`}
-                      className="p-3 rounded border"
-                      style={{
-                        backgroundColor: 'white',
-                        borderColor: colors.secondary + '70'
-                      }}
+        </div>
+
+        {/* Products */}
+        <div
+          className="p-4 rounded-lg mb-6"
+          style={{backgroundColor: colors.secondaryLight + '30'}}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold" style={{color: colors.primaryDark}}>Products</h2>
+            <button
+              onClick={addNewProduct}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+              style={{backgroundColor: colors.primary}}
+            >
+              + Add Product
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="p-4 rounded-lg border"
+                style={{
+                  backgroundColor: 'white',
+                  borderColor: colors.primary + '70'
+                }}
+              >
+                <div className="flex justify-between items-center mb-3 gap-2">
+                  <input
+                    type="text"
+                    value={product.name}
+                    onChange={(e) => handleProductChange(product.id, 'name', e.target.value)}
+                    className="flex-1 min-w-0 p-2 border rounded-lg text-black font-bold text-sm"
+                    placeholder="Product Name"
+                  />
+                  <button
+                    onClick={() => removeProduct(product.id)}
+                    className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                    title="Remove Product"
+                    style={{color: colors.primaryDark, border: `1px solid ${colors.primary}30`}}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Rate</label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={product.rate || ''}
+                      onChange={(e) => handleProductChange(product.id, 'rate', parseFloat(e.target.value) || 0)}
+                      className="w-full p-2.5 border rounded-lg text-black text-sm"
+                      min="0"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Unit</label>
+                    <select
+                      value={product.unit}
+                      onChange={(e) => handleProductChange(product.id, 'unit', e.target.value)}
+                      className="w-full p-2.5 border rounded-lg text-black text-sm"
                     >
-                      <h4 className="font-bold mb-2" style={{color: colors.primaryDark}}>
-                        {product.name}
-                      </h4>
-                      <div className="mb-2">
-                        <span className="text-sm">Total needed: </span>
-                        <span className="font-bold text-lg">{purchaseInfo.display}</span>
-                      </div>
-                      
-                      {purchaseInfo.containers.length > 0 && (
-                        <div className="mt-2">
-                          <h5 className="text-xs font-medium mb-1">Purchase Options:</h5>
-                          {purchaseInfo.containers.slice(0, 2).map((option, index) => (
-                            <div 
-                              key={index}
-                              className="p-2 mb-1 rounded text-xs"
-                              style={{
-                                backgroundColor: index === 0 
-                                  ? colors.secondary + '30' 
-                                  : colors.primary + '10',
-                                border: index === 0 
-                                  ? `1px solid ${colors.secondary}` 
-                                  : `1px solid ${colors.primary}30`
-                              }}
-                            >
-                              <div className="font-medium">{option.display}</div>
-                              <div className="text-xs">
-                                Waste: {option.waste.toFixed(1)} fl oz ({option.wastePercent.toFixed(1)}%)
-                                {index === 0 && <span className="ml-2 font-medium">← Best</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Mix Breakdown */}
-            <div>
-              <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Mix Breakdown</h3>
-              <div className="space-y-3">
-                {/* Full Mixes */}
-                <div 
-                  className="p-3 rounded border"
-                  style={{
-                    backgroundColor: 'white',
-                    borderColor: colors.primary + '70'
-                  }}
-                >
-                  <h4 className="font-bold mb-2" style={{color: colors.primary}}>
-                    Full Mixes ({(() => {
-                      const mixPlanning = calculateMixPlanning();
-                      return mixPlanning ? mixPlanning.fullMixes : 0;
-                    })()})
-                  </h4>
-                  <p className="text-sm mb-2">Each mix uses {fillVolume} gallons covering {acresPerFill.toFixed(2)} acres</p>
-                  <div className="space-y-1">
-                    {products.map(product => (
-                      <div key={`full-${product.id}`} className="text-sm">
-                        <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)} per mix
-                      </div>
-                    ))}
+                      {unitOptions.map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                
-                {/* Partial Mix */}
-                {(() => {
-                  const mixPlanning = calculateMixPlanning();
-                  if (mixPlanning && mixPlanning.hasPartialMix) {
+
+                <div>
+                  <label className="block text-xs font-medium mb-1">Amount for Tank</label>
+                  <div className="relative">
+                    <div
+                      className="w-full p-2.5 border rounded-lg font-bold cursor-pointer text-sm select-none"
+                      style={{
+                        backgroundColor: colors.primary + '18',
+                        borderColor: colors.primary + '50'
+                      }}
+                      onClick={() => toggleFormatMenu(product.id)}
+                    >
+                      {formatOutput(product.tankAmount, product.outputFormat)}
+                      <span className="float-right text-xs opacity-50 mt-0.5">▼</span>
+                    </div>
+
+                    {openFormatMenuId === product.id && (
+                      <div
+                        className="absolute z-10 mt-1 w-full border rounded-lg shadow-lg overflow-hidden"
+                        style={{
+                          backgroundColor: 'white',
+                          borderColor: colors.primary + '50'
+                        }}
+                      >
+                        {outputFormats.map(format => (
+                          <div
+                            key={format.value}
+                            className="px-3 py-2.5 cursor-pointer text-sm hover:bg-gray-50 active:bg-gray-100"
+                            style={{
+                              backgroundColor: product.outputFormat === format.value
+                                ? colors.primary + '20'
+                                : 'transparent',
+                              fontWeight: product.outputFormat === format.value ? '600' : 'normal'
+                            }}
+                            onClick={() => selectFormat(product.id, format.value)}
+                          >
+                            {format.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Product Quantities Required */}
+        {fieldSize > 0 && (
+          <div
+            className="p-4 rounded-lg mb-6"
+            style={{backgroundColor: colors.secondary + '20'}}
+          >
+            <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>
+              Product Quantities Required
+            </h2>
+
+            {/* Mix Planning Summary */}
+            {(() => {
+              const mixPlanning = calculateMixPlanning();
+              if (mixPlanning) {
+                return (
+                  <div className="mb-4 p-3 rounded-lg" style={{backgroundColor: 'white'}}>
+                    <h3 className="font-bold mb-2" style={{color: colors.primary}}>Mix Planning</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p>• Field size: <strong>{fieldSize} acres</strong></p>
+                        <p>• Total spray needed: <strong>{mixPlanning.totalSprayNeeded.toFixed(0)} gallons</strong></p>
+                        <p>• Full mixes needed: <strong>{mixPlanning.fullMixes}</strong></p>
+                      </div>
+                      <div>
+                        {mixPlanning.hasPartialMix ? (
+                          <>
+                            <p>• Partial mix: <strong>{mixPlanning.remainingSpray.toFixed(1)} gallons</strong></p>
+                            <p>• Remaining acres: <strong>{mixPlanning.remainingAcres.toFixed(2)} acres</strong></p>
+                          </>
+                        ) : (
+                          <p className="text-green-600 font-medium">✓ Perfect fit — no partial mix needed</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Total Quantities */}
+              <div>
+                <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Total Product to Purchase</h3>
+                <div className="space-y-3">
+                  {products.map((product) => {
+                    const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
+                    const purchaseInfo = formatPurchaseAmount(totalAmount);
+
                     return (
-                      <div 
-                        className="p-3 rounded border"
+                      <div
+                        key={`purchase-${product.id}`}
+                        className="p-3 rounded-lg border"
                         style={{
                           backgroundColor: 'white',
                           borderColor: colors.secondary + '70'
                         }}
                       >
-                        <h4 className="font-bold mb-2" style={{color: colors.secondary.replace('#', '').length === 6 ? colors.secondaryDark : colors.secondary}}>
-                          Partial Mix (1)
+                        <h4 className="font-bold mb-2" style={{color: colors.primaryDark}}>
+                          {product.name}
                         </h4>
-                        <p className="text-sm mb-2">
-                          {mixPlanning.remainingSpray.toFixed(1)} gallons for {mixPlanning.remainingAcres.toFixed(2)} acres
-                        </p>
-                        <div className="space-y-1">
-                          {products.map(product => {
-                            const partialAmount = calculateAmount(product.rate, product.unit, mixPlanning.remainingSpray, applicationRate);
-                            return (
-                              <div key={`partial-${product.id}`} className="text-sm">
-                                <strong>{product.name}:</strong> {formatOutput(partialAmount, product.outputFormat)}
-                              </div>
-                            );
-                          })}
+                        <div className="mb-2">
+                          <span className="text-sm">Total needed: </span>
+                          <span className="font-bold text-lg">{purchaseInfo.display}</span>
                         </div>
+
+                        {purchaseInfo.containers.length > 0 && (
+                          <div className="mt-2">
+                            <h5 className="text-xs font-medium mb-1">Purchase Options:</h5>
+                            {purchaseInfo.containers.slice(0, 2).map((option, index) => (
+                              <div
+                                key={index}
+                                className="p-2 mb-1 rounded-lg text-xs"
+                                style={{
+                                  backgroundColor: index === 0
+                                    ? colors.secondary + '30'
+                                    : colors.primary + '10',
+                                  border: index === 0
+                                    ? `1px solid ${colors.secondary}`
+                                    : `1px solid ${colors.primary}30`
+                                }}
+                              >
+                                <div className="font-medium">{option.display}</div>
+                                <div className="text-xs">
+                                  Waste: {option.waste.toFixed(1)} fl oz ({option.wastePercent.toFixed(1)}%)
+                                  {index === 0 && <span className="ml-2 font-medium">← Best</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
-                  }
-                  return null;
-                })()}
+                  })}
+                </div>
+              </div>
+
+              {/* Mix Breakdown */}
+              <div>
+                <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Mix Breakdown</h3>
+                <div className="space-y-3">
+                  <div
+                    className="p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: 'white',
+                      borderColor: colors.primary + '70'
+                    }}
+                  >
+                    <h4 className="font-bold mb-2" style={{color: colors.primary}}>
+                      Full Mixes ({(() => {
+                        const mixPlanning = calculateMixPlanning();
+                        return mixPlanning ? mixPlanning.fullMixes : 0;
+                      })()})
+                    </h4>
+                    <p className="text-sm mb-2">Each mix uses {fillVolume} gallons covering {acresPerFill.toFixed(2)} acres</p>
+                    <div className="space-y-1">
+                      {products.map(product => (
+                        <div key={`full-${product.id}`} className="text-sm">
+                          <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)} per mix
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const mixPlanning = calculateMixPlanning();
+                    if (mixPlanning && mixPlanning.hasPartialMix) {
+                      return (
+                        <div
+                          className="p-3 rounded-lg border"
+                          style={{
+                            backgroundColor: 'white',
+                            borderColor: colors.secondary + '70'
+                          }}
+                        >
+                          <h4 className="font-bold mb-2" style={{color: colors.secondaryDark}}>
+                            Partial Mix (1)
+                          </h4>
+                          <p className="text-sm mb-2">
+                            {mixPlanning.remainingSpray.toFixed(1)} gallons for {mixPlanning.remainingAcres.toFixed(2)} acres
+                          </p>
+                          <div className="space-y-1">
+                            {products.map(product => {
+                              const partialAmount = calculateAmount(product.rate, product.unit, mixPlanning.remainingSpray, applicationRate);
+                              return (
+                                <div key={`partial-${product.id}`} className="text-sm">
+                                  <strong>{product.name}:</strong> {formatOutput(partialAmount, product.outputFormat)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div 
-        className="p-4 rounded-lg"
-        style={{backgroundColor: colors.secondaryLight + '20'}}
-      >
-        <div className="flex justify-between items-start">
-          <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>Summary</h2>
-          <div className="relative">
-            <button 
-              onClick={copyToClipboard}
-              className="p-2 rounded-lg"
-              style={{backgroundColor: colors.primary + '20'}}
-              title="Copy to Clipboard"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill={colors.primary} className="bi bi-clipboard" viewBox="0 0 16 16">
-                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-              </svg>
-            </button>
-            {copyFeedback && (
-              <div className="absolute right-0 mt-2 px-2 py-1 bg-white border rounded-lg shadow-lg" style={{color: copyFeedback.includes('Failed') ? 'red' : colors.primary}}>
-                {copyFeedback}
-              </div>
-            )}
-          </div>
-        </div>
-        <div>
-          <p className="mb-1">For a <strong>{fillVolume} gallon</strong> mix at <strong>{applicationRate} GPA</strong>:</p>
-          <p className="mb-1">• This mix will cover <strong>{acresPerFill.toFixed(2)} acres</strong></p>
-          <p className="mb-3">• Add the following to your mix:</p>
-          <ul className="list-disc pl-6">
-            {products.map(product => (
-              <li key={product.id} className="mb-1">
-                <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      
-      <div 
-        className="p-4 rounded-lg mt-6"
-        style={{backgroundColor: colors.primaryLight + '15'}}
-      >
-        <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>Field Operations</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Field Size (acres)</label>
-            <input
-              type="number"
-              value={fieldSize}
-              onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Implement Width (feet)</label>
-            <input
-              type="number"
-              value={implementWidth}
-              onChange={(e) => setImplementWidth(parseFloat(e.target.value) || 0)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Speed (mph)</label>
-            <input
-              type="number"
-              value={speed}
-              onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Fill Time (minutes)</label>
-            <input
-              type="number"
-              value={fillTime}
-              onChange={(e) => setFillTime(parseFloat(e.target.value) || 0)}
-              className="w-full p-2 border rounded text-black"
-              min="0"
-            />
-          </div>
-        </div>
-        
-        <div 
-          className="p-3 rounded"
-          style={{
-            backgroundColor: 'white',
-            borderLeft: `4px solid ${colors.primary}`
-          }}
+        {/* Summary */}
+        <div
+          className="p-4 rounded-lg"
+          style={{backgroundColor: colors.secondaryLight + '20'}}
         >
-          <h3 className="font-bold mb-2" style={{color: colors.primary}}>Field Operations Estimates</h3>
-          {calculateFieldOperations()}
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-bold" style={{color: colors.primaryDark}}>Summary</h2>
+            <div className="relative flex items-center gap-2">
+              {copyFeedback && (
+                <span className="text-sm font-medium" style={{color: colors.primary}}>
+                  {copyFeedback}
+                </span>
+              )}
+              <button
+                onClick={copyToClipboard}
+                className="p-2.5 rounded-lg flex items-center justify-center"
+                style={{backgroundColor: colors.primary + '20'}}
+                title="Copy to Clipboard"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill={colors.primary} viewBox="0 0 16 16">
+                  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                  <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div>
+            <p className="mb-1">For a <strong>{fillVolume} gallon</strong> mix at <strong>{applicationRate} GPA</strong>:</p>
+            <p className="mb-1">• This mix will cover <strong>{acresPerFill.toFixed(2)} acres</strong></p>
+            <p className="mb-3">• Add the following to your mix:</p>
+            <ul className="list-disc pl-6 space-y-1">
+              {products.map(product => (
+                <li key={product.id}>
+                  <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
-      
-      <div className="mt-4 text-sm opacity-70" style={{color: colors.primaryDark}}>
-        <p>Note: Always verify calculations against product labels and follow all safety guidelines.</p>
+
+        {/* Field Operations */}
+        <div
+          className="p-4 rounded-lg mt-6"
+          style={{backgroundColor: colors.primaryLight + '15'}}
+        >
+          <h2 className="font-bold mb-4" style={{color: colors.primaryDark}}>Field Operations</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div>
+              <label className="block text-xs font-medium mb-1">Field Size (acres)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={fieldSize || ''}
+                onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Width (feet)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={implementWidth || ''}
+                onChange={(e) => setImplementWidth(parseFloat(e.target.value) || 0)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Speed (mph)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={speed || ''}
+                onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Fill Time (min)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={fillTime || ''}
+                onChange={(e) => setFillTime(parseFloat(e.target.value) || 0)}
+                className="w-full p-3 border rounded-lg text-black text-base"
+                min="0"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div
+            className="p-3 rounded-lg"
+            style={{
+              backgroundColor: 'white',
+              borderLeft: `4px solid ${colors.primary}`
+            }}
+          >
+            <h3 className="font-bold mb-2" style={{color: colors.primary}}>Field Operations Estimates</h3>
+            {calculateFieldOperations()}
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs opacity-60" style={{color: colors.primaryDark}}>
+          <p>Always verify calculations against product labels and follow all safety guidelines.</p>
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 
