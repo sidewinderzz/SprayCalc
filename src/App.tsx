@@ -32,6 +32,9 @@ const AgSprayCalculator = () => {
   // Saved mixes state
   const [savedMixes, setSavedMixes] = useState<Array<{name: string, data: any}>>([]);
 
+  // Product Quantities section open/closed
+  const [showQuantities, setShowQuantities] = useState(true);
+
   // 3-dot menu state
   const [showThreeDotMenu, setShowThreeDotMenu] = useState(false);
   const threeDotRef = useRef<HTMLDivElement>(null);
@@ -567,6 +570,137 @@ const AgSprayCalculator = () => {
     }
 
     return text;
+  };
+
+  // Export summary as PDF via print dialog
+  const exportPDF = () => {
+    const mixPlanning = calculateMixPlanning();
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SprayCalc Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #1c291f; padding: 24px; }
+    h1 { font-size: 20px; color: #498a5a; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #76a886; margin-bottom: 20px; }
+    section { margin-bottom: 18px; }
+    h2 { font-size: 13px; font-weight: 700; color: #2d6840; border-bottom: 2px solid #498a5a; padding-bottom: 4px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    h3 { font-size: 12px; font-weight: 700; color: #498a5a; margin-bottom: 6px; }
+    .grid { display: grid; gap: 10px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .card { border: 1px solid #c8dece; border-radius: 6px; overflow: hidden; }
+    .card-header { background: #e8f3eb; padding: 6px 10px; }
+    .card-header.yellow { background: #f7f1c4; border-color: #d1c343; }
+    .card-body { padding: 6px 10px; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #2d6840; }
+    .value { font-weight: 700; color: #1c291f; }
+    .big-value { font-size: 17px; font-weight: 700; color: #1c291f; }
+    .sub { font-size: 11px; color: #76a886; margin-top: 2px; }
+    .chip { display: inline-block; background: #e8f3eb; border-radius: 20px; padding: 2px 8px; font-size: 11px; margin-right: 4px; }
+    .star { color: #b2a529; }
+    .option-row { font-size: 11px; display: flex; justify-content: space-between; padding: 1px 0; }
+    .best { font-weight: 600; }
+    .footer { margin-top: 24px; font-size: 10px; color: #76a886; border-top: 1px solid #c8dece; padding-top: 8px; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>Spray Calc Report</h1>
+  <div class="meta">Generated ${new Date().toLocaleString()}</div>
+
+  <section>
+    <h2>Mix Information</h2>
+    <div class="grid grid-3">
+      <div class="card"><div class="card-header"><div class="label">Fill Volume</div><div class="big-value">${fillVolume} gal</div></div></div>
+      <div class="card"><div class="card-header"><div class="label">Application Rate</div><div class="big-value">${applicationRate} GPA</div></div></div>
+      <div class="card"><div class="card-header"><div class="label">Acres Per Fill</div><div class="big-value">${acresPerFill.toFixed(2)} ac</div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Products Per Mix</h2>
+    <div class="grid grid-3">
+      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat)}</div></div></div>`).join('')}
+    </div>
+  </section>
+
+  ${mixPlanning ? `
+  <section>
+    <h2>Field Overview</h2>
+    <div style="margin-bottom:10px">
+      <span class="chip">${fieldSize} acres</span>
+      <span class="chip">${mixPlanning.totalSprayNeeded.toFixed(0)} gal total</span>
+      <span class="chip">${mixPlanning.fullMixes} full mix${mixPlanning.fullMixes !== 1 ? 'es' : ''}</span>
+      ${mixPlanning.hasPartialMix ? `<span class="chip">1 partial (${mixPlanning.remainingSpray.toFixed(1)} gal / ${mixPlanning.remainingAcres.toFixed(2)} ac)</span>` : '<span class="chip" style="background:#e8f3eb;color:#498a5a">✓ No partial mix</span>'}
+    </div>
+  </section>
+
+  <section>
+    <h2>What to Buy</h2>
+    <div class="grid grid-3">
+      ${products.map(p => {
+        const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize);
+        const info = formatPurchaseAmount(totalOz);
+        return `<div class="card">
+          <div class="card-header yellow"><div class="label">${p.name}</div><div class="big-value">${info.display}</div></div>
+          <div class="card-body">
+            ${info.containers.slice(0,2).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${c.display}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </section>
+
+  <section>
+    <h2>Per Mix Amounts</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
+        <div class="card-body">
+          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat)}</span></div>`).join('')}
+        </div>
+      </div>
+      ${mixPlanning.hasPartialMix ? `
+      <div class="card">
+        <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
+        <div class="card-body">
+          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat)}</span></div>`; }).join('')}
+        </div>
+      </div>` : ''}
+    </div>
+  </section>
+  ` : ''}
+
+  <div class="footer">Always verify calculations against product labels and follow all safety guidelines. SprayCalc — planning tool only.</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
+  // Share via Web Share API (falls back to clipboard)
+  const shareSummary = async () => {
+    const text = generateSummaryText();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'SprayCalc Mix', text });
+        return;
+      } catch (_) {}
+    }
+    // Fallback: copy to clipboard
+    try { await navigator.clipboard.writeText(text); } catch (_) {}
+    setCopyFeedback('Copied!');
+    setTimeout(() => setCopyFeedback(''), 2000);
   };
 
   // Copy summary to clipboard
@@ -1239,167 +1373,6 @@ const AgSprayCalculator = () => {
           </div>
         </div>
 
-        {/* Product Quantities Required */}
-        {fieldSize > 0 && (
-          <div
-            className="p-4 rounded-lg mb-6"
-            style={{backgroundColor: colors.secondary + '20'}}
-          >
-            <h2 className="font-bold mb-3" style={{color: colors.primaryDark}}>
-              Product Quantities Required
-            </h2>
-
-            {/* Mix Planning Summary */}
-            {(() => {
-              const mixPlanning = calculateMixPlanning();
-              if (mixPlanning) {
-                return (
-                  <div className="mb-4 p-3 rounded-lg" style={{backgroundColor: 'white'}}>
-                    <h3 className="font-bold mb-2" style={{color: colors.primary}}>Mix Planning</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p>• Field size: <strong>{fieldSize} acres</strong></p>
-                        <p>• Total spray needed: <strong>{mixPlanning.totalSprayNeeded.toFixed(0)} gallons</strong></p>
-                        <p>• Full mixes needed: <strong>{mixPlanning.fullMixes}</strong></p>
-                      </div>
-                      <div>
-                        {mixPlanning.hasPartialMix ? (
-                          <>
-                            <p>• Partial mix: <strong>{mixPlanning.remainingSpray.toFixed(1)} gallons</strong></p>
-                            <p>• Remaining acres: <strong>{mixPlanning.remainingAcres.toFixed(2)} acres</strong></p>
-                          </>
-                        ) : (
-                          <p className="text-green-600 font-medium">✓ Perfect fit — no partial mix needed</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Total Quantities */}
-              <div>
-                <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Total Product to Purchase</h3>
-                <div className="space-y-3">
-                  {products.map((product) => {
-                    const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
-                    const purchaseInfo = formatPurchaseAmount(totalAmount);
-
-                    return (
-                      <div
-                        key={`purchase-${product.id}`}
-                        className="p-3 rounded-lg border"
-                        style={{
-                          backgroundColor: 'white',
-                          borderColor: colors.secondary + '70'
-                        }}
-                      >
-                        <h4 className="font-bold mb-2" style={{color: colors.primaryDark}}>
-                          {product.name}
-                        </h4>
-                        <div className="mb-2">
-                          <span className="text-sm">Total needed: </span>
-                          <span className="font-bold text-lg">{purchaseInfo.display}</span>
-                        </div>
-
-                        {purchaseInfo.containers.length > 0 && (
-                          <div className="mt-2">
-                            <h5 className="text-xs font-medium mb-1">Purchase Options:</h5>
-                            {purchaseInfo.containers.slice(0, 2).map((option, index) => (
-                              <div
-                                key={index}
-                                className="p-2 mb-1 rounded-lg text-xs"
-                                style={{
-                                  backgroundColor: index === 0
-                                    ? colors.secondary + '30'
-                                    : colors.primary + '10',
-                                  border: index === 0
-                                    ? `1px solid ${colors.secondary}`
-                                    : `1px solid ${colors.primary}30`
-                                }}
-                              >
-                                <div className="font-medium">{option.display}</div>
-                                <div className="text-xs">
-                                  Waste: {option.waste.toFixed(1)} fl oz ({option.wastePercent.toFixed(1)}%)
-                                  {index === 0 && <span className="ml-2 font-medium">← Best</span>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Mix Breakdown */}
-              <div>
-                <h3 className="font-bold mb-3" style={{color: colors.primaryDark}}>Mix Breakdown</h3>
-                <div className="space-y-3">
-                  <div
-                    className="p-3 rounded-lg border"
-                    style={{
-                      backgroundColor: 'white',
-                      borderColor: colors.primary + '70'
-                    }}
-                  >
-                    <h4 className="font-bold mb-2" style={{color: colors.primary}}>
-                      Full Mixes ({(() => {
-                        const mixPlanning = calculateMixPlanning();
-                        return mixPlanning ? mixPlanning.fullMixes : 0;
-                      })()})
-                    </h4>
-                    <p className="text-sm mb-2">Each mix uses {fillVolume} gallons covering {acresPerFill.toFixed(2)} acres</p>
-                    <div className="space-y-1">
-                      {products.map(product => (
-                        <div key={`full-${product.id}`} className="text-sm">
-                          <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)} per mix
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const mixPlanning = calculateMixPlanning();
-                    if (mixPlanning && mixPlanning.hasPartialMix) {
-                      return (
-                        <div
-                          className="p-3 rounded-lg border"
-                          style={{
-                            backgroundColor: 'white',
-                            borderColor: colors.secondary + '70'
-                          }}
-                        >
-                          <h4 className="font-bold mb-2" style={{color: colors.secondaryDark}}>
-                            Partial Mix (1)
-                          </h4>
-                          <p className="text-sm mb-2">
-                            {mixPlanning.remainingSpray.toFixed(1)} gallons for {mixPlanning.remainingAcres.toFixed(2)} acres
-                          </p>
-                          <div className="space-y-1">
-                            {products.map(product => {
-                              const partialAmount = calculateAmount(product.rate, product.unit, mixPlanning.remainingSpray, applicationRate);
-                              return (
-                                <div key={`partial-${product.id}`} className="text-sm">
-                                  <strong>{product.name}:</strong> {formatOutput(partialAmount, product.outputFormat)}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Summary */}
         <div
@@ -1408,22 +1381,49 @@ const AgSprayCalculator = () => {
         >
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-bold" style={{color: colors.primaryDark}}>Summary</h2>
-            <div className="relative flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {copyFeedback && (
                 <span className="text-sm font-medium" style={{color: colors.primary}}>
                   {copyFeedback}
                 </span>
               )}
+              {/* Copy */}
               <button
                 onClick={copyToClipboard}
                 className="p-2.5 rounded-lg flex items-center justify-center"
-                style={{backgroundColor: colors.primary + '20'}}
-                title="Copy to Clipboard"
+                style={{backgroundColor: colors.primary + '18', border: `1px solid ${colors.primary}30`}}
+                title="Copy to clipboard"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill={colors.primary} viewBox="0 0 16 16">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill={colors.primary} viewBox="0 0 16 16">
                   <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
                   <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
                 </svg>
+              </button>
+              {/* Share */}
+              <button
+                onClick={shareSummary}
+                className="p-2.5 rounded-lg flex items-center justify-center"
+                style={{backgroundColor: colors.primary + '18', border: `1px solid ${colors.primary}30`}}
+                title="Share"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </button>
+              {/* PDF */}
+              <button
+                onClick={exportPDF}
+                className="px-3 py-2 rounded-lg flex items-center gap-1.5 text-xs font-medium"
+                style={{backgroundColor: colors.primary, color: 'white'}}
+                title="Export PDF"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                PDF
               </button>
             </div>
           </div>
@@ -1440,6 +1440,132 @@ const AgSprayCalculator = () => {
             </ul>
           </div>
         </div>
+
+        {/* Field Quantities — collapsible, after Summary */}
+        {fieldSize > 0 && (() => {
+          const mixPlanning = calculateMixPlanning();
+          if (!mixPlanning) return null;
+          return (
+            <div className="mt-4 rounded-lg overflow-hidden border" style={{borderColor: colors.primary + '30'}}>
+              {/* Toggle header */}
+              <button
+                onClick={() => setShowQuantities(!showQuantities)}
+                className="w-full flex items-center justify-between px-4 py-3"
+                style={{backgroundColor: colors.primary + '12'}}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-sm" style={{color: colors.primaryDark}}>Field Quantities</span>
+                  {/* Compact stats chips */}
+                  <span className="hidden sm:flex items-center gap-2 text-xs" style={{color: colors.primaryDark + 'aa'}}>
+                    <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{fieldSize} ac</span>
+                    <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{mixPlanning.totalSprayNeeded.toFixed(0)} gal</span>
+                    <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{mixPlanning.fullMixes} full{mixPlanning.hasPartialMix ? ' + 1 partial' : ''}</span>
+                  </span>
+                </div>
+                <svg
+                  viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  style={{color: colors.primaryDark, transform: showQuantities ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'}}
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              {showQuantities && (
+                <div className="p-4 space-y-5">
+
+                  {/* ── What to Buy ──────────────────────────────────────── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-5 rounded-full" style={{backgroundColor: colors.secondary}}/>
+                      <h3 className="font-bold text-sm" style={{color: colors.primaryDark}}>What to Buy</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {products.map((product) => {
+                        const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize);
+                        const purchaseInfo = formatPurchaseAmount(totalAmount);
+                        return (
+                          <div
+                            key={`purchase-${product.id}`}
+                            className="rounded-lg overflow-hidden border"
+                            style={{borderColor: colors.secondary + '80'}}
+                          >
+                            <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '25'}}>
+                              <p className="font-bold text-sm truncate" style={{color: colors.primaryDark}}>{product.name}</p>
+                              <p className="text-xl font-bold mt-0.5" style={{color: colors.primaryDark}}>{purchaseInfo.display}</p>
+                            </div>
+                            {purchaseInfo.containers.length > 0 && (
+                              <div className="px-3 py-2 space-y-1.5">
+                                {purchaseInfo.containers.slice(0, 2).map((option, index) => (
+                                  <div key={index} className="flex items-center justify-between text-xs">
+                                    <span className={index === 0 ? 'font-semibold' : 'opacity-70'} style={{color: colors.lightText}}>
+                                      {index === 0 && <span className="mr-1" style={{color: colors.secondary}}>★</span>}
+                                      {option.display}
+                                    </span>
+                                    <span className="opacity-60">{option.wastePercent.toFixed(0)}% waste</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{borderTop: `1px solid ${colors.primary}20`}}/>
+
+                  {/* ── Per Mix Amounts ───────────────────────────────────── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-5 rounded-full" style={{backgroundColor: colors.primary}}/>
+                      <h3 className="font-bold text-sm" style={{color: colors.primaryDark}}>Per Mix Amounts</h3>
+                    </div>
+                    <div className={`grid gap-3 ${mixPlanning.hasPartialMix ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+                      {/* Full Mix card */}
+                      <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.primary + '60'}}>
+                        <div className="px-3 py-2" style={{backgroundColor: colors.primary + '15'}}>
+                          <p className="font-bold text-sm" style={{color: colors.primary}}>Full Mix × {mixPlanning.fullMixes}</p>
+                          <p className="text-xs opacity-70 mt-0.5">{fillVolume} gal · {acresPerFill.toFixed(2)} acres each</p>
+                        </div>
+                        <div className="px-3 py-2 space-y-1.5">
+                          {products.map(product => (
+                            <div key={`full-${product.id}`} className="flex items-center justify-between text-sm">
+                              <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
+                              <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(product.tankAmount, product.outputFormat)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Partial Mix card */}
+                      {mixPlanning.hasPartialMix && (
+                        <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.secondary + '80'}}>
+                          <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '20'}}>
+                            <p className="font-bold text-sm" style={{color: colors.secondaryDark}}>Partial Mix × 1</p>
+                            <p className="text-xs opacity-70 mt-0.5">{mixPlanning.remainingSpray.toFixed(1)} gal · {mixPlanning.remainingAcres.toFixed(2)} acres</p>
+                          </div>
+                          <div className="px-3 py-2 space-y-1.5">
+                            {products.map(product => {
+                              const partialAmount = calculateAmount(product.rate, product.unit, mixPlanning.remainingSpray, applicationRate);
+                              return (
+                                <div key={`partial-${product.id}`} className="flex items-center justify-between text-sm">
+                                  <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
+                                  <span className="font-bold flex-shrink-0" style={{color: colors.secondaryDark}}>{formatOutput(partialAmount, product.outputFormat)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Field Operations */}
         <div
