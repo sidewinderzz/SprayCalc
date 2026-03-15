@@ -41,6 +41,9 @@ const AgSprayCalculator = () => {
   const [mixNameInput, setMixNameInput] = useState('');
   const mixNameInputRef = useRef<HTMLInputElement>(null);
 
+  // Tracks whether initial load has finished so auto-save doesn't fire too early
+  const hasLoaded = useRef(false);
+
   // Update current time every minute
   useEffect(() => {
     const timer = setInterval(() => {
@@ -54,7 +57,20 @@ const AgSprayCalculator = () => {
   useEffect(() => {
     loadSettings();
     loadAllMixes();
+    setTimeout(() => { hasLoaded.current = true; }, 300);
   }, []);
+
+  // Auto-save all inputs to localStorage on every change
+  useEffect(() => {
+    if (!hasLoaded.current) return;
+    try {
+      localStorage.setItem('agSprayCalcSettings', JSON.stringify({
+        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime
+      }));
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    }
+  }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime]);
 
   // Close 3-dot menu when clicking outside
   useEffect(() => {
@@ -109,31 +125,6 @@ const AgSprayCalculator = () => {
       setAcresPerFillInput('');
     }
   }, [fillVolume, applicationRate]);
-
-  // Calculate suggested fill volume based on field size
-  const calculateSuggestedFillVolume = () => {
-    if (!fieldSize || !applicationRate) return null;
-
-    const totalSprayNeeded = fieldSize * applicationRate;
-
-    const commonVolumes = [10, 25, 50, 100, 200, 300, 500, 1000];
-
-    if (totalSprayNeeded <= 50) {
-      return Math.ceil(totalSprayNeeded / 5) * 5;
-    }
-
-    for (let volume of [...commonVolumes].reverse()) {
-      const mixes = totalSprayNeeded / volume;
-      if (mixes >= 2 && mixes <= 10) {
-        return volume;
-      }
-    }
-
-    if (totalSprayNeeded <= 100) return 50;
-    if (totalSprayNeeded <= 500) return 100;
-    if (totalSprayNeeded <= 1000) return 200;
-    return 500;
-  };
 
   // Calculate mix planning for the field
   const calculateMixPlanning = () => {
@@ -451,6 +442,7 @@ const AgSprayCalculator = () => {
   // Clear current settings (reset inputs)
   const clearSettings = () => {
     try {
+      hasLoaded.current = false;
       localStorage.removeItem('agSprayCalcSettings');
       setFillVolume(0);
       setApplicationRate(0);
@@ -461,7 +453,10 @@ const AgSprayCalculator = () => {
       setFillTime(0);
       setShowThreeDotMenu(false);
       setSettingsFeedback('Calculator cleared!');
-      setTimeout(() => setSettingsFeedback(''), 2500);
+      setTimeout(() => {
+        hasLoaded.current = true;
+        setSettingsFeedback('');
+      }, 300);
     } catch (err) {
       console.error('Failed to clear settings:', err);
       setSettingsFeedback('Error clearing');
@@ -874,6 +869,20 @@ const AgSprayCalculator = () => {
               </div>
             )}
 
+            {/* Clear Button */}
+            <button
+              onClick={clearSettings}
+              className="px-4 py-2 rounded-lg text-sm font-medium"
+              style={{
+                backgroundColor: 'transparent',
+                color: colors.primaryDark,
+                border: `1px solid ${colors.primary}50`
+              }}
+              title="Clear all inputs"
+            >
+              Clear
+            </button>
+
             {/* Save Mix Button */}
             <button
               onClick={openSaveMixDialog}
@@ -964,14 +973,6 @@ const AgSprayCalculator = () => {
                     >
                       <span className="text-base">💡</span>
                       {showTips ? 'Hide Tips' : 'Show Tips'}
-                    </button>
-                    <button
-                      onClick={clearSettings}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left"
-                      style={{color: '#c0392b'}}
-                    >
-                      <span className="text-base">🗑</span>
-                      Clear Calculator
                     </button>
                   </div>
                 </div>
@@ -1117,29 +1118,6 @@ const AgSprayCalculator = () => {
               />
             </div>
           </div>
-
-          {/* Suggested Fill Volume */}
-          {fieldSize > 0 && applicationRate > 0 && (() => {
-            const suggested = calculateSuggestedFillVolume();
-            if (suggested && suggested !== fillVolume) {
-              return (
-                <div className="mt-3 p-3 rounded-lg" style={{backgroundColor: colors.secondary + '20'}}>
-                  <p className="text-sm">
-                    <strong>Suggestion:</strong> For {fieldSize} acres, consider using{' '}
-                    <button
-                      onClick={() => handleFillVolumeChange(suggested)}
-                      className="underline font-bold"
-                      style={{color: colors.primaryDark}}
-                    >
-                      {suggested} gallons
-                    </button>{' '}
-                    as your fill volume
-                  </p>
-                </div>
-              );
-            }
-            return null;
-          })()}
         </div>
 
         {/* Products */}
