@@ -104,8 +104,8 @@ export function Header({
       )}
 
       {/* Header bar */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Spray Calc</h1>
+      <div className="flex justify-between items-center mb-6 gap-2">
+        <h1 className="text-xl font-bold whitespace-nowrap" style={{color: colors.primary}}>Spray Calc</h1>
 
         <div className="flex items-center gap-2">
           {/* Feedback toast */}
@@ -121,7 +121,7 @@ export function Header({
           {/* Clear Button */}
           <button
             onClick={clearSettings}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
+            className="h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap"
             style={{
               backgroundColor: 'transparent',
               color: colors.primaryDark,
@@ -135,7 +135,7 @@ export function Header({
           {/* Save Mix Button */}
           <button
             onClick={openSaveMixDialog}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+            className="h-9 px-4 rounded-lg text-sm font-medium text-white whitespace-nowrap"
             style={{backgroundColor: colors.primary}}
             title="Save this mix for quick recall"
           >
@@ -146,7 +146,7 @@ export function Header({
           <div className="relative" ref={threeDotRef}>
             <button
               onClick={() => setShowThreeDotMenu(!showThreeDotMenu)}
-              className="flex items-center justify-center w-10 h-10 rounded-lg"
+              className="flex items-center justify-center w-9 h-9 rounded-lg"
               style={{
                 backgroundColor: showThreeDotMenu ? colors.primary + '20' : 'transparent',
                 border: `1px solid ${colors.primary}50`,
