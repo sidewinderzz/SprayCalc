@@ -58,7 +58,7 @@ const AgSprayCalculator = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div
-        className="rounded-lg mx-auto p-4 sm:p-6 shadow-md"
+        className="mx-auto sm:rounded-lg sm:shadow-md sm:my-4 p-3 sm:p-6"
         style={{
           backgroundColor: 'white',
           color: colors.lightText,
