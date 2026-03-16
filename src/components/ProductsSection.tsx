@@ -27,7 +27,9 @@ function EnterHint() {
         className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity text-base leading-none"
         aria-label="Dismiss tip"
       >
-        ✕
+        <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+        </svg>
       </button>
     </div>
   );
