@@ -1,6 +1,37 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Product, colors } from '../types';
 import { ProductCard, ProductCardHandle } from './ProductCard';
+
+const HINT_KEY = 'agSprayCalcEnterHintDismissed';
+
+function EnterHint() {
+  const [visible, setVisible] = useState(() => !localStorage.getItem(HINT_KEY));
+
+  const dismiss = () => {
+    localStorage.setItem(HINT_KEY, '1');
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-3 text-xs"
+      style={{ backgroundColor: colors.primary + '18', color: colors.primaryDark }}
+    >
+      <span>
+        <strong>Tip:</strong> Press <kbd className="px-1 py-0.5 rounded text-xs font-mono" style={{ backgroundColor: colors.primary + '25' }}>Enter</kbd> to move between fields — on the last field it adds a new product automatically.
+      </span>
+      <button
+        onClick={dismiss}
+        className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity text-base leading-none"
+        aria-label="Dismiss tip"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 interface ProductsSectionProps {
   products: Product[];
@@ -52,6 +83,8 @@ export function ProductsSection({
       className="p-4 rounded-lg mb-6"
       style={{backgroundColor: colors.secondaryLight + '30'}}
     >
+      <EnterHint />
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-bold" style={{color: colors.primaryDark}}>Products</h2>
         <button
