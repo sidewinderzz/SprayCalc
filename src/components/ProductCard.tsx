@@ -1,6 +1,115 @@
-import React from 'react';
+import React, {
+  useState,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  KeyboardEvent,
+  FocusEvent
+} from 'react';
 import { Product, colors, outputFormats, unitOptions } from '../types';
 import { formatOutput } from '../utils/calculations';
+
+// ─── UnitCombobox ────────────────────────────────────────────────────────────
+
+interface UnitComboboxProps {
+  value: string;
+  onChange: (unit: string) => void;
+  onConfirm: () => void;
+}
+
+const UnitCombobox = forwardRef<HTMLInputElement, UnitComboboxProps>(
+  ({ value, onChange, onConfirm }, ref) => {
+    const [query, setQuery] = useState('');
+    const [open, setOpen] = useState(false);
+    const [highlighted, setHighlighted] = useState(0);
+    const listRef = useRef<HTMLDivElement>(null);
+
+    const filtered = unitOptions.filter(u =>
+      u.toLowerCase().includes(query.toLowerCase())
+    );
+    const safeIdx = Math.min(highlighted, Math.max(filtered.length - 1, 0));
+
+    const confirmSelection = (unit: string) => {
+      onChange(unit);
+      setOpen(false);
+      setQuery('');
+      onConfirm();
+    };
+
+    const handleFocus = () => {
+      setQuery('');
+      setHighlighted(0);
+      setOpen(true);
+    };
+
+    const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
+      // Keep open if focus moves into the dropdown list
+      if (listRef.current?.contains(e.relatedTarget as Node)) return;
+      setOpen(false);
+      setQuery('');
+    };
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlighted(h => Math.min(h + 1, filtered.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlighted(h => Math.max(h - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filtered[safeIdx]) confirmSelection(filtered[safeIdx]);
+      } else if (e.key === 'Escape') {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+
+    return (
+      <div className="relative">
+        <input
+          ref={ref}
+          type="text"
+          value={open ? query : value}
+          placeholder={value}
+          onChange={e => { setQuery(e.target.value); setHighlighted(0); }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className="w-full p-2.5 border rounded-lg text-black text-sm"
+          autoComplete="off"
+        />
+        {open && filtered.length > 0 && (
+          <div
+            ref={listRef}
+            className="absolute z-20 mt-1 w-full border rounded-lg shadow-lg overflow-hidden"
+            style={{ backgroundColor: 'white', borderColor: colors.primary + '50' }}
+          >
+            {filtered.map((unit, i) => (
+              <div
+                key={unit}
+                className="px-3 py-2.5 cursor-pointer text-sm"
+                style={{
+                  backgroundColor: i === safeIdx ? colors.primary + '20' : 'transparent',
+                  fontWeight: unit === value ? '600' : 'normal'
+                }}
+                onMouseDown={e => { e.preventDefault(); confirmSelection(unit); }}
+              >
+                {unit}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+// ─── ProductCard ─────────────────────────────────────────────────────────────
+
+export interface ProductCardHandle {
+  focusName(): void;
+}
 
 interface ProductCardProps {
   product: Product;
@@ -9,16 +118,32 @@ interface ProductCardProps {
   onSelectFormat: (productId: number, format: string) => void;
   onRemoveProduct: (id: number) => void;
   openFormatMenuId: number | null;
+  onEnterFromLastField: () => void;
 }
 
-export function ProductCard({
+export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
   product,
   onProductChange,
   onToggleFormatMenu,
   onSelectFormat,
   onRemoveProduct,
-  openFormatMenuId
-}: ProductCardProps) {
+  openFormatMenuId,
+  onEnterFromLastField
+}, ref) => {
+  const nameRef = useRef<HTMLInputElement>(null);
+  const rateRef = useRef<HTMLInputElement>(null);
+  const unitRef = useRef<HTMLInputElement>(null);
+
+  const scrollCenter = (el: HTMLElement | null) =>
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  useImperativeHandle(ref, () => ({
+    focusName: () => {
+      nameRef.current?.focus();
+      scrollCenter(nameRef.current);
+    }
+  }));
+
   return (
     <div
       className="p-4 rounded-lg border"
@@ -29,9 +154,18 @@ export function ProductCard({
     >
       <div className="flex justify-between items-center mb-3 gap-2">
         <input
+          ref={nameRef}
           type="text"
           value={product.name}
           onChange={(e) => onProductChange(product.id, 'name', e.target.value)}
+          onFocus={(e) => scrollCenter(e.currentTarget)}
+          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              rateRef.current?.focus();
+              scrollCenter(rateRef.current);
+            }
+          }}
           className="flex-1 min-w-0 p-2 border rounded-lg text-black font-bold text-sm"
           placeholder="Product Name"
         />
@@ -49,10 +183,19 @@ export function ProductCard({
         <div>
           <label className="block text-xs font-medium mb-1">Rate</label>
           <input
+            ref={rateRef}
             type="number"
             inputMode="decimal"
             value={product.rate || ''}
             onChange={(e) => onProductChange(product.id, 'rate', parseFloat(e.target.value) || 0)}
+            onFocus={(e) => scrollCenter(e.currentTarget)}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                unitRef.current?.focus();
+                scrollCenter(unitRef.current);
+              }
+            }}
             className="w-full p-2.5 border rounded-lg text-black text-sm"
             min="0"
             step="0.01"
@@ -61,15 +204,12 @@ export function ProductCard({
         </div>
         <div>
           <label className="block text-xs font-medium mb-1">Unit</label>
-          <select
+          <UnitCombobox
+            ref={unitRef}
             value={product.unit}
-            onChange={(e) => onProductChange(product.id, 'unit', e.target.value)}
-            className="w-full p-2.5 border rounded-lg text-black text-sm"
-          >
-            {unitOptions.map(unit => (
-              <option key={unit} value={unit}>{unit}</option>
-            ))}
-          </select>
+            onChange={(unit) => onProductChange(product.id, 'unit', unit)}
+            onConfirm={onEnterFromLastField}
+          />
         </div>
       </div>
 
@@ -117,4 +257,4 @@ export function ProductCard({
       </div>
     </div>
   );
-}
+});

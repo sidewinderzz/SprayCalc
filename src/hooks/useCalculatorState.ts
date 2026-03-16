@@ -19,6 +19,9 @@ export function useCalculatorState() {
   // Format selection
   const [openFormatMenuId, setOpenFormatMenuId] = useState<number | null>(null);
 
+  // Pending focus: ID of the product card that should receive focus after next render
+  const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
+
   // Current time state for ETA calculation
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -225,7 +228,10 @@ export function useCalculatorState() {
       outputFormat: 'auto'
     };
     setProducts([...products, newProduct]);
+    setPendingFocusId(newId);
   };
+
+  const clearPendingFocusId = () => setPendingFocusId(null);
 
   // Remove a product from the list
   const removeProduct = (id: number) => {
@@ -284,6 +290,8 @@ export function useCalculatorState() {
     setShowQuantities,
     acresPerFill,
     hasLoaded,
+    pendingFocusId,
+    clearPendingFocusId,
     // Handlers
     loadSettings,
     clearSettings,

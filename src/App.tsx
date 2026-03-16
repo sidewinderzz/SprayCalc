@@ -109,6 +109,8 @@ const AgSprayCalculator = () => {
           openFormatMenuId={state.openFormatMenuId}
           onAddProduct={state.addNewProduct}
           onRemoveProduct={state.removeProduct}
+          pendingFocusId={state.pendingFocusId}
+          onClearPendingFocusId={state.clearPendingFocusId}
         />
 
         <SummarySection

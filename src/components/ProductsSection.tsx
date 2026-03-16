@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Product, colors } from '../types';
-import { ProductCard } from './ProductCard';
+import { ProductCard, ProductCardHandle } from './ProductCard';
 
 interface ProductsSectionProps {
   products: Product[];
@@ -10,6 +10,8 @@ interface ProductsSectionProps {
   openFormatMenuId: number | null;
   onAddProduct: () => void;
   onRemoveProduct: (id: number) => void;
+  pendingFocusId: number | null;
+  onClearPendingFocusId: () => void;
 }
 
 export function ProductsSection({
@@ -19,8 +21,32 @@ export function ProductsSection({
   onSelectFormat,
   openFormatMenuId,
   onAddProduct,
-  onRemoveProduct
+  onRemoveProduct,
+  pendingFocusId,
+  onClearPendingFocusId
 }: ProductsSectionProps) {
+  const cardRefs = useRef<Map<number, ProductCardHandle>>(new Map());
+
+  // When Enter is pressed on the last field of a card, advance to next card
+  // or create a new one if this is the last card.
+  const handleEnterFromCard = (id: number) => {
+    const ids = products.map(p => p.id);
+    const idx = ids.indexOf(id);
+    if (idx < ids.length - 1) {
+      cardRefs.current.get(ids[idx + 1])?.focusName();
+    } else {
+      onAddProduct();
+    }
+  };
+
+  // After a new card is added, focus it
+  useEffect(() => {
+    if (pendingFocusId != null) {
+      cardRefs.current.get(pendingFocusId)?.focusName();
+      onClearPendingFocusId();
+    }
+  }, [pendingFocusId]);
+
   return (
     <div
       className="p-4 rounded-lg mb-6"
@@ -41,12 +67,17 @@ export function ProductsSection({
         {products.map((product) => (
           <ProductCard
             key={product.id}
+            ref={(el) => {
+              if (el) cardRefs.current.set(product.id, el);
+              else cardRefs.current.delete(product.id);
+            }}
             product={product}
             onProductChange={onProductChange}
             onToggleFormatMenu={onToggleFormatMenu}
             onSelectFormat={onSelectFormat}
             onRemoveProduct={onRemoveProduct}
             openFormatMenuId={openFormatMenuId}
+            onEnterFromLastField={() => handleEnterFromCard(product.id)}
           />
         ))}
       </div>
