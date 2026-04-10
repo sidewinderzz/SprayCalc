@@ -226,7 +226,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
             }}
             onClick={() => onToggleFormatMenu(product.id)}
           >
-            {formatOutput(product.tankAmount, product.outputFormat)}
+            {formatOutput(product.tankAmount, product.outputFormat, product.unit)}
             <span className="float-right opacity-40 mt-0.5">
               <svg viewBox="0 0 12 8" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1,1 6,7 11,1"/>
