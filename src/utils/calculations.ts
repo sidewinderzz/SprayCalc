@@ -87,9 +87,24 @@ export function calculateMixPlanning(
   };
 }
 
+// Returns true for units where the calculated amount is in weight oz (not fl oz)
+export function isWeightUnit(unit: string): boolean {
+  return unit.startsWith('lb') || unit === 'g/acre' || unit.startsWith('g/');
+}
+
+function formatWeightOz(oz: number): string {
+  if (oz >= 16) return `${(oz / 16).toFixed(2)} lbs`;
+  return `${oz.toFixed(1)} oz`;
+}
+
 // Format the output amount in appropriate units
-export function formatOutput(value: number, format: string): string {
-  if (value === 0) return '0 fl oz';
+export function formatOutput(value: number, format: string, unit?: string): string {
+  if (value === 0) return (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz';
+
+  // Weight units always display in weight measure, regardless of format
+  if (unit && isWeightUnit(unit)) {
+    return formatWeightOz(value);
+  }
 
   switch (format) {
     case 'floz':
@@ -156,7 +171,7 @@ export function formatOutput(value: number, format: string): string {
 }
 
 // Format product amounts for purchase planning
-export function formatPurchaseAmount(totalOunces: number): {
+export function formatPurchaseAmount(totalOunces: number, unit?: string): {
   display: string;
   containers: Array<{
     count: number;
@@ -167,7 +182,12 @@ export function formatPurchaseAmount(totalOunces: number): {
     display: string;
   }>;
 } {
-  if (totalOunces === 0) return { display: '0 fl oz', containers: [] };
+  if (totalOunces === 0) return { display: (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz', containers: [] };
+
+  // Weight products: show weight total, no container suggestions
+  if (unit && isWeightUnit(unit)) {
+    return { display: formatWeightOz(totalOunces), containers: [] };
+  }
 
   const totalGallons = totalOunces / 128;
 

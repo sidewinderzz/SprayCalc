@@ -26,7 +26,9 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
           className="text-lg px-2 py-1 rounded hover:bg-gray-200 min-w-[36px] min-h-[36px]"
           title="Close tips"
         >
-          ✕
+          <svg viewBox="0 0 14 14" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+          </svg>
         </button>
       </div>
 

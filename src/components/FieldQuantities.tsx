@@ -63,7 +63,7 @@ export function FieldQuantities({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {products.map((product) => {
                 const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize, applicationRate);
-                const purchaseInfo = formatPurchaseAmount(totalAmount);
+                const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit);
                 return (
                   <div
                     key={`purchase-${product.id}`}
@@ -113,7 +113,7 @@ export function FieldQuantities({
                   {products.map(product => (
                     <div key={`full-${product.id}`} className="flex items-center justify-between text-sm">
                       <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
-                      <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(product.tankAmount, product.outputFormat)}</span>
+                      <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(product.tankAmount, product.outputFormat, product.unit)}</span>
                     </div>
                   ))}
                 </div>
@@ -132,7 +132,7 @@ export function FieldQuantities({
                       return (
                         <div key={`partial-${product.id}`} className="flex items-center justify-between text-sm">
                           <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
-                          <span className="font-bold flex-shrink-0" style={{color: colors.secondaryDark}}>{formatOutput(partialAmount, product.outputFormat)}</span>
+                          <span className="font-bold flex-shrink-0" style={{color: colors.secondaryDark}}>{formatOutput(partialAmount, product.outputFormat, product.unit)}</span>
                         </div>
                       );
                     })}

@@ -137,7 +137,7 @@ export function SummarySection({
         <ul className="list-disc pl-6 space-y-1">
           {products.map(product => (
             <li key={product.id}>
-              <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat)}
+              <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat, product.unit)}
             </li>
           ))}
         </ul>

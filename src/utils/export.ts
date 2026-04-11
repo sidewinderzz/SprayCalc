@@ -42,7 +42,7 @@ export function generateSummaryText(state: ExportState): string {
 
   text += `PRODUCTS TO ADD PER MIX:\n`;
   products.forEach(product => {
-    text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat)}\n`;
+    text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit)}\n`;
   });
 
   if (fieldSize) {
@@ -63,7 +63,7 @@ export function generateSummaryText(state: ExportState): string {
             mixPlanning.remainingSpray,
             applicationRate
           );
-          text += `${product.name}: ${formatOutput(partialAmount, product.outputFormat)}\n`;
+          text += `${product.name}: ${formatOutput(partialAmount, product.outputFormat, product.unit)}\n`;
         });
       }
     }
@@ -71,7 +71,7 @@ export function generateSummaryText(state: ExportState): string {
     text += `\nTOTAL PRODUCT QUANTITIES REQUIRED:\n`;
     products.forEach(product => {
       const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize, applicationRate);
-      const purchaseInfo = formatPurchaseAmount(totalAmount);
+      const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit);
       text += `${product.name}: ${purchaseInfo.display}\n`;
       if (purchaseInfo.containers.length > 0) {
         text += `  Suggested: ${purchaseInfo.containers[0].display}\n`;
@@ -207,7 +207,7 @@ export function exportPDF(state: ExportState): void {
   <section>
     <h2>Products Per Mix</h2>
     <div class="grid grid-3">
-      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat)}</div></div></div>`).join('')}
+      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat, p.unit)}</div></div></div>`).join('')}
     </div>
   </section>
 
@@ -227,7 +227,7 @@ export function exportPDF(state: ExportState): void {
     <div class="grid grid-3">
       ${products.map(p => {
         const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize, applicationRate);
-        const info = formatPurchaseAmount(totalOz);
+        const info = formatPurchaseAmount(totalOz, p.unit);
         return `<div class="card">
           <div class="card-header yellow"><div class="label">${p.name}</div><div class="big-value">${info.display}</div></div>
           <div class="card-body">
@@ -244,14 +244,14 @@ export function exportPDF(state: ExportState): void {
       <div class="card">
         <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
         <div class="card-body">
-          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat)}</span></div>`).join('')}
+          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat, p.unit)}</span></div>`).join('')}
         </div>
       </div>
       ${mixPlanning.hasPartialMix ? `
       <div class="card">
         <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
         <div class="card-body">
-          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat)}</span></div>`; }).join('')}
+          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat, p.unit)}</span></div>`; }).join('')}
         </div>
       </div>` : ''}
     </div>

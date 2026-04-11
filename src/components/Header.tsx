@@ -104,8 +104,8 @@ export function Header({
       )}
 
       {/* Header bar */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold" style={{color: colors.primary}}>Spray Calc</h1>
+      <div className="flex justify-between items-center mb-6 gap-2">
+        <h1 className="text-xl font-bold whitespace-nowrap" style={{color: colors.primary}}>Spray Calc</h1>
 
         <div className="flex items-center gap-2">
           {/* Feedback toast */}
@@ -121,7 +121,7 @@ export function Header({
           {/* Clear Button */}
           <button
             onClick={clearSettings}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
+            className="h-9 px-4 rounded-lg text-sm font-medium whitespace-nowrap"
             style={{
               backgroundColor: 'transparent',
               color: colors.primaryDark,
@@ -135,7 +135,7 @@ export function Header({
           {/* Save Mix Button */}
           <button
             onClick={openSaveMixDialog}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+            className="h-9 px-4 rounded-lg text-sm font-medium text-white whitespace-nowrap"
             style={{backgroundColor: colors.primary}}
             title="Save this mix for quick recall"
           >
@@ -146,10 +146,9 @@ export function Header({
           <div className="relative" ref={threeDotRef}>
             <button
               onClick={() => setShowThreeDotMenu(!showThreeDotMenu)}
-              className="flex items-center justify-center w-10 h-10 rounded-lg"
+              className="flex items-center justify-center w-9 h-9 rounded-lg"
               style={{
                 backgroundColor: showThreeDotMenu ? colors.primary + '20' : 'transparent',
-                border: `1px solid ${colors.primary}50`,
                 color: colors.primaryDark
               }}
               title="More options"
@@ -199,11 +198,13 @@ export function Header({
                           </button>
                           <button
                             onClick={() => deleteMix(mix.name)}
-                            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-xs hover:bg-red-100 hover:text-red-600"
+                            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-100 hover:text-red-600"
                             style={{color: colors.primaryLight}}
                             title={`Delete "${mix.name}"`}
                           >
-                            ✕
+                            <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                            </svg>
                           </button>
                         </div>
                       ))}
@@ -220,7 +221,9 @@ export function Header({
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left"
                     style={{color: colors.lightText}}
                   >
-                    <span className="text-base">💡</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
                     {showTips ? 'Hide Tips' : 'Show Tips'}
                   </button>
                 </div>
