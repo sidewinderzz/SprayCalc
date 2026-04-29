@@ -1,15 +1,6 @@
 import { useState } from 'react';
 import './_group.css';
-
-const colors = {
-  primary: '#498a5a',
-  secondary: '#d1c343',
-  primaryLight: '#76a886',
-  primaryDark: '#2d6840',
-  secondaryLight: '#e4d97b',
-  secondaryDark: '#b2a529',
-  lightText: '#1c291f',
-};
+import { colors } from '@app/types';
 
 const products = [
   { id: 1, name: 'Roundup PowerMax', rate: 32, unit: 'oz/ac',  jug: '2.5 gal', tankPrimary: '1706.67 oz', tankSub: '5 jugs + 106.67 oz', totalBuy: '60 gal', container: '24 × 2.5 gal jugs' },
