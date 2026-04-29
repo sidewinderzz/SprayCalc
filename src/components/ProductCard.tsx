@@ -139,7 +139,8 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
 
   const handleOpenCustom = () => {
     setShowCustom(true);
-    setCustomInput('');
+    // Pre-fill with current size so the user sees their starting point
+    setCustomInput(jugSize > 0 ? String(parseFloat((jugSize / 128).toFixed(2))) : '');
   };
 
   const handleCustomCommit = () => {
