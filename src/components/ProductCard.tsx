@@ -5,7 +5,7 @@ import React, {
   KeyboardEvent
 } from 'react';
 import { Product, colors, outputFormats } from '../types';
-import { formatOutput } from '../utils/calculations';
+import { formatOutputParts } from '../utils/calculations';
 
 // ─── Unit Pill Selector ───────────────────────────────────────────────────────
 
@@ -125,6 +125,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
 }, ref) => {
   const nameRef = useRef<HTMLInputElement>(null);
   const rateRef = useRef<HTMLInputElement>(null);
+  const tankAmountParts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit);
 
   const scrollCenter = (el: HTMLElement | null) =>
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -226,7 +227,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
         </label>
         <div className="relative">
           <div
-            className="w-full px-3 py-2.5 rounded-lg font-bold cursor-pointer text-sm select-none flex items-center justify-between"
+            className="w-full px-3 py-2.5 rounded-lg font-bold cursor-pointer text-sm select-none flex items-center justify-between gap-2"
             style={{
               backgroundColor: `${colors.primary}12`,
               border: `1px solid ${colors.primary}35`,
@@ -234,8 +235,15 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
             }}
             onClick={() => onToggleFormatMenu(product.id)}
           >
-            <span>{formatOutput(product.tankAmount, product.outputFormat, product.unit)}</span>
-            <svg viewBox="0 0 12 8" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+            <span className="flex flex-col gap-0.5 min-w-0">
+              <span>{tankAmountParts.primary}</span>
+              {tankAmountParts.jugBreakdown && (
+                <span className="font-normal text-xs leading-tight" style={{ color: `${colors.primaryDark}99` }}>
+                  {tankAmountParts.jugBreakdown}
+                </span>
+              )}
+            </span>
+            <svg viewBox="0 0 12 8" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-40">
               <polyline points="1,1 6,7 11,1"/>
             </svg>
           </div>
