@@ -56,13 +56,14 @@ const AgSprayCalculator = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen py-4 sm:py-8">
       <div
-        className="rounded-lg mx-auto p-4 sm:p-6 shadow-md"
+        className="rounded-2xl mx-auto p-4 sm:p-6"
         style={{
           backgroundColor: 'white',
           color: colors.lightText,
-          maxWidth: "min(100%, 1000px)"
+          maxWidth: "min(100%, 1000px)",
+          boxShadow: '0 4px 24px 0 rgba(73,138,90,0.08), 0 1px 4px 0 rgba(0,0,0,0.06)'
         }}
       >
         <Header

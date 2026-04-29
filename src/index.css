@@ -3,5 +3,8 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-100 text-gray-900;
+  background: linear-gradient(160deg, #ffffff 0%, #ecf5ee 100%);
+  background-attachment: fixed;
+  color: #1c291f;
+  min-height: 100vh;
 }

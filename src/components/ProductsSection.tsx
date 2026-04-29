@@ -17,14 +17,25 @@ function EnterHint() {
   return (
     <div
       className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-3 text-xs"
-      style={{ backgroundColor: colors.primary + '18', color: colors.primaryDark }}
+      style={{
+        backgroundColor: `${colors.primary}12`,
+        color: colors.primaryDark,
+        border: `1px solid ${colors.primary}25`
+      }}
     >
       <span>
-        <strong>Tip:</strong> Press <kbd className="px-1 py-0.5 rounded text-xs font-mono" style={{ backgroundColor: colors.primary + '25' }}>Enter</kbd> to move between fields — on the last field it adds a new product automatically.
+        <strong>Tip:</strong> Press{' '}
+        <kbd
+          className="px-1.5 py-0.5 rounded text-xs font-mono"
+          style={{ backgroundColor: `${colors.primary}20`, border: `1px solid ${colors.primary}30` }}
+        >
+          Enter
+        </kbd>{' '}
+        to move between fields — on the last field it adds a new product automatically.
       </span>
       <button
         onClick={dismiss}
-        className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity text-base leading-none"
+        className="flex-shrink-0 opacity-40 hover:opacity-80 transition-opacity"
         aria-label="Dismiss tip"
       >
         <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -60,8 +71,6 @@ export function ProductsSection({
 }: ProductsSectionProps) {
   const cardRefs = useRef<Map<number, ProductCardHandle>>(new Map());
 
-  // When Enter is pressed on the last field of a card, advance to next card
-  // or create a new one if this is the last card.
   const handleEnterFromCard = (id: number) => {
     const ids = products.map(p => p.id);
     const idx = ids.indexOf(id);
@@ -72,7 +81,6 @@ export function ProductsSection({
     }
   };
 
-  // After a new card is added, focus it
   useEffect(() => {
     if (pendingFocusId != null) {
       cardRefs.current.get(pendingFocusId)?.focusName();
@@ -82,17 +90,22 @@ export function ProductsSection({
 
   return (
     <div
-      className="p-4 rounded-lg mb-6"
-      style={{backgroundColor: colors.secondaryLight + '30'}}
+      className="p-4 rounded-xl mb-6"
+      style={{
+        backgroundColor: `${colors.primary}08`,
+        border: `1px solid ${colors.primary}25`
+      }}
     >
       <EnterHint />
 
       <div className="flex justify-between items-center mb-4">
-        <h2 className="font-bold" style={{color: colors.primaryDark}}>Products</h2>
+        <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+          Products
+        </h2>
         <button
           onClick={onAddProduct}
-          className="px-4 py-2 rounded-lg text-sm font-medium text-white"
-          style={{backgroundColor: colors.primary}}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: colors.primary }}
         >
           + Add Product
         </button>

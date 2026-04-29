@@ -1,0 +1,34 @@
+#1 - Modern UI Refresh & Unit Input Redesign
+What & Why
+Two coordinated improvements: a full visual refresh to a modern light/white theme with subtle gradient and green accents, and a redesigned unit selector for product cards that replaces the combobox with a more intuitive segmented control — making chemical entry faster and clearer without requiring the user to know keyboard shortcuts.
+
+Done looks like
+The app has a modern, clean appearance: light gradient background (white fading to a soft light tone), white card surfaces with subtle shadows, refined typography, and green accents on buttons and highlights
+Section backgrounds (Mix Information, Products) use very light tinted surfaces instead of the current heavy yellow/green fills
+The header, buttons, and key interactive elements retain the green brand color
+Each product card shows a two-level unit selector: a mode toggle ("/ Acre" vs "/ 100 gal") and a second row of pills for the units within that mode (up to 6 at a time), with the active selection highlighted in green
+Users can select a unit by clicking pills — no dropdown or typing required
+The Enter key flow still works for the product name and rate fields
+The overall layout and all calculations remain unchanged
+Out of scope
+Any changes to the calculation logic
+Adding or removing unit options
+Redesigning the field operations or summary sections beyond the global visual refresh
+Steps
+Update global styles and theme colors — Change the body background to a subtle light gradient (e.g. white to a very light green-gray). Update the colors object and index.css to reflect the new light theme values. Adjust section card backgrounds to use soft white/near-white surfaces with light borders and gentle box shadows instead of the current colored tints.
+
+Refresh header and button styling — Update the header to a clean white/frosted surface. Keep the primary green for the "Save Mix" and "+ Add Product" buttons. Ensure secondary actions (Clear, 3-dot menu) use subtle outlined or ghost styles that fit the light theme.
+
+Redesign unit selector as a two-level segmented control — Replace the UnitCombobox component with a new UnitPillSelector component using two tiers. The first tier is a compact mode toggle with two options: "/ Acre" and "/ 100 gal". The second tier shows only the units relevant to the selected mode as pill buttons: oz, pt, qt, gal, lb, g when in per-acre mode; oz, pt, qt, lb when in per-100-gal mode. The active mode button and active unit pill are filled green; inactive options use light gray outlines. Switching modes automatically selects the first unit in the new mode. Update ProductCard to use the new component. Remove the old UnitCombobox if it is no longer used.
+
+Polish product cards and tips banner — Update product card surfaces to white with a subtle shadow and light green-tinted border. Adjust the tip banner to match the light theme. Ensure the "Amount for Tank" result display looks clean and prominent against the new white card background.
+
+Relevant files
+src/index.css
+src/types.ts:33-64
+src/components/ProductCard.tsx
+src/components/UnitCombobox.tsx
+src/components/ProductsSection.tsx
+src/components/MixSettings.tsx
+src/components/Header.tsx
+src/components/TipsSection.tsx
