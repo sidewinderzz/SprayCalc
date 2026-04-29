@@ -3,7 +3,8 @@ import React, {
   useImperativeHandle,
   forwardRef,
   KeyboardEvent,
-  useState
+  useState,
+  useEffect
 } from 'react';
 import { Product, colors, outputFormats } from '../types';
 import { formatOutputParts, isWeightUnit } from '../utils/calculations';
@@ -117,6 +118,18 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
   const [customInput, setCustomInput] = useState(() =>
     !isPreset ? String(parseFloat((jugSize / 128).toFixed(2))) : ''
   );
+
+  // Resync when jugSize changes externally (e.g. after loading from localStorage)
+  useEffect(() => {
+    const nowPreset = JUG_PRESETS.some(p => p.oz === jugSize);
+    if (nowPreset) {
+      setShowCustom(false);
+      setCustomInput('');
+    } else {
+      setShowCustom(true);
+      setCustomInput(String(parseFloat((jugSize / 128).toFixed(2))));
+    }
+  }, [jugSize]);
 
   const handlePreset = (oz: number) => {
     setShowCustom(false);
