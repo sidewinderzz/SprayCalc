@@ -97,16 +97,22 @@ function formatWeightOz(oz: number): string {
   return `${oz.toFixed(1)} oz`;
 }
 
-function formatJugBreakdown(oz: number): string {
-  const fullJugs = Math.floor(oz / 128);
-  const remainder = parseFloat((oz % 128).toFixed(1));
+function jugSizeLabel(jugSizeOz: number): string {
+  const gal = jugSizeOz / 128;
+  return `${parseFloat(gal.toFixed(2))} gal`;
+}
+
+function formatJugBreakdown(oz: number, jugSizeOz = 128): string {
+  const fullJugs = Math.floor(oz / jugSizeOz);
+  const remainder = parseFloat((oz % jugSizeOz).toFixed(1));
+  const sizeLabel = jugSizeLabel(jugSizeOz);
 
   if (remainder === 0) {
-    if (fullJugs === 1) return '1 full jug (128 fl oz)';
-    return `${fullJugs} full jugs (128 fl oz each)`;
+    if (fullJugs === 1) return `1 full jug (${sizeLabel})`;
+    return `${fullJugs} full jugs (${sizeLabel} each)`;
   } else {
     const jugLabel = fullJugs === 1 ? 'jug' : 'jugs';
-    return `${fullJugs} full ${jugLabel} (128 fl oz) + 1 partial jug (${remainder} fl oz)`;
+    return `${fullJugs} full ${jugLabel} (${sizeLabel}) + 1 partial jug (${remainder} fl oz)`;
   }
 }
 
@@ -114,7 +120,8 @@ function formatJugBreakdown(oz: number): string {
 export function formatOutputParts(
   value: number,
   format: string,
-  unit?: string
+  unit?: string,
+  jugSizeOz = 128
 ): { primary: string; jugBreakdown: string | null } {
   if (value === 0) {
     return { primary: (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz', jugBreakdown: null };
@@ -124,12 +131,14 @@ export function formatOutputParts(
     return { primary: formatWeightOz(value), jugBreakdown: null };
   }
 
+  const hasBreakdown = value >= jugSizeOz;
+
   switch (format) {
     case 'floz':
-      if (value >= 128) {
-        return { primary: `${value.toFixed(1)} fl oz`, jugBreakdown: formatJugBreakdown(value) };
-      }
-      return { primary: `${value.toFixed(1)} fl oz`, jugBreakdown: null };
+      return {
+        primary: `${value.toFixed(1)} fl oz`,
+        jugBreakdown: hasBreakdown ? formatJugBreakdown(value, jugSizeOz) : null
+      };
 
     case 'gal': {
       const gallonsOnly = (value / 128).toFixed(2);
@@ -163,10 +172,11 @@ export function formatOutputParts(
 
     case 'auto':
     default:
-      if (value < 128) {
-        return { primary: `${value.toFixed(1)} fl oz`, jugBreakdown: null };
-      } else if (value < 256) {
-        return { primary: `${value.toFixed(1)} fl oz`, jugBreakdown: formatJugBreakdown(value) };
+      if (value < 256) {
+        return {
+          primary: `${value.toFixed(1)} fl oz`,
+          jugBreakdown: hasBreakdown ? formatJugBreakdown(value, jugSizeOz) : null
+        };
       } else {
         const gallonsAuto = Math.floor(value / 128);
         const ozRemainingAuto = (value % 128).toFixed(1);
@@ -187,89 +197,18 @@ export function formatOutputParts(
           primary += ` (${jugs} × 2.5 gal jugs)`;
         }
 
-        return { primary, jugBreakdown: formatJugBreakdown(value) };
+        return {
+          primary,
+          jugBreakdown: hasBreakdown ? formatJugBreakdown(value, jugSizeOz) : null
+        };
       }
   }
 }
 
-// Format the output amount in appropriate units
-export function formatOutput(value: number, format: string, unit?: string): string {
-  if (value === 0) return (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz';
-
-  // Weight units always display in weight measure, regardless of format
-  if (unit && isWeightUnit(unit)) {
-    return formatWeightOz(value);
-  }
-
-  switch (format) {
-    case 'floz':
-      if (value >= 128) {
-        return `${value.toFixed(1)} fl oz — ${formatJugBreakdown(value)}`;
-      }
-      return `${value.toFixed(1)} fl oz`;
-
-    case 'gal': {
-      const gallonsOnly = (value / 128).toFixed(2);
-      return `${gallonsOnly} gal`;
-    }
-
-    case 'gal_oz': {
-      const gallons = Math.floor(value / 128);
-      const ozRemaining = (value % 128).toFixed(1);
-      if (parseFloat(ozRemaining) === 0) {
-        return `${gallons} gal`;
-      } else {
-        return `${gallons} gal ${ozRemaining} fl oz`;
-      }
-    }
-
-    case 'qt': {
-      const quarts = (value / 32).toFixed(2);
-      return `${quarts} qt`;
-    }
-
-    case 'pt': {
-      const pints = (value / 16).toFixed(2);
-      return `${pints} pt`;
-    }
-
-    case 'cups': {
-      const cups = (value / 8).toFixed(2);
-      return `${cups} cups`;
-    }
-
-    case 'auto':
-    default:
-      if (value < 128) {
-        return `${value.toFixed(1)} fl oz`;
-      } else if (value < 256) {
-        return `${value.toFixed(1)} fl oz — ${formatJugBreakdown(value)}`;
-      } else {
-        const gallonsAuto = Math.floor(value / 128);
-        const ozRemainingAuto = (value % 128).toFixed(1);
-
-        const totalGallons = value / 128;
-        const is25GallonMultiple =
-          Math.abs(totalGallons / 2.5 - Math.round(totalGallons / 2.5)) < 0.01;
-
-        let result = '';
-
-        if (parseFloat(ozRemainingAuto) === 0) {
-          result = `${gallonsAuto} gal`;
-        } else {
-          result = `${gallonsAuto} gal ${ozRemainingAuto} fl oz`;
-        }
-
-        if (is25GallonMultiple) {
-          const jugs = Math.round(totalGallons / 2.5);
-          result += ` (${jugs} × 2.5 gal jugs)`;
-        }
-
-        result += ` — ${formatJugBreakdown(value)}`;
-
-        return result;
-      }
-  }
+// Format the output amount in appropriate units (single string — used for export/clipboard)
+export function formatOutput(value: number, format: string, unit?: string, jugSizeOz = 128): string {
+  const { primary, jugBreakdown } = formatOutputParts(value, format, unit, jugSizeOz);
+  return jugBreakdown ? `${primary} — ${jugBreakdown}` : primary;
 }
 
 // Format product amounts for purchase planning

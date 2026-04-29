@@ -42,7 +42,7 @@ export function generateSummaryText(state: ExportState): string {
 
   text += `PRODUCTS TO ADD PER MIX:\n`;
   products.forEach(product => {
-    text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit)}\n`;
+    text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
   });
 
   if (fieldSize) {
@@ -63,7 +63,7 @@ export function generateSummaryText(state: ExportState): string {
             mixPlanning.remainingSpray,
             applicationRate
           );
-          text += `${product.name}: ${formatOutput(partialAmount, product.outputFormat, product.unit)}\n`;
+          text += `${product.name}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
         });
       }
     }
@@ -207,7 +207,7 @@ export function exportPDF(state: ExportState): void {
   <section>
     <h2>Products Per Mix</h2>
     <div class="grid grid-3">
-      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat, p.unit)}</div></div></div>`).join('')}
+      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128)}</div></div></div>`).join('')}
     </div>
   </section>
 
@@ -244,14 +244,14 @@ export function exportPDF(state: ExportState): void {
       <div class="card">
         <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
         <div class="card-body">
-          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat, p.unit)}</span></div>`).join('')}
+          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128)}</span></div>`).join('')}
         </div>
       </div>
       ${mixPlanning.hasPartialMix ? `
       <div class="card">
         <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
         <div class="card-body">
-          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat, p.unit)}</span></div>`; }).join('')}
+          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128)}</span></div>`; }).join('')}
         </div>
       </div>` : ''}
     </div>

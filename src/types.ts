@@ -5,6 +5,7 @@ export interface Product {
   unit: string;
   tankAmount: number;
   outputFormat: string;
+  jugSize: number;
 }
 
 export interface SavedMix {

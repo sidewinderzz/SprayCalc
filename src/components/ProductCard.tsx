@@ -2,10 +2,11 @@ import React, {
   useRef,
   useImperativeHandle,
   forwardRef,
-  KeyboardEvent
+  KeyboardEvent,
+  useState
 } from 'react';
 import { Product, colors, outputFormats } from '../types';
-import { formatOutputParts } from '../utils/calculations';
+import { formatOutputParts, isWeightUnit } from '../utils/calculations';
 
 // ─── Unit Pill Selector ───────────────────────────────────────────────────────
 
@@ -98,6 +99,105 @@ function UnitPillSelector({ unit, onChange }: UnitPillSelectorProps) {
   );
 }
 
+// ─── Jug Size Pill Selector ───────────────────────────────────────────────────
+
+const JUG_PRESETS = [
+  { label: '2.5 gal', oz: 320 },
+  { label: '1 gal',   oz: 128 },
+];
+
+interface JugSizePillSelectorProps {
+  jugSize: number;
+  onChange: (oz: number) => void;
+}
+
+function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
+  const isPreset = JUG_PRESETS.some(p => p.oz === jugSize);
+  const [showCustom, setShowCustom] = useState(!isPreset);
+  const [customInput, setCustomInput] = useState(() =>
+    !isPreset ? String(parseFloat((jugSize / 128).toFixed(2))) : ''
+  );
+
+  const handlePreset = (oz: number) => {
+    setShowCustom(false);
+    setCustomInput('');
+    onChange(oz);
+  };
+
+  const handleOpenCustom = () => {
+    setShowCustom(true);
+    setCustomInput('');
+  };
+
+  const handleCustomCommit = () => {
+    const gal = parseFloat(customInput);
+    if (gal > 0) {
+      onChange(Math.round(gal * 128 * 100) / 100);
+    }
+  };
+
+  const isCustomActive = showCustom;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {JUG_PRESETS.map(preset => (
+        <button
+          key={preset.oz}
+          type="button"
+          onClick={() => handlePreset(preset.oz)}
+          className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
+          style={
+            !isCustomActive && jugSize === preset.oz
+              ? { backgroundColor: colors.primary, color: '#fff' }
+              : {
+                  backgroundColor: `${colors.primary}10`,
+                  color: colors.primaryDark,
+                  border: `1px solid ${colors.primary}35`
+                }
+          }
+        >
+          {preset.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={handleOpenCustom}
+        className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
+        style={
+          isCustomActive
+            ? { backgroundColor: colors.primary, color: '#fff' }
+            : {
+                backgroundColor: `${colors.primary}10`,
+                color: colors.primaryDark,
+                border: `1px solid ${colors.primary}35`
+              }
+        }
+      >
+        Custom
+      </button>
+      {isCustomActive && (
+        <div className="flex items-center gap-1 mt-1 w-full">
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="e.g. 2.5"
+            value={customInput}
+            onChange={e => setCustomInput(e.target.value)}
+            onBlur={handleCustomCommit}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomCommit(); } }}
+            autoFocus
+            className="w-24 px-2 py-1 border rounded-lg text-xs font-medium text-gray-800 focus:outline-none focus:ring-2"
+            style={{ borderColor: `${colors.primary}30`, backgroundColor: '#fafafa' }}
+          />
+          <span className="text-xs" style={{ color: `${colors.lightText}80` }}>gal</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── ProductCard ─────────────────────────────────────────────────────────────
 
 export interface ProductCardHandle {
@@ -125,7 +225,9 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
 }, ref) => {
   const nameRef = useRef<HTMLInputElement>(null);
   const rateRef = useRef<HTMLInputElement>(null);
-  const tankAmountParts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit);
+  const showJugSelector = !isWeightUnit(product.unit);
+  const jugSize = product.jugSize ?? 128;
+  const tankAmountParts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit, jugSize);
 
   const scrollCenter = (el: HTMLElement | null) =>
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -219,6 +321,19 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
           onChange={(unit) => onProductChange(product.id, 'unit', unit)}
         />
       </div>
+
+      {/* Jug Size selector — only for liquid units */}
+      {showJugSelector && (
+        <div className="mb-3">
+          <label className="block text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>
+            Jug Size
+          </label>
+          <JugSizePillSelector
+            jugSize={jugSize}
+            onChange={(oz) => onProductChange(product.id, 'jugSize', oz)}
+          />
+        </div>
+      )}
 
       {/* Amount for Tank */}
       <div>
