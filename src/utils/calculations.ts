@@ -211,6 +211,17 @@ export function formatPurchaseAmount(totalOunces: number, unit?: string): {
 
   const totalGallons = totalOunces / 128;
 
+  const gallons = Math.floor(totalOunces / 128);
+  const ozRemainder = parseFloat((totalOunces % 128).toFixed(1));
+  let totalDisplay: string;
+  if (totalOunces < 128) {
+    totalDisplay = `${totalOunces.toFixed(1)} fl oz`;
+  } else if (ozRemainder === 0) {
+    totalDisplay = `${gallons} gal`;
+  } else {
+    totalDisplay = `${gallons} gal ${ozRemainder} fl oz`;
+  }
+
   const containerSizes = [
     { size: 2.5, name: '2.5 gal jug' },
     { size: 1, name: '1 gal jug' },
@@ -240,7 +251,7 @@ export function formatPurchaseAmount(totalOunces: number, unit?: string): {
   suggestions.sort((a, b) => a.wastePercent - b.wastePercent);
 
   return {
-    display: formatOutput(totalOunces, 'auto'),
+    display: totalDisplay,
     containers: suggestions.slice(0, 3)
   };
 }
