@@ -97,6 +97,19 @@ function formatWeightOz(oz: number): string {
   return `${oz.toFixed(1)} oz`;
 }
 
+function formatJugBreakdown(oz: number): string {
+  const fullJugs = Math.floor(oz / 128);
+  const remainder = parseFloat((oz % 128).toFixed(1));
+
+  if (remainder === 0) {
+    if (fullJugs === 1) return '1 full jug (128 fl oz)';
+    return `${fullJugs} full jugs (128 fl oz each)`;
+  } else {
+    const jugLabel = fullJugs === 1 ? 'jug' : 'jugs';
+    return `${fullJugs} full ${jugLabel} (128 fl oz) + 1 partial jug (${remainder} fl oz)`;
+  }
+}
+
 // Format the output amount in appropriate units
 export function formatOutput(value: number, format: string, unit?: string): string {
   if (value === 0) return (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz';
@@ -108,6 +121,9 @@ export function formatOutput(value: number, format: string, unit?: string): stri
 
   switch (format) {
     case 'floz':
+      if (value >= 128) {
+        return `${value.toFixed(1)} fl oz — ${formatJugBreakdown(value)}`;
+      }
       return `${value.toFixed(1)} fl oz`;
 
     case 'gal': {
@@ -142,8 +158,10 @@ export function formatOutput(value: number, format: string, unit?: string): stri
 
     case 'auto':
     default:
-      if (value < 256) {
+      if (value < 128) {
         return `${value.toFixed(1)} fl oz`;
+      } else if (value < 256) {
+        return `${value.toFixed(1)} fl oz — ${formatJugBreakdown(value)}`;
       } else {
         const gallonsAuto = Math.floor(value / 128);
         const ozRemainingAuto = (value % 128).toFixed(1);
@@ -164,6 +182,8 @@ export function formatOutput(value: number, format: string, unit?: string): stri
           const jugs = Math.round(totalGallons / 2.5);
           result += ` (${jugs} × 2.5 gal jugs)`;
         }
+
+        result += ` — ${formatJugBreakdown(value)}`;
 
         return result;
       }
