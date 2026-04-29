@@ -1,0 +1,14 @@
+/* Spray Calc app token mirror — used by both Current and Streamlined mockups */
+.spray-calc-root {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #1c291f;
+  background: #ffffff;
+}
+.spray-calc-root input[type="number"]::-webkit-outer-spin-button,
+.spray-calc-root input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.spray-calc-root input[type="number"] {
+  -moz-appearance: textfield;
+}
