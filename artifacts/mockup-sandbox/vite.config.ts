@@ -48,6 +48,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
+      "@app": path.resolve(import.meta.dirname, "../../src"),
     },
   },
   root: path.resolve(import.meta.dirname),
@@ -62,6 +63,10 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: true,
+      allow: [
+        path.resolve(import.meta.dirname),
+        path.resolve(import.meta.dirname, "../../src"),
+      ],
     },
   },
   preview: {

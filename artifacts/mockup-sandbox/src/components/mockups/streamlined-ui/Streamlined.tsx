@@ -23,7 +23,7 @@ export function Streamlined() {
   return (
     <div className="spray-calc-root min-h-screen p-4" style={{ backgroundColor: '#fff' }}>
       <div className="max-w-3xl mx-auto">
-        {/* ── Header ── */}
+
         <div className="flex justify-between items-center mb-5 gap-2">
           <h1 className="text-xl font-bold whitespace-nowrap" style={{ color: colors.primary }}>Spray Calc</h1>
           <div className="flex items-center gap-2">
@@ -39,11 +39,11 @@ export function Streamlined() {
           </div>
         </div>
 
-        {/* ── Setup (single panel) ── */}
+
         <div className="p-4 rounded-xl mb-5" style={{ backgroundColor: `${colors.primary}08`, border: `1px solid ${colors.primary}25` }}>
           <h2 className="font-bold mb-3 text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>Setup</h2>
 
-          {/* Inline mix sentence */}
+
           <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mb-4 text-base" style={{ color: colors.lightText }}>
             <InlineNumber value="800" suffix="gal mix" />
             <span style={{ color: `${colors.lightText}80` }}>at</span>
@@ -52,7 +52,7 @@ export function Streamlined() {
               style={{ backgroundColor: `${colors.primary}12`, color: colors.primaryDark }}>→ 53.33 ac/fill</span>
           </div>
 
-          {/* Field size + global output format */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-xs font-medium mb-1 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>Field Size</label>
@@ -73,7 +73,7 @@ export function Streamlined() {
             </div>
           </div>
 
-          {/* Equipment expander */}
+
           <button onClick={() => setEqOpen(!eqOpen)}
             className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wide py-2 px-3 rounded-lg"
             style={{ color: colors.primaryDark, backgroundColor: `${colors.primary}10`, border: `1px solid ${colors.primary}25` }}>
@@ -89,7 +89,7 @@ export function Streamlined() {
           )}
         </div>
 
-        {/* ── Products ── */}
+
         <div className="p-4 rounded-xl mb-5" style={{ backgroundColor: `${colors.primary}08`, border: `1px solid ${colors.primary}25` }}>
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>Products</h2>
@@ -107,7 +107,7 @@ export function Streamlined() {
           </div>
         </div>
 
-        {/* ── Results (merged Summary + Field Quantities + Field Ops) ── */}
+
         <div className="rounded-xl overflow-hidden" style={{ border: `1.5px solid ${colors.primary}40`, backgroundColor: 'white' }}>
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: `${colors.secondaryLight}30` }}>
             <div>
@@ -118,7 +118,7 @@ export function Streamlined() {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Tank summary chips */}
+
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: colors.primaryDark }}>For one 800 gal tank</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -135,7 +135,7 @@ export function Streamlined() {
               </div>
             </div>
 
-            {/* Field totals */}
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-4 rounded-full" style={{ backgroundColor: colors.secondary }} />
@@ -155,7 +155,7 @@ export function Streamlined() {
               </div>
             </div>
 
-            {/* Field ops chips */}
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-4 rounded-full" style={{ backgroundColor: colors.primary }} />
@@ -169,7 +169,7 @@ export function Streamlined() {
               </div>
             </div>
 
-            {/* Mix breakdown row */}
+
             <details className="rounded-lg" style={{ border: `1px solid ${colors.primary}20` }}>
               <summary className="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wide flex items-center justify-between"
                 style={{ color: colors.primaryDark, backgroundColor: `${colors.primary}08` }}>
@@ -237,7 +237,7 @@ function ShareMenu() {
         style={{ backgroundColor: colors.primary, color: 'white' }}>
         Share <span style={{ opacity: 0.8 }}>▾</span>
       </button>
-      {/* Open menu preview to clarify parity with Current's Copy / Share / PDF buttons */}
+
       <div className="absolute right-0 mt-1.5 rounded-lg overflow-hidden shadow-md text-xs z-10"
         style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}30`, minWidth: 140 }}>
         <div className="px-3 py-2 hover:bg-gray-50" style={{ color: colors.lightText }}>Copy summary</div>
@@ -258,7 +258,7 @@ function CompactProductCard({
   return (
     <div className="rounded-lg p-3"
       style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}30`, boxShadow: `0 1px 2px rgba(0,0,0,0.04)` }}>
-      {/* Row 1: name + remove */}
+
       <div className="flex items-center gap-2 mb-2">
         <input readOnly value={p.name}
           className="flex-1 min-w-0 px-2 py-1.5 border rounded-md text-sm font-semibold text-gray-800"
@@ -267,7 +267,7 @@ function CompactProductCard({
           style={{ color: colors.primaryLight, border: `1px solid ${colors.primary}25` }}>×</button>
       </div>
 
-      {/* Row 2: rate + unit dropdown + result */}
+
       <div className="flex flex-wrap items-center gap-2">
         <input readOnly value={p.rate}
           className="w-16 px-2 py-1.5 border rounded-md text-sm font-medium text-gray-800 text-right"
@@ -284,7 +284,7 @@ function CompactProductCard({
         </div>
       </div>
 
-      {/* Row 3: advanced reveal */}
+
       <button onClick={onToggleAdv}
         className="mt-2 text-xs font-medium flex items-center gap-1"
         style={{ color: colors.primaryLight }}>
