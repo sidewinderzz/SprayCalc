@@ -86,119 +86,7 @@ export function Current() {
           </div>
         </div>
 
-        {/* ── Field Operations ── */}
-        <div className="p-4 rounded-lg mt-6" style={{ backgroundColor: colors.primaryLight + '15' }}>
-          <h2 className="font-bold mb-4" style={{ color: colors.primaryDark }}>Field Operations</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <Field label="Field Size (acres)" value={fieldSize} />
-            <Field label="Width (feet)" value={implementWidth} />
-            <Field label="Speed (mph)" value={speed} />
-            <Field label="Fill Time (min)" value={fillTime} />
-          </div>
-          <div className="p-3 rounded-lg" style={{ backgroundColor: 'white', borderLeft: `4px solid ${colors.primary}` }}>
-            <h3 className="font-bold mb-2" style={{ color: colors.primary }}>Field Operations Estimates</h3>
-            <div className="grid grid-cols-1 gap-2 text-sm">
-              <p>• Working rate: <strong>101.8 acres/hour</strong></p>
-              <p>• Effective rate (with filling): <strong>81.1 acres/hour</strong></p>
-              <p>• Mixes needed: <strong>5 mixes</strong> (4.5)</p>
-              <p>• Total gallons: <strong>3600 gallons</strong></p>
-              <p>• Spray time: <strong>2 hr 21 min</strong></p>
-              <p>• Total fill time: <strong>0 hr 36 min</strong></p>
-              <p>• Estimated job completion time: <strong>2 hr 58 min</strong></p>
-              <p>• Estimated completion: <strong>Today at 11:58 AM</strong></p>
-            </div>
-          </div>
-
-          {/* Field Quantities (collapsed-style preview header + open body) */}
-          <div className="mt-4 rounded-lg overflow-hidden border" style={{ borderColor: colors.primary + '30' }}>
-            <div className="w-full flex items-center justify-between px-4 py-3" style={{ backgroundColor: colors.primary + '12' }}>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-sm" style={{ color: colors.primaryDark }}>Field Quantities</span>
-                <span className="hidden sm:flex items-center gap-2 text-xs" style={{ color: colors.primaryDark + 'aa' }}>
-                  <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>240 ac</span>
-                  <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>3600 gal</span>
-                  <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>4 full + 1 partial</span>
-                </span>
-              </div>
-              <span style={{ color: colors.primaryDark }}>▾</span>
-            </div>
-            <div className="p-4 space-y-5">
-              {/* What to Buy */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-5 rounded-full" style={{ backgroundColor: colors.secondary }} />
-                  <h3 className="font-bold text-sm" style={{ color: colors.primaryDark }}>What to Buy</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {products.map(p => (
-                    <div key={`buy-${p.id}`} className="rounded-lg overflow-hidden border" style={{ borderColor: colors.secondary + '80' }}>
-                      <div className="px-3 py-2" style={{ backgroundColor: colors.secondary + '25' }}>
-                        <p className="font-bold text-sm truncate" style={{ color: colors.primaryDark }}>{p.name}</p>
-                        <p className="text-xl font-bold mt-0.5" style={{ color: colors.primaryDark }}>{p.totalBuy}</p>
-                      </div>
-                      <div className="px-3 py-2 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold" style={{ color: colors.lightText }}>
-                            <span className="mr-1" style={{ color: colors.secondary }}>★</span>{p.containerStar}
-                          </span>
-                          <span className="opacity-60">0% waste</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="opacity-70" style={{ color: colors.lightText }}>{p.containerAlt}</span>
-                          <span className="opacity-60">0% waste</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
-
-              {/* Per Mix Amounts */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-5 rounded-full" style={{ backgroundColor: colors.primary }} />
-                  <h3 className="font-bold text-sm" style={{ color: colors.primaryDark }}>Per Mix Amounts</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-lg overflow-hidden border" style={{ borderColor: colors.primary + '60' }}>
-                    <div className="px-3 py-2" style={{ backgroundColor: colors.primary + '15' }}>
-                      <p className="font-bold text-sm" style={{ color: colors.primary }}>Full Mix × 4</p>
-                      <p className="text-xs opacity-70 mt-0.5">800 gal · 53.33 acres each</p>
-                    </div>
-                    <div className="px-3 py-2 space-y-1.5">
-                      {products.map(p => (
-                        <div key={`full-${p.id}`} className="flex items-center justify-between text-sm">
-                          <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>{p.name}</span>
-                          <span className="font-bold flex-shrink-0" style={{ color: colors.primaryDark }}>{p.perFull}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-lg overflow-hidden border" style={{ borderColor: colors.secondary + '80' }}>
-                    <div className="px-3 py-2" style={{ backgroundColor: colors.secondary + '20' }}>
-                      <p className="font-bold text-sm" style={{ color: colors.secondaryDark }}>Partial Mix × 1</p>
-                      <p className="text-xs opacity-70 mt-0.5">400.0 gal · 26.67 acres</p>
-                    </div>
-                    <div className="px-3 py-2 space-y-1.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>Roundup PowerMax</span>
-                        <span className="font-bold flex-shrink-0" style={{ color: colors.secondaryDark }}>853.33 oz</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>2,4-D Amine</span>
-                        <span className="font-bold flex-shrink-0" style={{ color: colors.secondaryDark }}>426.67 oz</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Summary ── */}
+        {/* ── Summary ── (matches src/App.tsx order: right after Products) */}
         <div className="p-4 rounded-lg mt-6" style={{ backgroundColor: colors.secondaryLight + '20' }}>
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-bold" style={{ color: colors.primaryDark }}>Summary</h2>
@@ -227,6 +115,126 @@ export function Current() {
               ))}
             </ul>
           </div>
+        </div>
+
+        {/* ── Field Quantities ── (own collapsible section, matches src/components/FieldQuantities.tsx) */}
+        <div className="mt-4 rounded-lg overflow-hidden border" style={{ borderColor: colors.primary + '30' }}>
+          <div className="w-full flex items-center justify-between px-4 py-3" style={{ backgroundColor: colors.primary + '12' }}>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-sm" style={{ color: colors.primaryDark }}>Field Quantities</span>
+              <span className="hidden sm:flex items-center gap-2 text-xs" style={{ color: colors.primaryDark + 'aa' }}>
+                <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>240 ac</span>
+                <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>3600 gal</span>
+                <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary + '18' }}>4 full + 1 partial</span>
+              </span>
+            </div>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"
+              style={{ color: colors.primaryDark, transform: 'rotate(180deg)' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div className="p-4 space-y-5">
+            {/* What to Buy */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-5 rounded-full" style={{ backgroundColor: colors.secondary }} />
+                <h3 className="font-bold text-sm" style={{ color: colors.primaryDark }}>What to Buy</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {products.map(p => (
+                  <div key={`buy-${p.id}`} className="rounded-lg overflow-hidden border" style={{ borderColor: colors.secondary + '80' }}>
+                    <div className="px-3 py-2" style={{ backgroundColor: colors.secondary + '25' }}>
+                      <p className="font-bold text-sm truncate" style={{ color: colors.primaryDark }}>{p.name}</p>
+                      <p className="text-xl font-bold mt-0.5" style={{ color: colors.primaryDark }}>{p.totalBuy}</p>
+                    </div>
+                    <div className="px-3 py-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold" style={{ color: colors.lightText }}>
+                          <span className="mr-1" style={{ color: colors.secondary }}>★</span>{p.containerStar}
+                        </span>
+                        <span className="opacity-60">0% waste</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="opacity-70" style={{ color: colors.lightText }}>{p.containerAlt}</span>
+                        <span className="opacity-60">0% waste</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+
+            {/* Per Mix Amounts */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-5 rounded-full" style={{ backgroundColor: colors.primary }} />
+                <h3 className="font-bold text-sm" style={{ color: colors.primaryDark }}>Per Mix Amounts</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg overflow-hidden border" style={{ borderColor: colors.primary + '60' }}>
+                  <div className="px-3 py-2" style={{ backgroundColor: colors.primary + '15' }}>
+                    <p className="font-bold text-sm" style={{ color: colors.primary }}>Full Mix × 4</p>
+                    <p className="text-xs opacity-70 mt-0.5">800 gal · 53.33 acres each</p>
+                  </div>
+                  <div className="px-3 py-2 space-y-1.5">
+                    {products.map(p => (
+                      <div key={`full-${p.id}`} className="flex items-center justify-between text-sm">
+                        <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>{p.name}</span>
+                        <span className="font-bold flex-shrink-0" style={{ color: colors.primaryDark }}>{p.perFull}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-lg overflow-hidden border" style={{ borderColor: colors.secondary + '80' }}>
+                  <div className="px-3 py-2" style={{ backgroundColor: colors.secondary + '20' }}>
+                    <p className="font-bold text-sm" style={{ color: colors.secondaryDark }}>Partial Mix × 1</p>
+                    <p className="text-xs opacity-70 mt-0.5">400.0 gal · 26.67 acres</p>
+                  </div>
+                  <div className="px-3 py-2 space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>Roundup PowerMax</span>
+                      <span className="font-bold flex-shrink-0" style={{ color: colors.secondaryDark }}>853.33 oz</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate mr-2" style={{ color: colors.lightText }}>2,4-D Amine</span>
+                      <span className="font-bold flex-shrink-0" style={{ color: colors.secondaryDark }}>426.67 oz</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Field Operations ── (last section, matches src/App.tsx order) */}
+        <div className="p-4 rounded-lg mt-6" style={{ backgroundColor: colors.primaryLight + '15' }}>
+          <h2 className="font-bold mb-4" style={{ color: colors.primaryDark }}>Field Operations</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <Field label="Field Size (acres)" value={fieldSize} />
+            <Field label="Width (feet)" value={implementWidth} />
+            <Field label="Speed (mph)" value={speed} />
+            <Field label="Fill Time (min)" value={fillTime} />
+          </div>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'white', borderLeft: `4px solid ${colors.primary}` }}>
+            <h3 className="font-bold mb-2" style={{ color: colors.primary }}>Field Operations Estimates</h3>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <p>• Working rate: <strong>101.8 acres/hour</strong></p>
+              <p>• Effective rate (with filling): <strong>81.1 acres/hour</strong></p>
+              <p>• Mixes needed: <strong>5 mixes</strong> (4.5)</p>
+              <p>• Total gallons: <strong>3600 gallons</strong></p>
+              <p>• Spray time: <strong>2 hr 21 min</strong></p>
+              <p>• Total fill time: <strong>0 hr 36 min</strong></p>
+              <p>• Estimated job completion time: <strong>2 hr 58 min</strong></p>
+              <p>• Estimated completion: <strong>Today at 11:58 AM</strong></p>
+            </div>
+          </div>
+        </div>
+
+        {/* Disclaimer (matches src/App.tsx tail) */}
+        <div className="mt-4 text-xs opacity-60" style={{ color: colors.primaryDark }}>
+          <p>Always verify calculations against product labels and follow all safety guidelines.</p>
         </div>
       </div>
     </div>
