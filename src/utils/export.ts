@@ -145,6 +145,16 @@ export function generateSummaryText(state: ExportState): string {
   return text;
 }
 
+// Escape user-controlled values before interpolating into the print HTML
+function escapeHtml(value: string | number): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Export summary as PDF via print dialog
 export function exportPDF(state: ExportState): void {
   const {
@@ -188,6 +198,12 @@ export function exportPDF(state: ExportState): void {
     .option-row { font-size: 11px; display: flex; justify-content: space-between; padding: 1px 0; }
     .best { font-weight: 600; }
     .footer { margin-top: 24px; font-size: 10px; color: #76a886; border-top: 1px solid #c8dece; padding-top: 8px; }
+    .rates-strip { margin-top: -8px; margin-bottom: 18px; }
+    .rates-strip .strip-heading { font-size: 10px; font-weight: 600; color: #76a886; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .rates-strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: #2d6840; }
+    .rates-strip li { display: inline-flex; align-items: baseline; gap: 4px; }
+    .rates-strip li .name { font-weight: 600; color: #1c291f; }
+    .rates-strip li .rate { color: #498a5a; }
     @media print { body { padding: 12px; } }
   </style>
 </head>
@@ -204,10 +220,19 @@ export function exportPDF(state: ExportState): void {
     </div>
   </section>
 
+  ${products.length > 0 ? `
+  <section class="rates-strip">
+    <div class="strip-heading">Rates As Entered</div>
+    <ul>
+      ${products.map(p => `<li><span class="name">${escapeHtml(p.name)}</span><span>—</span><span class="rate">${escapeHtml(p.rate)} ${escapeHtml(p.unit)}</span></li>`).join('')}
+    </ul>
+  </section>
+  ` : ''}
+
   <section>
     <h2>Products Per Mix</h2>
     <div class="grid grid-3">
-      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${p.name}</div><div class="big-value">${formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128)}</div></div></div>`).join('')}
+      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</div></div></div>`).join('')}
     </div>
   </section>
 
@@ -229,9 +254,9 @@ export function exportPDF(state: ExportState): void {
         const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize, applicationRate);
         const info = formatPurchaseAmount(totalOz, p.unit);
         return `<div class="card">
-          <div class="card-header yellow"><div class="label">${p.name}</div><div class="big-value">${info.display}</div></div>
+          <div class="card-header yellow"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
           <div class="card-body">
-            ${info.containers.slice(0,2).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${c.display}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
+            ${info.containers.slice(0,2).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${escapeHtml(c.display)}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
           </div>
         </div>`;
       }).join('')}
@@ -244,14 +269,14 @@ export function exportPDF(state: ExportState): void {
       <div class="card">
         <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
         <div class="card-body">
-          ${products.map(p => `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128)}</span></div>`).join('')}
+          ${products.map(p => `<div class="row"><span class="label">${escapeHtml(p.name)}</span><span class="value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`).join('')}
         </div>
       </div>
       ${mixPlanning.hasPartialMix ? `
       <div class="card">
         <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
         <div class="card-body">
-          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${p.name}</span><span class="value">${formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128)}</span></div>`; }).join('')}
+          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${escapeHtml(p.name)}</span><span class="value">${escapeHtml(formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`; }).join('')}
         </div>
       </div>` : ''}
     </div>
