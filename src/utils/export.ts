@@ -256,7 +256,7 @@ export function exportPDF(state: ExportState): void {
         return `<div class="card">
           <div class="card-header yellow"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
           <div class="card-body">
-            ${info.containers.slice(0,2).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${escapeHtml(c.display)}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
+            ${info.containers.slice(0,3).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${escapeHtml(c.display)}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
           </div>
         </div>`;
       }).join('')}

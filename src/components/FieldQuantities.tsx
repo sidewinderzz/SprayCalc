@@ -76,7 +76,7 @@ export function FieldQuantities({
                     </div>
                     {purchaseInfo.containers.length > 0 && (
                       <div className="px-3 py-2 space-y-1.5">
-                        {purchaseInfo.containers.slice(0, 2).map((option, index) => (
+                        {purchaseInfo.containers.slice(0, 3).map((option, index) => (
                           <div key={index} className="flex items-center justify-between text-xs">
                             <span className={index === 0 ? 'font-semibold' : 'opacity-70'} style={{color: colors.lightText}}>
                               {index === 0 && <span className="mr-1" style={{color: colors.secondary}}>★</span>}
