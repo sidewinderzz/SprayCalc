@@ -26,9 +26,15 @@ function calculateFieldOperations(
   fillTime: number,
   currentTime: Date
 ): React.ReactNode {
+  const emptyStateStyle = {
+    backgroundColor: `${colors.primary}10`,
+    border: `1px solid ${colors.primary}25`,
+    color: colors.lightText
+  };
+
   if (!fillVolume || !applicationRate) {
     return (
-      <div className="p-3 rounded" style={{backgroundColor: colors.secondaryLight + '30'}}>
+      <div className="p-3 rounded-lg" style={emptyStateStyle}>
         <p><strong>Important:</strong> Please enter your fill volume and application rate in the Mix Information section above.</p>
       </div>
     );
@@ -36,7 +42,7 @@ function calculateFieldOperations(
 
   if (!speed || !implementWidth || !fieldSize || !acresPerFill) {
     return (
-      <div className="p-3 rounded" style={{backgroundColor: colors.secondaryLight + '30'}}>
+      <div className="p-3 rounded-lg" style={emptyStateStyle}>
         <p>Please fill in all field operation values above to see estimates.</p>
         <p className="text-sm mt-2">These calculations will show:</p>
         <ul className="list-disc pl-6 text-sm mt-1">
@@ -124,57 +130,72 @@ export function FieldOperationsSection({
   setFillTime,
   currentTime
 }: FieldOperationsSectionProps) {
+  const inputStyle = {
+    borderColor: `${colors.primary}30`,
+    backgroundColor: 'white'
+  };
+  const labelStyle = { color: colors.lightText };
+
   return (
     <div
-      className="p-4 rounded-lg mt-6"
-      style={{backgroundColor: colors.primaryLight + '15'}}
+      className="p-4 rounded-xl mb-6"
+      style={{
+        backgroundColor: `${colors.primary}08`,
+        border: `1px solid ${colors.primary}25`
+      }}
     >
-      <h2 className="font-bold mb-4" style={{color: colors.primaryDark}}>Field Operations</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+      <h2 className="font-bold mb-3 text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+        Field Operations
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium mb-1">Field Size (acres)</label>
+          <label className="block text-sm font-medium mb-1" style={labelStyle}>Field Size (acres)</label>
           <input
             type="number"
             inputMode="decimal"
             value={fieldSize || ''}
             onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
-            className="w-full p-3 border rounded-lg text-black text-base"
+            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            style={inputStyle}
             min="0"
             placeholder="0"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1">Width (feet)</label>
+          <label className="block text-sm font-medium mb-1" style={labelStyle}>Width (feet)</label>
           <input
             type="number"
             inputMode="decimal"
             value={implementWidth || ''}
             onChange={(e) => setImplementWidth(parseFloat(e.target.value) || 0)}
-            className="w-full p-3 border rounded-lg text-black text-base"
+            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            style={inputStyle}
             min="0"
             placeholder="0"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1">Speed (mph)</label>
+          <label className="block text-sm font-medium mb-1" style={labelStyle}>Speed (mph)</label>
           <input
             type="number"
             inputMode="decimal"
             value={speed || ''}
             onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
-            className="w-full p-3 border rounded-lg text-black text-base"
+            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            style={inputStyle}
             min="0"
             placeholder="0"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1">Fill Time (min)</label>
+          <label className="block text-sm font-medium mb-1" style={labelStyle}>Fill Time (min)</label>
           <input
             type="number"
             inputMode="decimal"
             value={fillTime || ''}
             onChange={(e) => setFillTime(parseFloat(e.target.value) || 0)}
-            className="w-full p-3 border rounded-lg text-black text-base"
+            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            style={inputStyle}
             min="0"
             placeholder="0"
           />
@@ -185,10 +206,12 @@ export function FieldOperationsSection({
         className="p-3 rounded-lg"
         style={{
           backgroundColor: 'white',
-          borderLeft: `4px solid ${colors.primary}`
+          border: `1px solid ${colors.primary}25`
         }}
       >
-        <h3 className="font-bold mb-2" style={{color: colors.primary}}>Field Operations Estimates</h3>
+        <h3 className="font-bold mb-2 text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+          Field Operations Estimates
+        </h3>
         {calculateFieldOperations(fillVolume, applicationRate, acresPerFill, fieldSize, implementWidth, speed, fillTime, currentTime)}
       </div>
     </div>

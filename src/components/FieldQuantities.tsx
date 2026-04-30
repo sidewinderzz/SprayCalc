@@ -27,20 +27,20 @@ export function FieldQuantities({
   if (!mixPlanning) return null;
 
   return (
-    <div className="mt-4 rounded-lg overflow-hidden border" style={{borderColor: colors.primary + '30'}}>
+    <div className="rounded-xl overflow-hidden border mb-6" style={{borderColor: colors.primary + '25'}}>
       {/* Toggle header */}
       <button
         onClick={() => setShowQuantities(!showQuantities)}
         className="w-full flex items-center justify-between px-4 py-3"
-        style={{backgroundColor: colors.primary + '12'}}
+        style={{backgroundColor: colors.primary + '08'}}
       >
         <div className="flex items-center gap-3">
-          <span className="font-bold text-sm" style={{color: colors.primaryDark}}>Field Quantities</span>
+          <span className="font-bold text-sm uppercase tracking-wide" style={{color: colors.primaryDark}}>Field Quantities</span>
           {/* Compact stats chips */}
           <span className="hidden sm:flex items-center gap-2 text-xs" style={{color: colors.primaryDark + 'aa'}}>
-            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{fieldSize} ac</span>
-            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{mixPlanning.totalSprayNeeded.toFixed(0)} gal</span>
-            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '18'}}>{mixPlanning.fullMixes} full{mixPlanning.hasPartialMix ? ' + 1 partial' : ''}</span>
+            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '12'}}>{fieldSize} ac</span>
+            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '12'}}>{mixPlanning.totalSprayNeeded.toFixed(0)} gal</span>
+            <span className="px-2 py-0.5 rounded-full" style={{backgroundColor: colors.primary + '12'}}>{mixPlanning.fullMixes} full{mixPlanning.hasPartialMix ? ' + 1 partial' : ''}</span>
           </span>
         </div>
         <svg
@@ -121,8 +121,8 @@ export function FieldQuantities({
 
               {/* Partial Mix card */}
               {mixPlanning.hasPartialMix && (
-                <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.secondary + '80'}}>
-                  <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '20'}}>
+                <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.secondary + '50'}}>
+                  <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '12'}}>
                     <p className="font-bold text-sm" style={{color: colors.secondaryDark}}>Partial Mix × 1</p>
                     <p className="text-xs opacity-70 mt-0.5">{mixPlanning.remainingSpray.toFixed(1)} gal · {mixPlanning.remainingAcres.toFixed(2)} acres</p>
                   </div>
