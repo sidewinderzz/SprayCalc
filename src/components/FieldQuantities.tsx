@@ -67,22 +67,24 @@ export function FieldQuantities({
                 return (
                   <div
                     key={`purchase-${product.id}`}
-                    className="rounded-lg overflow-hidden border"
-                    style={{borderColor: colors.secondary + '80'}}
+                    className="rounded-lg overflow-hidden border bg-white"
+                    style={{borderColor: colors.primary + '25'}}
                   >
-                    <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '25'}}>
-                      <p className="font-bold text-sm truncate" style={{color: colors.primaryDark}}>{product.name}</p>
+                    <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '14'}}>
+                      <p className="text-xs font-semibold uppercase tracking-wide truncate" style={{color: colors.primaryDark}}>{product.name}</p>
                       <p className="text-xl font-bold mt-0.5" style={{color: colors.primaryDark}}>{purchaseInfo.display}</p>
                     </div>
                     {purchaseInfo.containers.length > 0 && (
                       <div className="px-3 py-2 space-y-1.5">
                         {purchaseInfo.containers.slice(0, 3).map((option, index) => (
                           <div key={index} className="flex items-center justify-between text-xs">
-                            <span className={index === 0 ? 'font-semibold' : 'opacity-70'} style={{color: colors.lightText}}>
-                              {index === 0 && <span className="mr-1" style={{color: colors.secondary}}>★</span>}
+                            <span
+                              className={index === 0 ? 'font-semibold' : ''}
+                              style={{color: index === 0 ? colors.lightText : colors.lightText + 'cc'}}
+                            >
                               {option.display}
                             </span>
-                            <span className="opacity-60">{option.wastePercent.toFixed(0)}% waste</span>
+                            <span style={{color: colors.lightText + 'cc'}}>{option.wastePercent.toFixed(0)}% waste</span>
                           </div>
                         ))}
                       </div>
@@ -104,10 +106,10 @@ export function FieldQuantities({
             </div>
             <div className={`grid gap-3 ${mixPlanning.hasPartialMix ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
               {/* Full Mix card */}
-              <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.primary + '60'}}>
-                <div className="px-3 py-2" style={{backgroundColor: colors.primary + '15'}}>
-                  <p className="font-bold text-sm" style={{color: colors.primary}}>Full Mix × {mixPlanning.fullMixes}</p>
-                  <p className="text-xs opacity-70 mt-0.5">{fillVolume} gal · {acresPerFill.toFixed(2)} acres each</p>
+              <div className="rounded-lg overflow-hidden border bg-white" style={{borderColor: colors.primary + '25'}}>
+                <div className="px-3 py-2" style={{backgroundColor: colors.primary + '08'}}>
+                  <p className="font-bold text-sm" style={{color: colors.primaryDark}}>Full Mix × {mixPlanning.fullMixes}</p>
+                  <p className="text-xs mt-0.5" style={{color: colors.lightText + 'cc'}}>{fillVolume} gal · {acresPerFill.toFixed(2)} acres each</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
                   {products.map(product => (
@@ -121,10 +123,13 @@ export function FieldQuantities({
 
               {/* Partial Mix card */}
               {mixPlanning.hasPartialMix && (
-                <div className="rounded-lg overflow-hidden border" style={{borderColor: colors.secondary + '50'}}>
-                  <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '12'}}>
-                    <p className="font-bold text-sm" style={{color: colors.secondaryDark}}>Partial Mix × 1</p>
-                    <p className="text-xs opacity-70 mt-0.5">{mixPlanning.remainingSpray.toFixed(1)} gal · {mixPlanning.remainingAcres.toFixed(2)} acres</p>
+                <div className="rounded-lg overflow-hidden border bg-white" style={{borderColor: colors.primary + '25'}}>
+                  <div className="px-3 py-2 flex gap-2 items-stretch" style={{backgroundColor: colors.secondary + '14'}}>
+                    <div className="w-1 rounded-full" style={{backgroundColor: colors.secondary}}/>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm" style={{color: colors.primaryDark}}>Partial Mix × 1</p>
+                      <p className="text-xs mt-0.5" style={{color: colors.lightText + 'cc'}}>{mixPlanning.remainingSpray.toFixed(1)} gal · {mixPlanning.remainingAcres.toFixed(2)} acres</p>
+                    </div>
                   </div>
                   <div className="px-3 py-2 space-y-1.5">
                     {products.map(product => {
@@ -132,7 +137,7 @@ export function FieldQuantities({
                       return (
                         <div key={`partial-${product.id}`} className="flex items-center justify-between text-sm">
                           <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
-                          <span className="font-bold flex-shrink-0" style={{color: colors.secondaryDark}}>{formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}</span>
+                          <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}</span>
                         </div>
                       );
                     })}
