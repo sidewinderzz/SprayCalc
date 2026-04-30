@@ -1,12 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Full-bleed background so Android maskable masks (circle / squircle)
-       have solid color in the corners. Browsers / OSes that show the icon
-       unmasked will round the square themselves. -->
-  <rect width="512" height="512" fill="#498a5a"/>
-
+  <rect width="512" height="512" rx="80" fill="#498a5a"/>
   <defs>
-    <!-- Iconic teardrop, tip at top, centered at x=256, sits inside the
-         maskable safe zone (~80% of canvas: x 51-461, y 51-461). -->
     <path id="drop"
           d="M 256 96
              C 256 96 388 230 388 318
@@ -15,20 +9,11 @@
              C 124 230 256 96 256 96 Z"/>
     <clipPath id="dropClip"><use href="#drop"/></clipPath>
   </defs>
-
-  <!-- White droplet body -->
   <use href="#drop" fill="#ffffff"/>
-
-  <!-- Gold "measured-to-here" fill in the lower portion of the droplet -->
   <rect x="120" y="338" width="272" height="120"
         fill="#d1c343" clip-path="url(#dropClip)"/>
-
-  <!-- Dark fill-level divider line, the calc/measurement cue -->
   <rect x="120" y="324" width="272" height="16"
         fill="#1c291f" clip-path="url(#dropClip)"/>
-
-  <!-- Graduation tick marks on the upper-left interior (ruler scale).
-       Long-short-long pattern reads as a measurement scale. -->
   <g fill="#1c291f" clip-path="url(#dropClip)">
     <rect x="158" y="206" width="64" height="14" rx="7"/>
     <rect x="158" y="248" width="40" height="14" rx="7"/>
