@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, colors } from '../types';
-import { formatOutput } from '../utils/calculations';
+import { formatOutputParts } from '../utils/calculations';
 import { generateSummaryText, exportPDF } from '../utils/export';
 
 interface SummarySectionProps {
@@ -148,11 +148,19 @@ export function SummarySection({
         <p className="mb-1">• This mix will cover <strong>{acresPerFill.toFixed(2)} acres</strong></p>
         <p className="mb-3">• Add the following to your mix:</p>
         <ul className="list-disc pl-6 space-y-1">
-          {products.map(product => (
-            <li key={product.id}>
-              <strong>{product.name}:</strong> {formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}
-            </li>
-          ))}
+          {products.map(product => {
+            const parts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128);
+            return (
+              <li key={product.id}>
+                <strong>{product.name}:</strong> <strong>{parts.primary}</strong>
+                {parts.jugBreakdown && (
+                  <div className="text-xs leading-tight" style={{ color: `${colors.lightText}99` }}>
+                    {parts.jugBreakdown}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
