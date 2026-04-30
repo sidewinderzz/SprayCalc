@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { colors } from './types';
 import { useCalculatorState } from './hooks/useCalculatorState';
 import { useMixStorage } from './hooks/useMixStorage';
+import { useMixHistory } from './hooks/useMixHistory';
 import { Header } from './components/Header';
 import { TipsSection } from './components/TipsSection';
 import { MixSettings } from './components/MixSettings';
@@ -24,10 +25,13 @@ const AgSprayCalculator = () => {
     () => setShowThreeDotMenu(false)
   );
 
-  // Load saved settings and mixes on component mount
+  const mixHistory = useMixHistory();
+
+  // Load saved settings, mixes, and history on component mount
   useEffect(() => {
     state.loadSettings();
     mixStorage.loadAllMixes();
+    mixHistory.loadHistory();
     setTimeout(() => { state.hasLoaded.current = true; }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -55,6 +59,19 @@ const AgSprayCalculator = () => {
     fillTime: state.fillTime
   });
 
+  // Wraps the Save Mix flow so a successful save also logs to recent history.
+  const handleSaveMix = () => {
+    if (mixStorage.mixNameInput.trim()) {
+      mixHistory.addToHistory(getCurrentMixData());
+    }
+    mixStorage.saveMix(getCurrentMixData);
+  };
+
+  // Snapshot the current mix into recent history (used by Copy / Share / PDF).
+  const handleMixSnapshot = () => {
+    mixHistory.addToHistory(getCurrentMixData());
+  };
+
   return (
     <div className="min-h-screen py-4 sm:py-8">
       <div
@@ -72,7 +89,7 @@ const AgSprayCalculator = () => {
           setShowSaveMixDialog={mixStorage.setShowSaveMixDialog}
           mixNameInput={mixStorage.mixNameInput}
           setMixNameInput={mixStorage.setMixNameInput}
-          saveMix={() => mixStorage.saveMix(getCurrentMixData)}
+          saveMix={handleSaveMix}
           deleteMix={mixStorage.deleteMix}
           openSaveMixDialog={mixStorage.openSaveMixDialog}
           loadMix={mixStorage.loadMix}
@@ -84,6 +101,10 @@ const AgSprayCalculator = () => {
           setShowThreeDotMenu={setShowThreeDotMenu}
           threeDotRef={threeDotRef}
           mixNameInputRef={mixNameInputRef}
+          historyEntries={mixHistory.historyEntries}
+          loadHistoryEntry={mixStorage.loadMix}
+          deleteHistoryEntry={mixHistory.deleteHistoryEntry}
+          clearHistory={mixHistory.clearHistory}
         />
 
         <TipsSection
@@ -126,6 +147,7 @@ const AgSprayCalculator = () => {
           currentTime={state.currentTime}
           copyFeedback={state.copyFeedback}
           setCopyFeedback={state.setCopyFeedback}
+          onMixSnapshot={handleMixSnapshot}
         />
 
         <FieldQuantities

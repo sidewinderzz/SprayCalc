@@ -13,6 +13,13 @@ export interface SavedMix {
   data: MixData;
 }
 
+export interface MixHistoryEntry {
+  id: string;
+  timestamp: number;
+  data: MixData;
+  summary: string;
+}
+
 export interface MixData {
   fillVolume: number;
   applicationRate: number;

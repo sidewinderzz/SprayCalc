@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
-import { SavedMix, MixData, colors } from '../types';
+import React, { useRef, useEffect, useState } from 'react';
+import { SavedMix, MixData, MixHistoryEntry, colors } from '../types';
+import { formatRelativeTime } from '../utils/relativeTime';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -19,6 +20,10 @@ interface HeaderProps {
   setShowThreeDotMenu: (val: boolean) => void;
   threeDotRef: React.RefObject<HTMLDivElement>;
   mixNameInputRef: React.RefObject<HTMLInputElement>;
+  historyEntries: MixHistoryEntry[];
+  loadHistoryEntry: (data: MixData) => void;
+  deleteHistoryEntry: (id: string) => void;
+  clearHistory: () => void;
 }
 
 export function Header({
@@ -38,8 +43,18 @@ export function Header({
   showThreeDotMenu,
   setShowThreeDotMenu,
   threeDotRef,
-  mixNameInputRef
+  mixNameInputRef,
+  historyEntries,
+  loadHistoryEntry,
+  deleteHistoryEntry,
+  clearHistory
 }: HeaderProps) {
+  const [confirmClearHistory, setConfirmClearHistory] = useState(false);
+
+  // Reset the "clear history" confirmation when the menu closes
+  useEffect(() => {
+    if (!showThreeDotMenu) setConfirmClearHistory(false);
+  }, [showThreeDotMenu]);
   // Focus mix name input when dialog opens
   useEffect(() => {
     if (showSaveMixDialog && mixNameInputRef.current) {
@@ -201,6 +216,91 @@ export function Header({
                             className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-100 hover:text-red-600"
                             style={{color: colors.primaryLight}}
                             title={`Delete "${mix.name}"`}
+                          >
+                            <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{borderTop: `1px solid ${colors.primary}20`}} />
+
+                {/* Recent Mixes Section */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{color: colors.primaryLight}}>
+                      Recent Mixes
+                    </p>
+                    {historyEntries.length > 0 && (
+                      confirmClearHistory ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { clearHistory(); setConfirmClearHistory(false); }}
+                            className="text-xs font-semibold"
+                            style={{color: '#b91c1c'}}
+                          >
+                            Confirm
+                          </button>
+                          <span className="text-xs" style={{color: colors.lightText + '60'}}>·</span>
+                          <button
+                            onClick={() => setConfirmClearHistory(false)}
+                            className="text-xs"
+                            style={{color: colors.lightText + '99'}}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmClearHistory(true)}
+                          className="text-xs font-medium"
+                          style={{color: colors.lightText + '99'}}
+                          title="Clear recent mixes history"
+                        >
+                          Clear history
+                        </button>
+                      )
+                    )}
+                  </div>
+                  {historyEntries.length === 0 ? (
+                    <p className="text-sm py-2" style={{color: colors.lightText + '80'}}>
+                      No recent mixes yet. Saving, copying, or exporting a mix will log it here.
+                    </p>
+                  ) : (
+                    <div className="space-y-1 max-h-60 overflow-y-auto">
+                      {historyEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-2 rounded-lg px-2 py-2"
+                          style={{backgroundColor: colors.primary + '08'}}
+                        >
+                          <button
+                            onClick={() => loadHistoryEntry(entry.data)}
+                            className="flex-1 text-left min-w-0"
+                          >
+                            <div
+                              className="text-sm font-medium truncate"
+                              style={{color: colors.primaryDark}}
+                            >
+                              {entry.summary}
+                            </div>
+                            <div
+                              className="text-xs mt-0.5 truncate"
+                              style={{color: colors.lightText + '80'}}
+                            >
+                              {formatRelativeTime(entry.timestamp)}
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => deleteHistoryEntry(entry.id)}
+                            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-100 hover:text-red-600"
+                            style={{color: colors.primaryLight}}
+                            title="Remove from history"
+                            aria-label="Remove from history"
                           >
                             <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                               <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>

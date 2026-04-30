@@ -15,6 +15,7 @@ interface SummarySectionProps {
   currentTime: Date;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
+  onMixSnapshot?: () => void;
 }
 
 export function SummarySection({
@@ -28,7 +29,8 @@ export function SummarySection({
   fillTime,
   currentTime,
   copyFeedback,
-  setCopyFeedback
+  setCopyFeedback,
+  onMixSnapshot
 }: SummarySectionProps) {
   const buildExportState = () => ({
     fillVolume,
@@ -43,6 +45,7 @@ export function SummarySection({
   });
 
   const handleCopyToClipboard = async () => {
+    onMixSnapshot?.();
     const text = generateSummaryText(buildExportState());
     try {
       await navigator.clipboard.writeText(text);
@@ -74,6 +77,7 @@ export function SummarySection({
   };
 
   const handleExportPDF = () => {
+    onMixSnapshot?.();
     exportPDF(buildExportState());
   };
 
