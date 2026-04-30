@@ -59,7 +59,8 @@ const AgSprayCalculator = () => {
     fillTime: state.fillTime
   });
 
-  // Wraps the Save Mix flow so a successful save also logs to recent history.
+  // Wraps the Save Mix flow so an intent-to-save (non-empty name) also
+  // logs the current mix to recent history.
   const handleSaveMix = () => {
     if (mixStorage.mixNameInput.trim()) {
       mixHistory.addToHistory(getCurrentMixData());
@@ -67,7 +68,8 @@ const AgSprayCalculator = () => {
     mixStorage.saveMix(getCurrentMixData);
   };
 
-  // Snapshot the current mix into recent history (used by Copy / Share / PDF).
+  // Snapshot the current mix into recent history (used by Copy and PDF
+  // actions in SummarySection).
   const handleMixSnapshot = () => {
     mixHistory.addToHistory(getCurrentMixData());
   };
