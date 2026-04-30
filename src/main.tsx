@@ -29,20 +29,12 @@ if (import.meta.env.PROD) {
   // post-cleanup reload only happens once per tab.
   if ('serviceWorker' in navigator) {
     const RELOAD_FLAG = 'sw-dev-cleanup-reloaded';
-    const APP_CACHE_PREFIX = 'spraycalc-';
-    const isOurSw = (r: ServiceWorkerRegistration) => {
-      const sw = r.active || r.waiting || r.installing;
-      return !!sw && sw.scriptURL.endsWith('/sw.js');
-    };
     navigator.serviceWorker.getRegistrations().then(async (registrations) => {
-      const ours = registrations.filter(isOurSw);
-      if (ours.length === 0) return;
-      await Promise.all(ours.map(r => r.unregister()));
+      if (registrations.length === 0) return;
+      await Promise.all(registrations.map(r => r.unregister()));
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(
-          keys.filter(k => k.startsWith(APP_CACHE_PREFIX)).map(k => caches.delete(k))
-        );
+        await Promise.all(keys.map(k => caches.delete(k)));
       }
       if (!sessionStorage.getItem(RELOAD_FLAG)) {
         sessionStorage.setItem(RELOAD_FLAG, '1');
