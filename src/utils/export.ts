@@ -71,7 +71,7 @@ export function generateSummaryText(state: ExportState): string {
     text += `\nTOTAL PRODUCT QUANTITIES REQUIRED:\n`;
     products.forEach(product => {
       const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize, applicationRate);
-      const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit);
+      const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit, product.jugSize ?? 128);
       text += `${product.name}: ${purchaseInfo.display}\n`;
       if (purchaseInfo.containers.length > 0) {
         text += `  Suggested: ${purchaseInfo.containers[0].display}\n`;
@@ -252,7 +252,7 @@ export function exportPDF(state: ExportState): void {
     <div class="grid grid-3">
       ${products.map(p => {
         const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize, applicationRate);
-        const info = formatPurchaseAmount(totalOz, p.unit);
+        const info = formatPurchaseAmount(totalOz, p.unit, p.jugSize ?? 128);
         return `<div class="card">
           <div class="card-header yellow"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
           <div class="card-body">

@@ -211,8 +211,15 @@ export function formatOutput(value: number, format: string, unit?: string, jugSi
   return jugBreakdown ? `${primary} — ${jugBreakdown}` : primary;
 }
 
-// Format product amounts for purchase planning
-export function formatPurchaseAmount(totalOunces: number, unit?: string): {
+// Format product amounts for purchase planning.
+// When `preferredJugSizeOz` is provided, that container appears first
+// (the primary/starred suggestion) regardless of waste, with the
+// remaining standard sizes shown as alternatives.
+export function formatPurchaseAmount(
+  totalOunces: number,
+  unit?: string,
+  preferredJugSizeOz?: number
+): {
   display: string;
   containers: Array<{
     count: number;
@@ -251,25 +258,38 @@ export function formatPurchaseAmount(totalOunces: number, unit?: string): {
     { size: 0.125, name: '1 pt (16 fl oz)' }
   ];
 
-  const suggestions = [];
-
-  for (const container of containerSizes) {
-    const containerCount = Math.ceil(totalGallons / container.size);
-    const totalContainerVolume = containerCount * container.size * 128;
+  const buildSuggestion = (sizeGal: number, name: string) => {
+    const containerCount = Math.ceil(totalGallons / sizeGal);
+    const totalContainerVolume = containerCount * sizeGal * 128;
     const wasteOz = totalContainerVolume - totalOunces;
     const wastePercent = (wasteOz / totalContainerVolume) * 100;
-
-    suggestions.push({
+    return {
       count: containerCount,
-      size: container.name,
+      size: name,
       totalVolume: totalContainerVolume,
       waste: wasteOz,
       wastePercent,
-      display: `${containerCount} × ${container.name}`
-    });
-  }
+      display: `${containerCount} × ${name}`
+    };
+  };
 
+  const suggestions = containerSizes.map(c => buildSuggestion(c.size, c.name));
   suggestions.sort((a, b) => a.wastePercent - b.wastePercent);
+
+  // If the user has chosen a preferred jug size, surface it first.
+  if (preferredJugSizeOz && preferredJugSizeOz > 0) {
+    const preferredGal = preferredJugSizeOz / 128;
+    const matchedStandard = containerSizes.find(c => c.size === preferredGal);
+    const preferredName = matchedStandard
+      ? matchedStandard.name
+      : `${jugSizeLabel(preferredJugSizeOz)} jug`;
+    const primary = buildSuggestion(preferredGal, preferredName);
+    const others = suggestions.filter(s => s.size !== primary.size);
+    return {
+      display: totalDisplay,
+      containers: [primary, ...others].slice(0, 3)
+    };
+  }
 
   return {
     display: totalDisplay,
