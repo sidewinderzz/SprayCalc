@@ -1,11 +1,15 @@
 import { MixPlanning } from '../types';
 
-// Convert any rate to oz based on unit type
+// Convert any rate to oz based on unit type.
+// Note: returns fluid oz for liquid units (fl oz, pt, qt, gal) and weight oz
+// for weight units (oz, lb, g). Order matters — "fl oz" must be checked before
+// "oz", and "gal" before "g".
 export function convertToOz(rate: number, unit: string): number {
-  if (unit.startsWith('oz')) return rate;
+  if (unit.startsWith('fl oz')) return rate;
   if (unit.startsWith('pt')) return rate * 16;
   if (unit.startsWith('qt')) return rate * 32;
   if (unit.startsWith('gal')) return rate * 128;
+  if (unit.startsWith('oz')) return rate;
   if (unit.startsWith('lb')) return rate * 16;
   if (unit.startsWith('g')) return rate * 0.033814;
   return rate;
@@ -87,9 +91,17 @@ export function calculateMixPlanning(
   };
 }
 
-// Returns true for units where the calculated amount is in weight oz (not fl oz)
+// Returns true for units where the calculated amount is in weight oz (not fl oz).
+// Weight units: lb, weight oz, and g. "fl oz" is explicitly fluid.
 export function isWeightUnit(unit: string): boolean {
-  return unit.startsWith('lb') || unit === 'g/acre' || unit.startsWith('g/');
+  if (unit.startsWith('fl oz')) return false;
+  return (
+    unit.startsWith('lb') ||
+    unit.startsWith('oz/') ||
+    unit.startsWith('oz per') ||
+    unit.startsWith('g/') ||
+    unit.startsWith('g per')
+  );
 }
 
 function formatWeightOz(oz: number): string {

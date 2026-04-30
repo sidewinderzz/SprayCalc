@@ -59,14 +59,18 @@ export const outputFormats = [
 ];
 
 export const unitOptions = [
-  'oz/acre',
+  'fl oz/acre',
   'pt/acre',
   'qt/acre',
   'gal/acre',
+  'oz/acre',
   'lb/acre',
   'g/acre',
-  'oz per 100 gal',
+  'fl oz per 100 gal',
   'pt per 100 gal',
   'qt per 100 gal',
-  'lb per 100 gal'
+  'gal per 100 gal',
+  'oz per 100 gal',
+  'lb per 100 gal',
+  'g per 100 gal'
 ];

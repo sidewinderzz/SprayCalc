@@ -9,10 +9,11 @@ import React, {
 import { Product, colors, outputFormats } from '../types';
 import { formatOutputParts, isWeightUnit } from '../utils/calculations';
 
-// ─── Unit Pill Selector ───────────────────────────────────────────────────────
+// ─── Unit helpers ─────────────────────────────────────────────────────────────
 
-const ACRE_PILLS = ['oz', 'pt', 'qt', 'gal', 'lb', 'g'];
-const GAL_PILLS  = ['oz', 'pt', 'qt', 'lb'];
+// All units are available for both /acre and /100 gal modes. Order shown in
+// the UI: liquid units first, then weight units.
+const ALL_PILLS = ['fl oz', 'pt', 'qt', 'gal', 'oz', 'lb', 'g'];
 
 function deriveMode(unit: string): 'acre' | '100gal' {
   return unit.includes('per 100 gal') ? '100gal' : 'acre';
@@ -22,13 +23,55 @@ function derivePill(unit: string, mode: 'acre' | '100gal'): string {
   const raw = mode === 'acre'
     ? unit.replace('/acre', '').trim()
     : unit.replace(' per 100 gal', '').trim();
-  const pills = mode === 'acre' ? ACRE_PILLS : GAL_PILLS;
-  return pills.includes(raw) ? raw : pills[0];
+  return ALL_PILLS.includes(raw) ? raw : ALL_PILLS[0];
 }
 
 function makeUnit(mode: 'acre' | '100gal', pill: string): string {
   return mode === 'acre' ? `${pill}/acre` : `${pill} per 100 gal`;
 }
+
+// ─── Unit Mode Toggle (inline with Rate input) ────────────────────────────────
+
+interface UnitModeToggleProps {
+  unit: string;
+  onChange: (unit: string) => void;
+}
+
+function UnitModeToggle({ unit, onChange }: UnitModeToggleProps) {
+  const mode = deriveMode(unit);
+  const pill = derivePill(unit, mode);
+
+  const handleModeChange = (newMode: 'acre' | '100gal') => {
+    if (newMode === mode) return;
+    onChange(makeUnit(newMode, pill));
+  };
+
+  return (
+    <div
+      className="flex rounded-lg overflow-hidden flex-shrink-0 text-xs font-semibold"
+      style={{ backgroundColor: `${colors.primary}10` }}
+    >
+      {(['acre', '100gal'] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => handleModeChange(m)}
+          className="px-2.5 py-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0"
+          style={
+            mode === m
+              ? { backgroundColor: colors.primary, color: '#fff' }
+              : { color: colors.primaryDark }
+          }
+          aria-pressed={mode === m}
+        >
+          {m === 'acre' ? '/ Acre' : '/ 100 gal'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Unit Pill Selector ───────────────────────────────────────────────────────
 
 interface UnitPillSelectorProps {
   unit: string;
@@ -38,64 +81,32 @@ interface UnitPillSelectorProps {
 function UnitPillSelector({ unit, onChange }: UnitPillSelectorProps) {
   const mode  = deriveMode(unit);
   const pill  = derivePill(unit, mode);
-  const pills = mode === 'acre' ? ACRE_PILLS : GAL_PILLS;
-
-  const handleModeChange = (newMode: 'acre' | '100gal') => {
-    const newPills = newMode === 'acre' ? ACRE_PILLS : GAL_PILLS;
-    const nextPill = newPills.includes(pill) ? pill : newPills[0];
-    onChange(makeUnit(newMode, nextPill));
-  };
 
   const handlePillChange = (newPill: string) => {
     onChange(makeUnit(mode, newPill));
   };
 
   return (
-    <div className="space-y-2">
-      {/* Mode toggle */}
-      <div
-        className="flex rounded-lg overflow-hidden"
-        style={{ border: `1px solid ${colors.primary}40` }}
-      >
-        {(['acre', '100gal'] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => handleModeChange(m)}
-            className="flex-1 py-1.5 text-xs font-semibold transition-colors"
-            style={
-              mode === m
-                ? { backgroundColor: colors.primary, color: '#fff' }
-                : { backgroundColor: `${colors.primary}10`, color: colors.primaryDark }
-            }
-          >
-            {m === 'acre' ? '/ Acre' : '/ 100 gal'}
-          </button>
-        ))}
-      </div>
-
-      {/* Unit pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {pills.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => handlePillChange(p)}
-            className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
-            style={
-              pill === p
-                ? { backgroundColor: colors.primary, color: '#fff' }
-                : {
-                    backgroundColor: `${colors.primary}10`,
-                    color: colors.primaryDark,
-                    border: `1px solid ${colors.primary}35`
-                  }
-            }
-          >
-            {p}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-1">
+      {ALL_PILLS.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => handlePillChange(p)}
+          className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2"
+          style={
+            pill === p
+              ? { backgroundColor: colors.primary, color: '#fff' }
+              : {
+                  backgroundColor: `${colors.primary}10`,
+                  color: colors.primaryDark
+                }
+          }
+          aria-pressed={pill === p}
+        >
+          {p}
+        </button>
+      ))}
     </div>
   );
 }
@@ -139,7 +150,6 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
 
   const handleOpenCustom = () => {
     setShowCustom(true);
-    // Pre-fill with current size so the user sees their starting point
     setCustomInput(jugSize > 0 ? String(parseFloat((jugSize / 128).toFixed(2))) : '');
   };
 
@@ -152,23 +162,21 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
 
   const isCustomActive = showCustom;
 
+  const pillStyle = (active: boolean) =>
+    active
+      ? { backgroundColor: colors.primary, color: '#fff' }
+      : { backgroundColor: `${colors.primary}10`, color: colors.primaryDark };
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1">
       {JUG_PRESETS.map(preset => (
         <button
           key={preset.oz}
           type="button"
           onClick={() => handlePreset(preset.oz)}
-          className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
-          style={
-            !isCustomActive && jugSize === preset.oz
-              ? { backgroundColor: colors.primary, color: '#fff' }
-              : {
-                  backgroundColor: `${colors.primary}10`,
-                  color: colors.primaryDark,
-                  border: `1px solid ${colors.primary}35`
-                }
-          }
+          className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2"
+          style={pillStyle(!isCustomActive && jugSize === preset.oz)}
+          aria-pressed={!isCustomActive && jugSize === preset.oz}
         >
           {preset.label}
         </button>
@@ -176,16 +184,9 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
       <button
         type="button"
         onClick={handleOpenCustom}
-        className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors"
-        style={
-          isCustomActive
-            ? { backgroundColor: colors.primary, color: '#fff' }
-            : {
-                backgroundColor: `${colors.primary}10`,
-                color: colors.primaryDark,
-                border: `1px solid ${colors.primary}35`
-              }
-        }
+        className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2"
+        style={pillStyle(isCustomActive)}
+        aria-pressed={isCustomActive}
       >
         Custom
       </button>
@@ -203,12 +204,31 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomCommit(); } }}
             autoFocus
             className="w-24 px-2 py-1 border rounded-lg text-xs font-medium text-gray-800 focus:outline-none focus:ring-2"
-            style={{ borderColor: `${colors.primary}30`, backgroundColor: '#fafafa' }}
+            style={{ borderColor: `${colors.primary}1f`, backgroundColor: `${colors.primary}06` }}
           />
           <span className="text-xs" style={{ color: `${colors.lightText}80` }}>gal</span>
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Inline icons ─────────────────────────────────────────────────────────────
+
+function DropIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M8 1.5s-4 4.5-4 8a4 4 0 0 0 8 0c0-3.5-4-8-4-8z" />
+    </svg>
+  );
+}
+
+function JugIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5.5 4.5h5v8a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5v-8z" />
+      <path d="M6.5 4.5V2.75A.25.25 0 0 1 6.75 2.5h2.5a.25.25 0 0 1 .25.25V4.5" />
+    </svg>
   );
 }
 
@@ -220,6 +240,7 @@ export interface ProductCardHandle {
 
 interface ProductCardProps {
   product: Product;
+  index: number;
   onProductChange: (id: number, field: string, value: string | number) => void;
   onToggleFormatMenu: (productId: number) => void;
   onSelectFormat: (productId: number, format: string) => void;
@@ -230,6 +251,7 @@ interface ProductCardProps {
 
 export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
   product,
+  index,
   onProductChange,
   onToggleFormatMenu,
   onSelectFormat,
@@ -242,6 +264,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
   const showJugSelector = !isWeightUnit(product.unit);
   const jugSize = product.jugSize ?? 128;
   const tankAmountParts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit, jugSize);
+  const hasTankAmount = product.tankAmount > 0;
 
   const scrollCenter = (el: HTMLElement | null) =>
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -253,157 +276,196 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
     }
   }));
 
+  const inputBaseStyle = {
+    borderColor: `${colors.primary}22`,
+    backgroundColor: `${colors.primary}06`
+  };
+
   return (
     <div
-      className="p-4 rounded-xl"
+      className="rounded-xl flex flex-col"
       style={{
         backgroundColor: 'white',
-        border: `1.5px solid ${colors.primary}30`,
-        boxShadow: `0 2px 8px 0 ${colors.primary}0d, 0 1px 3px 0 rgba(0,0,0,0.05)`
+        border: `1px solid ${colors.primary}22`,
+        boxShadow: `0 1px 3px 0 rgba(0,0,0,0.04)`
       }}
     >
-      {/* Product name + remove button */}
-      <div className="flex items-center gap-2 mb-3">
-        <input
-          ref={nameRef}
-          type="text"
-          value={product.name}
-          onChange={(e) => onProductChange(product.id, 'name', e.target.value)}
-          onFocus={(e) => scrollCenter(e.currentTarget)}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              rateRef.current?.focus();
-              scrollCenter(rateRef.current);
-            }
-          }}
-          className="flex-1 min-w-0 px-2.5 py-2 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2"
-          style={{
-            borderColor: `${colors.primary}30`,
-            backgroundColor: '#fafafa'
-          }}
-          placeholder="Product Name"
-        />
-        <button
-          onClick={() => onRemoveProduct(product.id)}
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-500"
-          title="Remove Product"
-          style={{ color: `${colors.primaryLight}`, border: `1px solid ${colors.primary}25` }}
-        >
-          <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
-          </svg>
-        </button>
-      </div>
-
-      {/* Rate input */}
-      <div className="mb-3">
-        <label className="block text-xs font-medium mb-1 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>
-          Rate
-        </label>
-        <input
-          ref={rateRef}
-          type="number"
-          inputMode="decimal"
-          value={product.rate || ''}
-          onChange={(e) => onProductChange(product.id, 'rate', parseFloat(e.target.value) || 0)}
-          onFocus={(e) => scrollCenter(e.currentTarget)}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              onEnterFromLastField();
-            }
-          }}
-          className="w-full px-3 py-2.5 border rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2"
-          style={{
-            borderColor: `${colors.primary}30`,
-            backgroundColor: '#fafafa'
-          }}
-          min="0"
-          step="0.01"
-          placeholder="0"
-        />
-      </div>
-
-      {/* Unit pill selector */}
-      <div className="mb-3">
-        <label className="block text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>
-          Unit
-        </label>
-        <UnitPillSelector
-          unit={product.unit}
-          onChange={(unit) => onProductChange(product.id, 'unit', unit)}
-        />
-      </div>
-
-      {/* Jug Size selector — only for liquid units */}
-      {showJugSelector && (
-        <div className="mb-3">
-          <label className="block text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>
-            Jug Size
-          </label>
-          <JugSizePillSelector
-            jugSize={jugSize}
-            onChange={(oz) => onProductChange(product.id, 'jugSize', oz)}
-          />
-        </div>
-      )}
-
-      {/* Amount for Tank */}
-      <div>
-        <label className="block text-xs font-medium mb-1 uppercase tracking-wide" style={{ color: `${colors.lightText}80` }}>
-          Amount for Tank
-        </label>
-        <div className="relative">
-          <div
-            className="w-full px-3 py-2.5 rounded-lg font-bold cursor-pointer text-sm select-none flex items-center justify-between gap-2"
-            style={{
-              backgroundColor: `${colors.primary}12`,
-              border: `1px solid ${colors.primary}35`,
-              color: colors.primaryDark
+      <div className="p-4 flex flex-col gap-4">
+        {/* ── Identity ────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-1">
+          <input
+            ref={nameRef}
+            type="text"
+            value={product.name}
+            onChange={(e) => onProductChange(product.id, 'name', e.target.value)}
+            onFocus={(e) => scrollCenter(e.currentTarget)}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                rateRef.current?.focus();
+                scrollCenter(rateRef.current);
+              }
             }}
-            onClick={() => onToggleFormatMenu(product.id)}
+            className="flex-1 min-w-0 px-2.5 py-1.5 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2"
+            style={inputBaseStyle}
+            placeholder={`Product ${index + 1}`}
+          />
+          <button
+            onClick={() => onRemoveProduct(product.id)}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors"
+            title="Remove Product"
+            aria-label="Remove Product"
           >
-            <span className="flex flex-col gap-0.5 min-w-0">
-              <span>{tankAmountParts.primary}</span>
-              {tankAmountParts.jugBreakdown && (
-                <span className="font-normal text-xs leading-tight" style={{ color: `${colors.primaryDark}99` }}>
-                  {tankAmountParts.jugBreakdown}
-                </span>
-              )}
-            </span>
-            <svg viewBox="0 0 12 8" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-40">
-              <polyline points="1,1 6,7 11,1"/>
+            <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
             </svg>
+          </button>
+        </div>
+
+        {/* ── Inputs ──────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          {/* Rate row: numeric input + mode toggle inline */}
+          <div className="flex items-stretch gap-2">
+            <div className="relative flex-1 min-w-0">
+              <span
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+                style={{ color: `${colors.primary}80` }}
+              >
+                <DropIcon />
+              </span>
+              <input
+                ref={rateRef}
+                type="number"
+                inputMode="decimal"
+                value={product.rate || ''}
+                onChange={(e) => onProductChange(product.id, 'rate', parseFloat(e.target.value) || 0)}
+                onFocus={(e) => scrollCenter(e.currentTarget)}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onEnterFromLastField();
+                  }
+                }}
+                className="w-full pl-8 pr-2.5 py-1.5 border rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2"
+                style={inputBaseStyle}
+                min="0"
+                step="0.01"
+                placeholder="Rate"
+                aria-label="Rate"
+              />
+            </div>
+            <UnitModeToggle
+              unit={product.unit}
+              onChange={(unit) => onProductChange(product.id, 'unit', unit)}
+            />
           </div>
 
-          {openFormatMenuId === product.id && (
-            <div
-              className="absolute z-10 mt-1 w-full border rounded-lg shadow-lg overflow-hidden"
-              style={{
-                backgroundColor: 'white',
-                borderColor: `${colors.primary}40`
-              }}
-            >
-              {outputFormats.map(format => (
-                <div
-                  key={format.value}
-                  className="px-3 py-2.5 cursor-pointer text-sm hover:bg-gray-50 active:bg-gray-100"
-                  style={{
-                    backgroundColor: product.outputFormat === format.value
-                      ? `${colors.primary}18`
-                      : 'transparent',
-                    fontWeight: product.outputFormat === format.value ? '600' : 'normal',
-                    color: colors.lightText
-                  }}
-                  onClick={() => onSelectFormat(product.id, format.value)}
-                >
-                  {format.label}
-                </div>
-              ))}
+          {/* Unit pills */}
+          <UnitPillSelector
+            unit={product.unit}
+            onChange={(unit) => onProductChange(product.id, 'unit', unit)}
+          />
+
+          {/* Jug Size — only for liquid units */}
+          {showJugSelector && (
+            <div className="flex flex-col gap-1 pt-1">
+              <div
+                className="flex items-center gap-1.5 text-xs font-medium"
+                style={{ color: `${colors.lightText}80` }}
+              >
+                <JugIcon />
+                <span>Jug Size</span>
+              </div>
+              <JugSizePillSelector
+                jugSize={jugSize}
+                onChange={(oz) => onProductChange(product.id, 'jugSize', oz)}
+              />
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Result footer ─────────────────────────────────────────────── */}
+      <div
+        className="relative px-4 py-3 mt-auto rounded-b-xl"
+        style={{
+          backgroundColor: `${colors.primary}0c`,
+          borderTop: `1px solid ${colors.primary}1f`
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => onToggleFormatMenu(product.id)}
+          className="w-full flex items-center justify-between gap-2 text-left rounded-md focus:outline-none focus:ring-2"
+          aria-haspopup="listbox"
+          aria-expanded={openFormatMenuId === product.id}
+        >
+          <div className="flex flex-col min-w-0">
+            <span
+              className="text-[10px] uppercase tracking-wider font-semibold"
+              style={{ color: `${colors.primaryDark}99` }}
+            >
+              Amount for Tank
+            </span>
+            <span
+              className="font-bold leading-tight mt-0.5"
+              style={{
+                color: colors.primaryDark,
+                fontSize: '1.05rem',
+                opacity: hasTankAmount ? 1 : 0.55
+              }}
+            >
+              {tankAmountParts.primary}
+            </span>
+            {tankAmountParts.jugBreakdown && (
+              <span
+                className="text-xs leading-tight font-normal mt-1"
+                style={{ color: `${colors.primaryDark}aa` }}
+              >
+                {tankAmountParts.jugBreakdown}
+              </span>
+            )}
+          </div>
+          <span
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-colors"
+            style={{ color: colors.primaryDark }}
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 12 8" width="11" height="8" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+              <polyline points="1,1 6,7 11,1"/>
+            </svg>
+          </span>
+        </button>
+
+        {openFormatMenuId === product.id && (
+          <div
+            className="absolute left-2 right-2 z-10 mt-1 border rounded-lg shadow-lg overflow-hidden"
+            style={{
+              backgroundColor: 'white',
+              borderColor: `${colors.primary}40`
+            }}
+            role="listbox"
+          >
+            {outputFormats.map(format => (
+              <div
+                key={format.value}
+                className="px-3 py-2.5 cursor-pointer text-sm hover:bg-gray-50 active:bg-gray-100"
+                style={{
+                  backgroundColor: product.outputFormat === format.value
+                    ? `${colors.primary}18`
+                    : 'transparent',
+                  fontWeight: product.outputFormat === format.value ? '600' : 'normal',
+                  color: colors.lightText
+                }}
+                onClick={() => onSelectFormat(product.id, format.value)}
+                role="option"
+                aria-selected={product.outputFormat === format.value}
+              >
+                {format.label}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

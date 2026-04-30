@@ -6,6 +6,7 @@ import {
   formatPurchaseAmount,
   calculateAmount
 } from './calculations';
+import { displayProductName } from './productName';
 
 export interface ExportState {
   fillVolume: number;
@@ -41,8 +42,8 @@ export function generateSummaryText(state: ExportState): string {
   text += `Acres Per Fill: ${acresPerFill.toFixed(2)}\n\n`;
 
   text += `PRODUCTS TO ADD PER MIX:\n`;
-  products.forEach(product => {
-    text += `${product.name}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+  products.forEach((product, idx) => {
+    text += `${displayProductName(product.name, idx)}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
   });
 
   if (fieldSize) {
@@ -56,23 +57,23 @@ export function generateSummaryText(state: ExportState): string {
       if (mixPlanning.hasPartialMix) {
         text += `Partial Mix: ${mixPlanning.remainingSpray.toFixed(1)} gallons for ${mixPlanning.remainingAcres.toFixed(2)} acres\n`;
         text += `\nPRODUCTS FOR PARTIAL MIX:\n`;
-        products.forEach(product => {
+        products.forEach((product, idx) => {
           const partialAmount = calculateAmount(
             product.rate,
             product.unit,
             mixPlanning.remainingSpray,
             applicationRate
           );
-          text += `${product.name}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+          text += `${displayProductName(product.name, idx)}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
         });
       }
     }
 
     text += `\nTOTAL PRODUCT QUANTITIES REQUIRED:\n`;
-    products.forEach(product => {
+    products.forEach((product, idx) => {
       const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize, applicationRate);
       const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit, product.jugSize ?? 128);
-      text += `${product.name}: ${purchaseInfo.display}\n`;
+      text += `${displayProductName(product.name, idx)}: ${purchaseInfo.display}\n`;
       if (purchaseInfo.containers.length > 0) {
         text += `  Suggested: ${purchaseInfo.containers[0].display}\n`;
       }
@@ -224,7 +225,7 @@ export function exportPDF(state: ExportState): void {
   <section class="rates-strip">
     <div class="strip-heading">Rates As Entered</div>
     <ul>
-      ${products.map(p => `<li><span class="name">${escapeHtml(p.name)}</span><span>—</span><span class="rate">${escapeHtml(p.rate)} ${escapeHtml(p.unit)}</span></li>`).join('')}
+      ${products.map((p, i) => `<li><span class="name">${escapeHtml(displayProductName(p.name, i))}</span><span>—</span><span class="rate">${escapeHtml(p.rate)} ${escapeHtml(p.unit)}</span></li>`).join('')}
     </ul>
   </section>
   ` : ''}
@@ -232,7 +233,7 @@ export function exportPDF(state: ExportState): void {
   <section>
     <h2>Products Per Mix</h2>
     <div class="grid grid-3">
-      ${products.map(p => `<div class="card"><div class="card-header"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</div></div></div>`).join('')}
+      ${products.map((p, i) => `<div class="card"><div class="card-header"><div class="label">${escapeHtml(displayProductName(p.name, i))}</div><div class="big-value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</div></div></div>`).join('')}
     </div>
   </section>
 
@@ -250,11 +251,11 @@ export function exportPDF(state: ExportState): void {
   <section>
     <h2>What to Buy</h2>
     <div class="grid grid-3">
-      ${products.map(p => {
+      ${products.map((p, i) => {
         const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize, applicationRate);
         const info = formatPurchaseAmount(totalOz, p.unit, p.jugSize ?? 128);
         return `<div class="card">
-          <div class="card-header yellow"><div class="label">${escapeHtml(p.name)}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
+          <div class="card-header yellow"><div class="label">${escapeHtml(displayProductName(p.name, i))}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
           <div class="card-body">
             ${info.containers.slice(0,3).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${escapeHtml(c.display)}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
           </div>
@@ -269,14 +270,14 @@ export function exportPDF(state: ExportState): void {
       <div class="card">
         <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
         <div class="card-body">
-          ${products.map(p => `<div class="row"><span class="label">${escapeHtml(p.name)}</span><span class="value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`).join('')}
+          ${products.map((p, i) => `<div class="row"><span class="label">${escapeHtml(displayProductName(p.name, i))}</span><span class="value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`).join('')}
         </div>
       </div>
       ${mixPlanning.hasPartialMix ? `
       <div class="card">
         <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
         <div class="card-body">
-          ${products.map(p => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${escapeHtml(p.name)}</span><span class="value">${escapeHtml(formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`; }).join('')}
+          ${products.map((p, i) => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${escapeHtml(displayProductName(p.name, i))}</span><span class="value">${escapeHtml(formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`; }).join('')}
         </div>
       </div>` : ''}
     </div>

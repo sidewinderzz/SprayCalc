@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Product, MixData } from '../types';
 import { calculateAmount } from '../utils/calculations';
+import { migrateProductUnits } from '../utils/productName';
 
 export function useCalculatorState() {
   const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: 'Product 1', rate: 0, unit: 'oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }
+    { id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }
   ]);
   const [fillVolume, setFillVolume] = useState(0);
   const [applicationRate, setApplicationRate] = useState(0);
@@ -85,10 +86,10 @@ export function useCalculatorState() {
         if (settings.fillVolume) setFillVolume(settings.fillVolume);
         if (settings.tankSize && !settings.fillVolume) setFillVolume(settings.tankSize);
         if (settings.applicationRate) setApplicationRate(settings.applicationRate);
-        if (settings.products) setProducts(settings.products.map((p: Product) => ({
+        if (settings.products) setProducts(migrateProductUnits(settings.products.map((p: Product) => ({
           jugSize: 128,
           ...p
-        })));
+        }))));
         if (settings.fieldSize) setFieldSize(settings.fieldSize);
         if (settings.implementWidth) setImplementWidth(settings.implementWidth);
         if (settings.speed) setSpeed(settings.speed);
@@ -122,7 +123,7 @@ export function useCalculatorState() {
       localStorage.removeItem('agSprayCalcSettings');
       setFillVolume(0);
       setApplicationRate(0);
-      setProducts([{ id: 1, name: 'Product 1', rate: 0, unit: 'oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }]);
+      setProducts([{ id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }]);
       setFieldSize(0);
       setImplementWidth(0);
       setSpeed(0);
@@ -227,9 +228,9 @@ export function useCalculatorState() {
     const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
     const newProduct: Product = {
       id: newId,
-      name: `Product ${newId}`,
+      name: '',
       rate: 0,
-      unit: 'oz/acre',
+      unit: 'fl oz/acre',
       tankAmount: 0,
       outputFormat: 'auto',
       jugSize: 128
@@ -250,7 +251,7 @@ export function useCalculatorState() {
     try {
       if (mixData.fillVolume !== undefined) setFillVolume(mixData.fillVolume);
       if (mixData.applicationRate !== undefined) setApplicationRate(mixData.applicationRate);
-      if (mixData.products) setProducts(mixData.products.map(p => ({ jugSize: 128, ...p })));
+      if (mixData.products) setProducts(migrateProductUnits(mixData.products.map(p => ({ jugSize: 128, ...p }))));
       if (mixData.fieldSize !== undefined) setFieldSize(mixData.fieldSize);
       if (mixData.implementWidth !== undefined) setImplementWidth(mixData.implementWidth);
       if (mixData.speed !== undefined) setSpeed(mixData.speed);

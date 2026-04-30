@@ -112,7 +112,7 @@ export function ProductsSection({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((product) => (
+        {products.map((product, index) => (
           <ProductCard
             key={product.id}
             ref={(el) => {
@@ -120,6 +120,7 @@ export function ProductsSection({
               else cardRefs.current.delete(product.id);
             }}
             product={product}
+            index={index}
             onProductChange={onProductChange}
             onToggleFormatMenu={onToggleFormatMenu}
             onSelectFormat={onSelectFormat}

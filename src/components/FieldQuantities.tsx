@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product, colors } from '../types';
 import { calculateMixPlanning, calculateFieldAmount, formatPurchaseAmount, calculateAmount, formatOutput } from '../utils/calculations';
+import { displayProductName } from '../utils/productName';
 
 interface FieldQuantitiesProps {
   products: Product[];
@@ -61,7 +62,7 @@ export function FieldQuantities({
               <h3 className="font-bold text-sm" style={{color: colors.primaryDark}}>What to Buy</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {products.map((product) => {
+              {products.map((product, idx) => {
                 const totalAmount = calculateFieldAmount(product.rate, product.unit, fieldSize, applicationRate);
                 const purchaseInfo = formatPurchaseAmount(totalAmount, product.unit, product.jugSize ?? 128);
                 return (
@@ -71,7 +72,7 @@ export function FieldQuantities({
                     style={{borderColor: colors.primary + '25'}}
                   >
                     <div className="px-3 py-2" style={{backgroundColor: colors.secondary + '14'}}>
-                      <p className="text-xs font-semibold uppercase tracking-wide truncate" style={{color: colors.primaryDark}}>{product.name}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide truncate" style={{color: colors.primaryDark}}>{displayProductName(product.name, idx)}</p>
                       <p className="text-xl font-bold mt-0.5" style={{color: colors.primaryDark}}>{purchaseInfo.display}</p>
                     </div>
                     {purchaseInfo.containers.length > 0 && (
@@ -112,9 +113,9 @@ export function FieldQuantities({
                   <p className="text-xs mt-0.5" style={{color: colors.lightText + 'cc'}}>{fillVolume} gal · {acresPerFill.toFixed(2)} acres each</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
-                  {products.map(product => (
+                  {products.map((product, idx) => (
                     <div key={`full-${product.id}`} className="flex items-center justify-between text-sm">
-                      <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
+                      <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{displayProductName(product.name, idx)}</span>
                       <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}</span>
                     </div>
                   ))}
@@ -132,11 +133,11 @@ export function FieldQuantities({
                     </div>
                   </div>
                   <div className="px-3 py-2 space-y-1.5">
-                    {products.map(product => {
+                    {products.map((product, idx) => {
                       const partialAmount = calculateAmount(product.rate, product.unit, mixPlanning.remainingSpray, applicationRate);
                       return (
                         <div key={`partial-${product.id}`} className="flex items-center justify-between text-sm">
-                          <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{product.name}</span>
+                          <span className="font-medium truncate mr-2" style={{color: colors.lightText}}>{displayProductName(product.name, idx)}</span>
                           <span className="font-bold flex-shrink-0" style={{color: colors.primaryDark}}>{formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}</span>
                         </div>
                       );
