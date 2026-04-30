@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spraycalc-v3';
+const CACHE_NAME = 'spraycalc-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
