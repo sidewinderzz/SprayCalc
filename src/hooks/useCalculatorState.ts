@@ -37,6 +37,9 @@ export function useCalculatorState() {
   // Product Quantities section open/closed
   const [showQuantities, setShowQuantities] = useState(true);
 
+  // Field Operations section open/closed
+  const [showFieldOps, setShowFieldOps] = useState(true);
+
   // Tracks whether initial load has finished so auto-save doesn't fire too early
   const hasLoaded = useRef(false);
 
@@ -292,6 +295,8 @@ export function useCalculatorState() {
     acresPerFillInput,
     showQuantities,
     setShowQuantities,
+    showFieldOps,
+    setShowFieldOps,
     acresPerFill,
     hasLoaded,
     pendingFocusId,

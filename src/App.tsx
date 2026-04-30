@@ -175,6 +175,8 @@ const AgSprayCalculator = () => {
           setSpeed={state.setSpeed}
           setFillTime={state.setFillTime}
           currentTime={state.currentTime}
+          showFieldOps={state.showFieldOps}
+          setShowFieldOps={state.setShowFieldOps}
         />
 
         <div className="mt-4 text-xs opacity-60" style={{color: colors.primaryDark}}>
