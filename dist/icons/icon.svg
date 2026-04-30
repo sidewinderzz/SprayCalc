@@ -1,13 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#498a5a"/>
-  <g fill="#ffffff">
-    <!-- Spray droplet -->
-    <path d="M256 80c-8 0-15 4-20 10l-80 120c-20 30-32 65-32 100 0 70 60 130 132 130s132-60 132-130c0-35-12-70-32-100l-80-120c-5-6-12-10-20-10zm0 320c-50 0-92-40-92-90 0-25 9-50 24-72l68-100 68 100c15 22 24 47 24 72 0 50-42 90-92 90z"/>
-    <!-- Calculator lines -->
-    <rect x="180" y="280" width="60" height="8" rx="4"/>
-    <rect x="270" y="280" width="60" height="8" rx="4"/>
-    <rect x="180" y="310" width="60" height="8" rx="4"/>
-    <rect x="270" y="310" width="60" height="8" rx="4"/>
-    <rect x="180" y="340" width="150" height="8" rx="4"/>
+  <!-- Full-bleed background so Android maskable masks (circle / squircle)
+       have solid color in the corners. Browsers / OSes that show the icon
+       unmasked will round the square themselves. -->
+  <rect width="512" height="512" fill="#498a5a"/>
+
+  <defs>
+    <!-- Iconic teardrop, tip at top, centered at x=256, sits inside the
+         maskable safe zone (~80% of canvas: x 51-461, y 51-461). -->
+    <path id="drop"
+          d="M 256 96
+             C 256 96 388 230 388 318
+             C 388 392 326 450 256 450
+             C 186 450 124 392 124 318
+             C 124 230 256 96 256 96 Z"/>
+    <clipPath id="dropClip"><use href="#drop"/></clipPath>
+  </defs>
+
+  <!-- White droplet body -->
+  <use href="#drop" fill="#ffffff"/>
+
+  <!-- Gold "measured-to-here" fill in the lower portion of the droplet -->
+  <rect x="120" y="338" width="272" height="120"
+        fill="#d1c343" clip-path="url(#dropClip)"/>
+
+  <!-- Dark fill-level divider line, the calc/measurement cue -->
+  <rect x="120" y="324" width="272" height="16"
+        fill="#1c291f" clip-path="url(#dropClip)"/>
+
+  <!-- Graduation tick marks on the upper-left interior (ruler scale).
+       Long-short-long pattern reads as a measurement scale. -->
+  <g fill="#1c291f" clip-path="url(#dropClip)">
+    <rect x="158" y="206" width="64" height="14" rx="7"/>
+    <rect x="158" y="248" width="40" height="14" rx="7"/>
+    <rect x="158" y="290" width="64" height="14" rx="7"/>
   </g>
 </svg>
