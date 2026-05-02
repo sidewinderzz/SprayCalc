@@ -215,23 +215,6 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
 
 // ─── Inline icons ─────────────────────────────────────────────────────────────
 
-function DropIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor" aria-hidden="true">
-      <path d="M8 1.5s-4 4.5-4 8a4 4 0 0 0 8 0c0-3.5-4-8-4-8z" />
-    </svg>
-  );
-}
-
-function JugIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5.5 4.5h5v8a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5v-8z" />
-      <path d="M6.5 4.5V2.75A.25.25 0 0 1 6.75 2.5h2.5a.25.25 0 0 1 .25.25V4.5" />
-    </svg>
-  );
-}
-
 // ─── ProductCard ─────────────────────────────────────────────────────────────
 
 export interface ProductCardHandle {
@@ -327,12 +310,6 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
           {/* Rate row: numeric input + mode toggle inline */}
           <div className="flex items-stretch gap-2">
             <div className="relative flex-1 min-w-0">
-              <span
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
-                style={{ color: `${colors.primary}80` }}
-              >
-                <DropIcon />
-              </span>
               <input
                 ref={rateRef}
                 type="number"
@@ -346,7 +323,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                     onEnterFromLastField();
                   }
                 }}
-                className="w-full pl-8 pr-2.5 py-1.5 border rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2"
+                className="w-full px-2.5 py-1.5 border rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2"
                 style={inputBaseStyle}
                 min="0"
                 step="0.01"
@@ -370,11 +347,10 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
           {showJugSelector && (
             <div className="flex flex-col gap-1 pt-1">
               <div
-                className="flex items-center gap-1.5 text-xs font-medium"
+                className="text-xs font-medium"
                 style={{ color: `${colors.lightText}80` }}
               >
-                <JugIcon />
-                <span>Jug Size</span>
+                Jug Size
               </div>
               <JugSizePillSelector
                 jugSize={jugSize}
