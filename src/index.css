@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  /* Keep focused inputs from being hidden under the sticky header. */
+  scroll-padding-top: 88px;
+}
+
 body {
   background: linear-gradient(160deg, #ffffff 0%, #ecf5ee 100%);
   background-attachment: fixed;

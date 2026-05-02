@@ -4,6 +4,7 @@ import { useCalculatorState } from './hooks/useCalculatorState';
 import { useMixStorage } from './hooks/useMixStorage';
 import { useMixHistory } from './hooks/useMixHistory';
 import { Header } from './components/Header';
+import { SettingsToast } from './components/SettingsToast';
 import { TipsSection } from './components/TipsSection';
 import { MixSettings } from './components/MixSettings';
 import { ProductsSection } from './components/ProductsSection';
@@ -15,15 +16,22 @@ import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 const AgSprayCalculator = () => {
   const state = useCalculatorState();
 
-  // 3-dot menu state
-  const [showThreeDotMenu, setShowThreeDotMenu] = React.useState(false);
-  const threeDotRef = useRef<HTMLDivElement>(null);
+  // Header menu state
+  const [showMixesMenu, setShowMixesMenu] = React.useState(false);
+  const [showOverflowMenu, setShowOverflowMenu] = React.useState(false);
+  const mixesMenuRef = useRef<HTMLDivElement>(null);
+  const overflowMenuRef = useRef<HTMLDivElement>(null);
   const mixNameInputRef = useRef<HTMLInputElement>(null);
+
+  const closeHeaderMenus = () => {
+    setShowMixesMenu(false);
+    setShowOverflowMenu(false);
+  };
 
   const mixStorage = useMixStorage(
     state.applyMixData,
     state.setSettingsFeedback,
-    () => setShowThreeDotMenu(false)
+    closeHeaderMenus
   );
 
   const mixHistory = useMixHistory();
@@ -47,18 +55,29 @@ const AgSprayCalculator = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close 3-dot menu when clicking outside
+  // Close header menus when clicking outside their respective triggers/panels.
   useEffect(() => {
+    if (!showMixesMenu && !showOverflowMenu) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (threeDotRef.current && !threeDotRef.current.contains(e.target as Node)) {
-        setShowThreeDotMenu(false);
+      const target = e.target as Node;
+      if (
+        showMixesMenu &&
+        mixesMenuRef.current &&
+        !mixesMenuRef.current.contains(target)
+      ) {
+        setShowMixesMenu(false);
+      }
+      if (
+        showOverflowMenu &&
+        overflowMenuRef.current &&
+        !overflowMenuRef.current.contains(target)
+      ) {
+        setShowOverflowMenu(false);
       }
     };
-    if (showThreeDotMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showThreeDotMenu]);
+  }, [showMixesMenu, showOverflowMenu]);
 
   const getCurrentMixData = () => ({
     fillVolume: state.fillVolume,
@@ -107,12 +126,14 @@ const AgSprayCalculator = () => {
           openSaveMixDialog={mixStorage.openSaveMixDialog}
           loadMix={mixStorage.loadMix}
           clearSettings={state.clearSettings}
-          settingsFeedback={state.settingsFeedback}
           showTips={state.showTips}
           setShowTips={state.setShowTips}
-          showThreeDotMenu={showThreeDotMenu}
-          setShowThreeDotMenu={setShowThreeDotMenu}
-          threeDotRef={threeDotRef}
+          showMixesMenu={showMixesMenu}
+          setShowMixesMenu={setShowMixesMenu}
+          mixesMenuRef={mixesMenuRef}
+          showOverflowMenu={showOverflowMenu}
+          setShowOverflowMenu={setShowOverflowMenu}
+          overflowMenuRef={overflowMenuRef}
           mixNameInputRef={mixNameInputRef}
           historyEntries={mixHistory.historyEntries}
           loadHistoryEntry={mixStorage.loadMix}
@@ -194,6 +215,9 @@ const AgSprayCalculator = () => {
           <p>Always verify calculations against product labels and follow all safety guidelines.</p>
         </div>
       </div>
+
+      {/* Floating snackbar for settings feedback (Saved/Loaded/etc.) */}
+      <SettingsToast message={state.settingsFeedback} />
     </div>
   );
 };
