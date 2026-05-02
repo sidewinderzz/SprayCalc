@@ -2,7 +2,7 @@ import React from 'react';
 import { Product, colors } from '../types';
 import { formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
-import { generateSummaryText, exportPDF } from '../utils/export';
+import { generateSummaryText, exportPDF, buildSharePayload } from '../utils/export';
 
 interface SummarySectionProps {
   fillVolume: number;
@@ -64,22 +64,56 @@ export function SummarySection({
   };
 
   const handleShareSummary = async () => {
-    const text = generateSummaryText(buildExportState());
+    const payload = buildSharePayload(buildExportState());
+    // Short text body that pairs with the link (avoid duplicating the long
+    // plain-text summary when a recipient can just open the link).
+    const shortText = `${payload.text.split('\n').slice(0, 6).join('\n')}\n\nOpen this mix in SprayCalc:`;
+    const isAbort = (err: unknown): boolean =>
+      !!err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError';
+
     if (navigator.share) {
+      // 1) Try sharing with URL when available
+      if (!payload.tooLarge) {
+        try {
+          await navigator.share({ title: payload.title, text: shortText, url: payload.url });
+          return;
+        } catch (err) {
+          if (isAbort(err)) return; // user cancelled — don't fall back
+          // otherwise drop through to text-only share
+        }
+      }
+      // 2) Fall back to text-only share
       try {
-        await navigator.share({ title: 'SprayCalc Mix', text });
+        await navigator.share({ title: payload.title, text: payload.text });
         return;
-      } catch (_) {}
+      } catch (err) {
+        if (isAbort(err)) return;
+        // drop through to clipboard
+      }
     }
-    // Fallback: copy to clipboard
-    try { await navigator.clipboard.writeText(text); } catch (_) {}
-    setCopyFeedback('Copied!');
+
+    // 3) Final fallback: copy to clipboard
+    const clipboardText = payload.tooLarge
+      ? payload.text
+      : `${shortText} ${payload.url}`;
+    try {
+      await navigator.clipboard.writeText(clipboardText);
+      setCopyFeedback(payload.tooLarge ? 'Copied!' : 'Link copied!');
+    } catch (_) {
+      setCopyFeedback('Copy failed');
+    }
     setTimeout(() => setCopyFeedback(''), 2000);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     onMixSnapshot?.();
-    exportPDF(buildExportState());
+    try {
+      await exportPDF(buildExportState());
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      setCopyFeedback('PDF failed');
+      setTimeout(() => setCopyFeedback(''), 2500);
+    }
   };
 
   const ghostButtonStyle = {

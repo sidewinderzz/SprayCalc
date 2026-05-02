@@ -8,6 +8,15 @@ A React-based agricultural spray mixing calculator that helps calculate product 
 - Vite for build tooling
 - TailwindCSS for styling
 - PostCSS with Autoprefixer
+- jsPDF + jspdf-autotable for real PDF export
+- qrcode for QR code generation in PDF footer
+- lz-string for URL-safe mix payload compression
+
+## Mix Sharing
+The app generates self-contained share links (`?m=<compressed-payload>`)
+using lz-string. Opening such a link prefills the calculator (handled in
+`src/App.tsx` via `readMixFromCurrentURL`). The PDF export embeds the same
+link as a QR + printed URL on every page so a mix can be re-opened later.
 
 ## Project Structure
 ```

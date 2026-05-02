@@ -1,4 +1,7 @@
-import { Product } from '../types';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import QRCode from 'qrcode';
+import { MixData, Product } from '../types';
 import {
   calculateFieldAmount,
   calculateMixPlanning,
@@ -7,6 +10,7 @@ import {
   calculateAmount
 } from './calculations';
 import { displayProductName } from './productName';
+import { buildMixLink } from './mixLink';
 
 export interface ExportState {
   fillVolume: number;
@@ -95,203 +99,593 @@ export function generateSummaryText(state: ExportState): string {
 
     const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
 
-    const formatTime = (hours: number) => {
-      const wholeHours = Math.floor(hours);
-      const minutes = Math.round((hours - wholeHours) * 60);
-      return `${wholeHours} hr ${minutes} min`;
-    };
-
-    const formatETAText = (date: Date) => {
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const formattedHours = hours % 12 || 12;
-      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      let dayPrefix = '';
-
-      if (
-        date.getDate() === today.getDate() &&
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear()
-      ) {
-        dayPrefix = 'Today at ';
-      } else if (
-        date.getDate() === tomorrow.getDate() &&
-        date.getMonth() === tomorrow.getMonth() &&
-        date.getFullYear() === tomorrow.getFullYear()
-      ) {
-        dayPrefix = 'Tomorrow at ';
-      } else {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        dayPrefix = `${days[date.getDay()]} at `;
-      }
-
-      return `${dayPrefix}${formattedHours}:${formattedMinutes} ${ampm}`;
-    };
-
     text += `Working Rate: ${acresPerHour.toFixed(1)} acres/hour\n`;
     text += `Effective Rate (with filling): ${effectiveAcresPerHour.toFixed(1)} acres/hour\n`;
     text += `Mixes Needed: ${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})\n`;
-    text += `Spray Time: ${formatTime(sprayHours)}\n`;
-    text += `Total Fill Time: ${formatTime(totalFillTimeHours)}\n`;
-    text += `Estimated Job Completion: ${formatTime(totalJobHours)}\n`;
+    text += `Spray Time: ${formatHours(sprayHours)}\n`;
+    text += `Total Fill Time: ${formatHours(totalFillTimeHours)}\n`;
+    text += `Estimated Job Completion: ${formatHours(totalJobHours)}\n`;
     text += `Estimated Finish Time: ${formatETAText(completionTime)}\n`;
   }
 
   return text;
 }
 
-// Escape user-controlled values before interpolating into the print HTML
-function escapeHtml(value: string | number): string {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function formatHours(hours: number): string {
+  const wholeHours = Math.floor(hours);
+  const minutes = Math.round((hours - wholeHours) * 60);
+  return `${wholeHours} hr ${minutes} min`;
 }
 
-// Export summary as PDF via print dialog
-export function exportPDF(state: ExportState): void {
-  const {
-    fillVolume,
-    applicationRate,
-    acresPerFill,
-    fieldSize,
-    products
-  } = state;
+function formatETAText(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 || 12;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
-  const mixPlanning = calculateMixPlanning(fieldSize, applicationRate, fillVolume);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>SprayCalc Report</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #1c291f; padding: 24px; }
-    h1 { font-size: 20px; color: #498a5a; margin-bottom: 4px; }
-    .meta { font-size: 11px; color: #76a886; margin-bottom: 20px; }
-    section { margin-bottom: 18px; }
-    h2 { font-size: 13px; font-weight: 700; color: #2d6840; border-bottom: 2px solid #498a5a; padding-bottom: 4px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-    h3 { font-size: 12px; font-weight: 700; color: #498a5a; margin-bottom: 6px; }
-    .grid { display: grid; gap: 10px; }
-    .grid-2 { grid-template-columns: 1fr 1fr; }
-    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .card { border: 1px solid #c8dece; border-radius: 6px; overflow: hidden; }
-    .card-header { background: #e8f3eb; padding: 6px 10px; }
-    .card-header.yellow { background: #f7f1c4; border-color: #d1c343; }
-    .card-body { padding: 6px 10px; }
-    .row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
-    .row:last-child { border-bottom: none; }
-    .label { color: #2d6840; }
-    .value { font-weight: 700; color: #1c291f; }
-    .big-value { font-size: 17px; font-weight: 700; color: #1c291f; }
-    .sub { font-size: 11px; color: #76a886; margin-top: 2px; }
-    .chip { display: inline-block; background: #e8f3eb; border-radius: 20px; padding: 2px 8px; font-size: 11px; margin-right: 4px; }
-    .star { color: #b2a529; }
-    .option-row { font-size: 11px; display: flex; justify-content: space-between; padding: 1px 0; }
-    .best { font-weight: 600; }
-    .footer { margin-top: 24px; font-size: 10px; color: #76a886; border-top: 1px solid #c8dece; padding-top: 8px; }
-    .rates-strip { margin-top: -8px; margin-bottom: 18px; }
-    .rates-strip .strip-heading { font-size: 10px; font-weight: 600; color: #76a886; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-    .rates-strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: #2d6840; }
-    .rates-strip li { display: inline-flex; align-items: baseline; gap: 4px; }
-    .rates-strip li .name { font-weight: 600; color: #1c291f; }
-    .rates-strip li .rate { color: #498a5a; }
-    @media print { body { padding: 12px; } }
-  </style>
-</head>
-<body>
-  <h1>Spray Calc Report</h1>
-  <div class="meta">Generated ${new Date().toLocaleString()}</div>
+  let dayPrefix = '';
+  if (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  ) {
+    dayPrefix = 'Today at ';
+  } else if (
+    date.getDate() === tomorrow.getDate() &&
+    date.getMonth() === tomorrow.getMonth() &&
+    date.getFullYear() === tomorrow.getFullYear()
+  ) {
+    dayPrefix = 'Tomorrow at ';
+  } else {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    dayPrefix = `${days[date.getDay()]} at `;
+  }
 
-  <section>
-    <h2>Mix Information</h2>
-    <div class="grid grid-3">
-      <div class="card"><div class="card-header"><div class="label">Fill Volume</div><div class="big-value">${fillVolume} gal</div></div></div>
-      <div class="card"><div class="card-header"><div class="label">Application Rate</div><div class="big-value">${applicationRate} GPA</div></div></div>
-      <div class="card"><div class="card-header"><div class="label">Acres Per Fill</div><div class="big-value">${acresPerFill.toFixed(2)} ac</div></div></div>
-    </div>
-  </section>
+  return `${dayPrefix}${formattedHours}:${formattedMinutes} ${ampm}`;
+}
 
-  ${products.length > 0 ? `
-  <section class="rates-strip">
-    <div class="strip-heading">Rates As Entered</div>
-    <ul>
-      ${products.map((p, i) => `<li><span class="name">${escapeHtml(displayProductName(p.name, i))}</span><span>—</span><span class="rate">${escapeHtml(p.rate)} ${escapeHtml(p.unit)}</span></li>`).join('')}
-    </ul>
-  </section>
-  ` : ''}
+// Build a MixData object from an ExportState (used for the PDF re-load link)
+export function exportStateToMixData(state: ExportState): MixData {
+  return {
+    fillVolume: state.fillVolume,
+    applicationRate: state.applicationRate,
+    products: state.products,
+    fieldSize: state.fieldSize,
+    implementWidth: state.implementWidth,
+    speed: state.speed,
+    fillTime: state.fillTime,
+  };
+}
 
-  <section>
-    <h2>Products Per Mix</h2>
-    <div class="grid grid-3">
-      ${products.map((p, i) => `<div class="card"><div class="card-header"><div class="label">${escapeHtml(displayProductName(p.name, i))}</div><div class="big-value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</div></div></div>`).join('')}
-    </div>
-  </section>
+// ---------- PDF generation ----------
 
-  ${mixPlanning ? `
-  <section>
-    <h2>Field Overview</h2>
-    <div style="margin-bottom:10px">
-      <span class="chip">${fieldSize} acres</span>
-      <span class="chip">${mixPlanning.totalSprayNeeded.toFixed(0)} gal total</span>
-      <span class="chip">${mixPlanning.fullMixes} full mix${mixPlanning.fullMixes !== 1 ? 'es' : ''}</span>
-      ${mixPlanning.hasPartialMix ? `<span class="chip">1 partial (${mixPlanning.remainingSpray.toFixed(1)} gal / ${mixPlanning.remainingAcres.toFixed(2)} ac)</span>` : '<span class="chip" style="background:#e8f3eb;color:#498a5a">✓ No partial mix</span>'}
-    </div>
-  </section>
+// Theme colors (sourced from src/types.ts colors)
+const C = {
+  primary: [73, 138, 90] as [number, number, number],
+  primaryDark: [45, 104, 64] as [number, number, number],
+  primaryLight: [118, 168, 134] as [number, number, number],
+  primaryBg: [232, 243, 235] as [number, number, number],
+  secondary: [209, 195, 67] as [number, number, number],
+  secondaryDark: [178, 165, 41] as [number, number, number],
+  secondaryBg: [247, 241, 196] as [number, number, number],
+  border: [200, 222, 206] as [number, number, number],
+  text: [28, 41, 31] as [number, number, number],
+  muted: [118, 168, 134] as [number, number, number],
+  divider: [220, 230, 222] as [number, number, number],
+};
 
-  <section>
-    <h2>What to Buy</h2>
-    <div class="grid grid-3">
-      ${products.map((p, i) => {
-        const totalOz = calculateFieldAmount(p.rate, p.unit, fieldSize, applicationRate);
-        const info = formatPurchaseAmount(totalOz, p.unit, p.jugSize ?? 128);
-        return `<div class="card">
-          <div class="card-header yellow"><div class="label">${escapeHtml(displayProductName(p.name, i))}</div><div class="big-value">${escapeHtml(info.display)}</div></div>
-          <div class="card-body">
-            ${info.containers.slice(0,3).map((c,i) => `<div class="option-row ${i===0?'best':''}"><span>${i===0?'<span class="star">★</span> ':''}${escapeHtml(c.display)}</span><span>${c.wastePercent.toFixed(0)}% waste</span></div>`).join('')}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  </section>
+// Letter portrait, mm units
+const PAGE_W = 215.9;
+const PAGE_H = 279.4;
+const MARGIN_X = 14;
+const MARGIN_TOP = 16;
+const FOOTER_HEIGHT = 36; // reserved at bottom for QR/footer
+const CONTENT_BOTTOM = PAGE_H - FOOTER_HEIGHT;
+const CONTENT_W = PAGE_W - MARGIN_X * 2;
 
-  <section>
-    <h2>Per Mix Amounts</h2>
-    <div class="grid grid-2">
-      <div class="card">
-        <div class="card-header"><h3>Full Mix × ${mixPlanning.fullMixes}</h3><div class="sub">${fillVolume} gal · ${acresPerFill.toFixed(2)} acres each</div></div>
-        <div class="card-body">
-          ${products.map((p, i) => `<div class="row"><span class="label">${escapeHtml(displayProductName(p.name, i))}</span><span class="value">${escapeHtml(formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`).join('')}
-        </div>
-      </div>
-      ${mixPlanning.hasPartialMix ? `
-      <div class="card">
-        <div class="card-header yellow"><h3 style="color:#b2a529">Partial Mix × 1</h3><div class="sub">${mixPlanning.remainingSpray.toFixed(1)} gal · ${mixPlanning.remainingAcres.toFixed(2)} acres</div></div>
-        <div class="card-body">
-          ${products.map((p, i) => { const amt = calculateAmount(p.rate, p.unit, mixPlanning.remainingSpray, applicationRate); return `<div class="row"><span class="label">${escapeHtml(displayProductName(p.name, i))}</span><span class="value">${escapeHtml(formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128))}</span></div>`; }).join('')}
-        </div>
-      </div>` : ''}
-    </div>
-  </section>
-  ` : ''}
+function setFillRGB(doc: jsPDF, c: [number, number, number]) {
+  doc.setFillColor(c[0], c[1], c[2]);
+}
+function setDrawRGB(doc: jsPDF, c: [number, number, number]) {
+  doc.setDrawColor(c[0], c[1], c[2]);
+}
+function setTextRGB(doc: jsPDF, c: [number, number, number]) {
+  doc.setTextColor(c[0], c[1], c[2]);
+}
 
-  <div class="footer">Always verify calculations against product labels and follow all safety guidelines. SprayCalc — planning tool only.</div>
-</body>
-</html>`;
+function ensureSpace(doc: jsPDF, cursorY: number, needed: number): number {
+  if (cursorY + needed > CONTENT_BOTTOM) {
+    doc.addPage();
+    return MARGIN_TOP;
+  }
+  return cursorY;
+}
 
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 400);
+function drawSectionHeading(doc: jsPDF, cursorY: number, title: string): number {
+  cursorY = ensureSpace(doc, cursorY, 9);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  setTextRGB(doc, C.primaryDark);
+  doc.text(title.toUpperCase(), MARGIN_X, cursorY);
+  // underline
+  setDrawRGB(doc, C.primary);
+  doc.setLineWidth(0.6);
+  doc.line(MARGIN_X, cursorY + 1.4, MARGIN_X + CONTENT_W, cursorY + 1.4);
+  return cursorY + 6;
+}
+
+interface KpiBox {
+  label: string;
+  value: string;
+}
+
+function drawKpiRow(doc: jsPDF, cursorY: number, boxes: KpiBox[]): number {
+  const gap = 4;
+  const w = (CONTENT_W - gap * (boxes.length - 1)) / boxes.length;
+  const h = 16;
+  cursorY = ensureSpace(doc, cursorY, h);
+  boxes.forEach((box, i) => {
+    const x = MARGIN_X + i * (w + gap);
+    setFillRGB(doc, C.primaryBg);
+    setDrawRGB(doc, C.border);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, cursorY, w, h, 1.6, 1.6, 'FD');
+    setTextRGB(doc, C.primaryDark);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(box.label.toUpperCase(), x + 3, cursorY + 5);
+    setTextRGB(doc, C.text);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(box.value, x + 3, cursorY + 12);
+  });
+  return cursorY + h + 4;
+}
+
+function drawHeader(doc: jsPDF, generatedAt: Date): number {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  setTextRGB(doc, C.primary);
+  doc.text('SprayCalc Mix Report', MARGIN_X, MARGIN_TOP);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  setTextRGB(doc, C.muted);
+  doc.text(`Generated ${generatedAt.toLocaleString()}`, MARGIN_X, MARGIN_TOP + 5);
+
+  // accent bar
+  setFillRGB(doc, C.primary);
+  doc.rect(MARGIN_X, MARGIN_TOP + 8, CONTENT_W, 0.8, 'F');
+
+  return MARGIN_TOP + 13;
+}
+
+function drawRatesAsEntered(doc: jsPDF, cursorY: number, products: Product[]): number {
+  if (!products.length) return cursorY;
+  cursorY = ensureSpace(doc, cursorY, 6);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  setTextRGB(doc, C.muted);
+  doc.text('RATES AS ENTERED', MARGIN_X, cursorY);
+  cursorY += 4;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  setTextRGB(doc, C.text);
+
+  const lineHeight = 4.2;
+  let x = MARGIN_X;
+  let y = cursorY;
+  products.forEach((p, i) => {
+    const name = displayProductName(p.name, i);
+    const rateStr = `${p.rate} ${p.unit}`;
+    const segment = `${name} — ${rateStr}`;
+    const w = doc.getTextWidth(segment) + 6;
+    if (x + w > MARGIN_X + CONTENT_W) {
+      x = MARGIN_X;
+      y += lineHeight;
+      y = ensureSpace(doc, y, lineHeight);
+    }
+    doc.setFont('helvetica', 'bold');
+    setTextRGB(doc, C.text);
+    doc.text(name, x, y);
+    const nameW = doc.getTextWidth(name);
+    doc.setFont('helvetica', 'normal');
+    setTextRGB(doc, C.muted);
+    doc.text(' — ', x + nameW, y);
+    setTextRGB(doc, C.primary);
+    doc.text(rateStr, x + nameW + doc.getTextWidth(' — '), y);
+    x += w;
+  });
+  return y + 6;
+}
+
+function runAutoTable(
+  doc: jsPDF,
+  cursorY: number,
+  head: string[][],
+  body: (string | number)[][],
+  options: {
+    headFill?: [number, number, number];
+    columnStyles?: Record<number, { halign?: 'left' | 'center' | 'right'; cellWidth?: number | 'auto' | 'wrap' }>;
+  } = {}
+): number {
+  const headFill = options.headFill ?? C.primary;
+  autoTable(doc, {
+    startY: cursorY,
+    head,
+    body: body as (string | number)[][],
+    margin: { left: MARGIN_X, right: MARGIN_X, bottom: FOOTER_HEIGHT },
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: 2.2,
+      textColor: C.text,
+      lineColor: C.border,
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: headFill,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+      halign: 'left',
+    },
+    alternateRowStyles: { fillColor: [248, 251, 249] },
+    columnStyles: options.columnStyles,
+    theme: 'grid',
+  });
+  // @ts-expect-error - lastAutoTable is added at runtime by jspdf-autotable
+  return doc.lastAutoTable.finalY + 5;
+}
+
+function drawProductsPerMix(doc: jsPDF, cursorY: number, products: Product[]): number {
+  cursorY = drawSectionHeading(doc, cursorY, 'Products Per Mix');
+  const body = products.map((p, i) => {
+    const name = displayProductName(p.name, i);
+    const amount = formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128);
+    return [name, `${p.rate} ${p.unit}`, amount];
+  });
+  return runAutoTable(doc, cursorY, [['Product', 'Rate', 'Per Mix Amount']], body, {
+    columnStyles: {
+      0: { cellWidth: 70 },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 'auto', halign: 'right' },
+    },
+  });
+}
+
+function drawFieldOverview(
+  doc: jsPDF,
+  cursorY: number,
+  state: ExportState
+): number {
+  const planning = calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume);
+  if (!planning) return cursorY;
+
+  cursorY = drawSectionHeading(doc, cursorY, 'Field Overview');
+
+  const chips = [
+    `${state.fieldSize} acres`,
+    `${planning.totalSprayNeeded.toFixed(0)} gal total`,
+    `${planning.fullMixes} full mix${planning.fullMixes !== 1 ? 'es' : ''}`,
+  ];
+  if (planning.hasPartialMix) {
+    chips.push(`1 partial (${planning.remainingSpray.toFixed(1)} gal / ${planning.remainingAcres.toFixed(2)} ac)`);
+  } else {
+    chips.push('No partial mix');
+  }
+
+  const chipH = 7;
+  cursorY = ensureSpace(doc, cursorY, chipH);
+  let x = MARGIN_X;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  chips.forEach((label, i) => {
+    const padX = 4;
+    const w = doc.getTextWidth(label) + padX * 2;
+    const isPartial = i === 3 && planning.hasPartialMix;
+    const fill = isPartial ? C.secondaryBg : C.primaryBg;
+    const stroke = isPartial ? C.secondary : C.border;
+    const textCol = isPartial ? C.secondaryDark : C.primaryDark;
+    if (x + w > MARGIN_X + CONTENT_W) {
+      x = MARGIN_X;
+      cursorY += chipH + 1;
+      cursorY = ensureSpace(doc, cursorY, chipH);
+    }
+    setFillRGB(doc, fill);
+    setDrawRGB(doc, stroke);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, cursorY, w, chipH, 2, 2, 'FD');
+    setTextRGB(doc, textCol);
+    doc.text(label, x + padX, cursorY + chipH - 2.2);
+    x += w + 3;
+  });
+  return cursorY + chipH + 5;
+}
+
+function drawWhatToBuy(
+  doc: jsPDF,
+  cursorY: number,
+  state: ExportState
+): number {
+  if (!state.fieldSize) return cursorY;
+  cursorY = drawSectionHeading(doc, cursorY, 'What to Buy (Field Total)');
+
+  const body = state.products.map((p, i) => {
+    const totalOz = calculateFieldAmount(p.rate, p.unit, state.fieldSize, state.applicationRate);
+    const info = formatPurchaseAmount(totalOz, p.unit, p.jugSize ?? 128);
+    const best = info.containers[0];
+    const alts = info.containers.slice(1, 3).map(c => `${c.display} (${c.wastePercent.toFixed(0)}% waste)`).join('\n');
+    return [
+      displayProductName(p.name, i),
+      info.display,
+      best ? `${best.display}\n${best.wastePercent.toFixed(0)}% waste` : '—',
+      alts || '—',
+    ];
+  });
+  return runAutoTable(doc, cursorY, [['Product', 'Total Needed', 'Best Buy', 'Alternates']], body, {
+    headFill: C.secondaryDark,
+    columnStyles: {
+      0: { cellWidth: 50 },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 'auto' },
+    },
+  });
+}
+
+function drawPerMixAmounts(doc: jsPDF, cursorY: number, state: ExportState): number {
+  const planning = calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume);
+  if (!planning) return cursorY;
+
+  // Full mix table
+  cursorY = drawSectionHeading(
+    doc,
+    cursorY,
+    `Full Mix x ${planning.fullMixes}  (${state.fillVolume} gal · ${state.acresPerFill.toFixed(2)} ac each)`
+  );
+  const fullBody = state.products.map((p, i) => [
+    displayProductName(p.name, i),
+    formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
+  ]);
+  cursorY = runAutoTable(doc, cursorY, [['Product', 'Amount']], fullBody, {
+    columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
+  });
+
+  if (planning.hasPartialMix) {
+    cursorY = drawSectionHeading(
+      doc,
+      cursorY,
+      `Partial Mix x 1  (${planning.remainingSpray.toFixed(1)} gal · ${planning.remainingAcres.toFixed(2)} ac)`
+    );
+    const partialBody = state.products.map((p, i) => {
+      const amt = calculateAmount(p.rate, p.unit, planning.remainingSpray, state.applicationRate);
+      return [
+        displayProductName(p.name, i),
+        formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128),
+      ];
+    });
+    cursorY = runAutoTable(doc, cursorY, [['Product', 'Amount']], partialBody, {
+      headFill: C.secondaryDark,
+      columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
+    });
+  }
+  return cursorY;
+}
+
+function drawFieldOperations(doc: jsPDF, cursorY: number, state: ExportState): number {
+  const { fieldSize, implementWidth, speed, fillTime, acresPerFill, currentTime } = state;
+  if (!(fieldSize && implementWidth && speed)) return cursorY;
+
+  const acresPerHour = speed * implementWidth * 0.1212;
+  const tanksNeeded = acresPerFill > 0 ? fieldSize / acresPerFill : 0;
+  const sprayHours = fieldSize / acresPerHour;
+  const totalFillTimeHours = (fillTime / 60) * tanksNeeded;
+  const totalJobHours = sprayHours + totalFillTimeHours;
+  const effectiveAcresPerHour = totalJobHours > 0 ? fieldSize / totalJobHours : 0;
+  const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
+
+  cursorY = drawSectionHeading(doc, cursorY, 'Field Operations');
+  const body: [string, string][] = [
+    ['Implement Width', `${implementWidth} ft`],
+    ['Speed', `${speed} mph`],
+    ['Fill Time', `${fillTime} min`],
+    ['Working Rate', `${acresPerHour.toFixed(1)} ac/hr`],
+    ['Effective Rate (with filling)', `${effectiveAcresPerHour.toFixed(1)} ac/hr`],
+    ['Mixes Needed', `${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})`],
+    ['Spray Time', formatHours(sprayHours)],
+    ['Total Fill Time', formatHours(totalFillTimeHours)],
+    ['Estimated Job Completion', formatHours(totalJobHours)],
+    ['Estimated Finish Time', formatETAText(completionTime)],
+  ];
+  return runAutoTable(doc, cursorY, [['Metric', 'Value']], body, {
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 'auto' } },
+  });
+}
+
+function drawApplicationRecord(doc: jsPDF, cursorY: number): number {
+  // Approx 32mm needed for the section + 4 lines
+  cursorY = ensureSpace(doc, cursorY, 36);
+  cursorY = drawSectionHeading(doc, cursorY, 'Application Record');
+  const labels = ['Applicator', 'Date Applied', 'Wind / Weather', 'Notes'];
+  const rowH = 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  labels.forEach((label) => {
+    setTextRGB(doc, C.primaryDark);
+    doc.text(`${label}:`, MARGIN_X, cursorY + rowH - 2);
+    const labelW = doc.getTextWidth(`${label}:`) + 3;
+    setDrawRGB(doc, C.divider);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN_X + labelW, cursorY + rowH - 1.5, MARGIN_X + CONTENT_W, cursorY + rowH - 1.5);
+    cursorY += rowH;
+  });
+  return cursorY + 2;
+}
+
+interface FooterContext {
+  qrDataUrl: string | null;
+  url: string;
+  tooLarge: boolean;
+}
+
+function drawFooterOnAllPages(doc: jsPDF, ctx: FooterContext) {
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawFooterForCurrentPage(doc, ctx, i, totalPages);
+  }
+}
+
+function drawFooterForCurrentPage(doc: jsPDF, ctx: FooterContext, page: number, total: number) {
+  const footerTop = PAGE_H - FOOTER_HEIGHT + 2;
+
+  // Divider line above footer
+  setDrawRGB(doc, C.border);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN_X, footerTop, MARGIN_X + CONTENT_W, footerTop);
+
+  const qrSize = 26;
+  const qrX = PAGE_W - MARGIN_X - qrSize;
+  const qrY = footerTop + 3;
+
+  // QR (or fallback note) on the right
+  if (ctx.qrDataUrl && !ctx.tooLarge) {
+    try {
+      doc.addImage(ctx.qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+      doc.setFontSize(7);
+      setTextRGB(doc, C.primaryDark);
+      doc.text('Scan to load this mix', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    } catch (err) {
+      // ignore — we'll still print the URL on the left
+    }
+  } else if (ctx.tooLarge) {
+    setTextRGB(doc, C.muted);
+    doc.setFontSize(7);
+    doc.text('(mix too large for QR)', qrX + qrSize / 2, qrY + qrSize / 2, { align: 'center' });
+  }
+
+  // Left side: link + disclaimer + page number
+  const leftX = MARGIN_X;
+  const leftMaxW = qrX - leftX - 6;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  setTextRGB(doc, C.primaryDark);
+  doc.text('Re-open this mix:', leftX, footerTop + 5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  setTextRGB(doc, C.primary);
+  const urlLines = doc.splitTextToSize(ctx.url, leftMaxW) as string[];
+  // limit to 3 lines so the footer doesn't overflow
+  const shownUrl = urlLines.slice(0, 3);
+  shownUrl.forEach((line, i) => {
+    doc.text(line, leftX, footerTop + 9 + i * 3.5);
+  });
+
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7.5);
+  setTextRGB(doc, C.muted);
+  const disclaimer = 'Always verify calculations against product labels and follow all safety guidelines. SprayCalc is a planning tool only.';
+  const discLines = doc.splitTextToSize(disclaimer, leftMaxW) as string[];
+  const discBaseY = PAGE_H - 8;
+  discLines.slice(0, 2).forEach((line, i) => {
+    doc.text(line, leftX, discBaseY - (discLines.length - 1 - i) * 3);
+  });
+
+  // Page number
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  setTextRGB(doc, C.muted);
+  doc.text(`Page ${page} of ${total}`, PAGE_W - MARGIN_X, PAGE_H - 4, { align: 'right' });
+}
+
+function buildFilename(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  return `SprayCalc-${yyyy}-${mm}-${dd}-${hh}${mi}.pdf`;
+}
+
+// Export summary as a real PDF download
+export async function exportPDF(state: ExportState): Promise<void> {
+  const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
+
+  // Build mix re-load link + QR data URL up front
+  const link = buildMixLink(exportStateToMixData(state));
+  let qrDataUrl: string | null = null;
+  if (!link.tooLarge) {
+    try {
+      qrDataUrl = await QRCode.toDataURL(link.url, {
+        margin: 1,
+        scale: 6,
+        errorCorrectionLevel: 'M',
+        color: { dark: '#1c291f', light: '#ffffff' },
+      });
+    } catch (err) {
+      console.warn('Failed to generate QR code:', err);
+    }
+  }
+
+  // Header
+  let y = drawHeader(doc, new Date());
+
+  // Mix Information
+  y = drawSectionHeading(doc, y, 'Mix Information');
+  y = drawKpiRow(doc, y, [
+    { label: 'Fill Volume', value: `${state.fillVolume} gal` },
+    { label: 'Application Rate', value: `${state.applicationRate} GPA` },
+    { label: 'Acres Per Fill', value: `${state.acresPerFill.toFixed(2)} ac` },
+  ]);
+
+  // Rates as entered
+  y = drawRatesAsEntered(doc, y, state.products);
+
+  // Products per mix
+  if (state.products.length > 0) {
+    y = drawProductsPerMix(doc, y, state.products);
+  }
+
+  // Field overview / what to buy / per-mix amounts
+  if (state.fieldSize) {
+    y = drawFieldOverview(doc, y, state);
+    y = drawWhatToBuy(doc, y, state);
+    y = drawPerMixAmounts(doc, y, state);
+  }
+
+  // Field operations
+  y = drawFieldOperations(doc, y, state);
+
+  // Application record
+  y = drawApplicationRecord(doc, y);
+
+  // Draw footer (with QR + URL + page numbers) on every page
+  drawFooterOnAllPages(doc, {
+    qrDataUrl,
+    url: link.url,
+    tooLarge: link.tooLarge,
+  });
+
+  doc.save(buildFilename(new Date()));
+}
+
+// Build a shareable payload for the share button — caller decides how to use
+export function buildSharePayload(state: ExportState): { title: string; text: string; url: string; tooLarge: boolean } {
+  const link = buildMixLink(exportStateToMixData(state));
+  const text = generateSummaryText(state);
+  return {
+    title: 'SprayCalc Mix',
+    text,
+    url: link.url,
+    tooLarge: link.tooLarge,
+  };
 }

@@ -10,6 +10,7 @@ import { ProductsSection } from './components/ProductsSection';
 import { SummarySection } from './components/SummarySection';
 import { FieldQuantities } from './components/FieldQuantities';
 import { FieldOperationsSection } from './components/FieldOperationsSection';
+import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 
 const AgSprayCalculator = () => {
   const state = useCalculatorState();
@@ -27,9 +28,19 @@ const AgSprayCalculator = () => {
 
   const mixHistory = useMixHistory();
 
-  // Load saved settings, mixes, and history on component mount
+  // Load saved settings, mixes, and history on component mount.
+  // If the URL carries a shared mix link (?m=...), apply it instead of the
+  // last auto-saved settings, then strip the param so reloads don't re-apply.
   useEffect(() => {
-    state.loadSettings();
+    const sharedMix = readMixFromCurrentURL();
+    if (sharedMix) {
+      state.applyMixData(sharedMix);
+      clearMixParamFromURL();
+      state.setSettingsFeedback('Mix loaded from link');
+      setTimeout(() => state.setSettingsFeedback(''), 2500);
+    } else {
+      state.loadSettings();
+    }
     mixStorage.loadAllMixes();
     mixHistory.loadHistory();
     setTimeout(() => { state.hasLoaded.current = true; }, 300);
