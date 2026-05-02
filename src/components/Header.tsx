@@ -56,6 +56,28 @@ export function Header({
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const [isStuck, setIsStuck] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
+  // Top offset (in px) used when rendering the Mixes dropdown as a fixed-
+  // position panel so it can't overflow off-screen on narrow viewports.
+  const [mixesMenuTop, setMixesMenuTop] = useState(0);
+
+  // Recompute the dropdown's top edge whenever it opens, and on resize/scroll
+  // while open, so it always sits just under the Mixes button.
+  useEffect(() => {
+    if (!showMixesMenu) return;
+    const update = () => {
+      const node = mixesMenuRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      setMixesMenuTop(rect.bottom + 8);
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [showMixesMenu, mixesMenuRef]);
 
   // Reset the "clear history" confirmation when the Mixes menu closes
   useEffect(() => {
@@ -220,13 +242,15 @@ export function Header({
 
               {showMixesMenu && (
                 <div
-                  className="absolute right-0 mt-2 rounded-xl shadow-xl border z-40 overflow-hidden"
+                  className="fixed rounded-xl shadow-xl border z-40 overflow-hidden"
                   style={{
+                    top: mixesMenuTop,
+                    right: 8,
+                    maxHeight: `calc(100vh - ${mixesMenuTop + 16}px)`,
+                    overflowY: 'auto',
                     backgroundColor: 'white',
                     borderColor: colors.primary + '30',
-                    minWidth: '260px',
-                    width: 'max-content',
-                    maxWidth: 'calc(100vw - 16px)',
+                    width: 'min(320px, calc(100vw - 16px))',
                   }}
                   role="menu"
                 >
