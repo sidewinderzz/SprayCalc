@@ -254,6 +254,35 @@ export function Header({
                   }}
                   role="menu"
                 >
+                  {/* Save current mix action */}
+                  <button
+                    onClick={() => {
+                      setShowMixesMenu(false);
+                      openSaveMixDialog();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    style={{ color: colors.primaryDark }}
+                    role="menuitem"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                    Save current mix…
+                  </button>
+                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+
                   {/* Saved Mixes Section */}
                   <div className="px-4 pt-3 pb-2">
                     <p
@@ -264,7 +293,7 @@ export function Header({
                     </p>
                     {savedMixes.length === 0 ? (
                       <p className="text-sm py-2" style={{ color: colors.lightText + '80' }}>
-                        No saved mixes yet. Hit "Save Mix" to save your first one.
+                        No saved mixes yet. Use "Save current mix…" above to save your first one.
                       </p>
                     ) : (
                       <div className="space-y-1 max-h-60 overflow-y-auto">
@@ -408,32 +437,6 @@ export function Header({
                 </div>
               )}
             </div>
-
-            {/* Save Mix primary button */}
-            <button
-              onClick={openSaveMixDialog}
-              className="h-11 w-11 xs:h-9 xs:w-auto xs:px-4 flex items-center justify-center xs:gap-1.5 rounded-lg text-sm font-medium text-white whitespace-nowrap"
-              style={{ backgroundColor: colors.primary }}
-              title="Save this mix for quick recall"
-              aria-label="Save Mix"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-              </svg>
-              <span className="hidden xs:inline">Save Mix</span>
-            </button>
 
             {/* Overflow menu */}
             <div className="relative" ref={overflowMenuRef}>
