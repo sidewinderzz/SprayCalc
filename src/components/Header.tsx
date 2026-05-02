@@ -26,6 +26,7 @@ interface HeaderProps {
   loadHistoryEntry: (data: MixData) => void;
   deleteHistoryEntry: (id: string) => void;
   clearHistory: () => void;
+  onShowTour: () => void;
 }
 
 export function Header({
@@ -52,6 +53,7 @@ export function Header({
   loadHistoryEntry,
   deleteHistoryEntry,
   clearHistory,
+  onShowTour,
 }: HeaderProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const [isStuck, setIsStuck] = useState(false);
@@ -498,6 +500,31 @@ export function Header({
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     {showTips ? 'Hide Tips' : 'Show Tips'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowOverflowMenu(false);
+                      onShowTour();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-black/5"
+                    style={{ color: colors.lightText }}
+                    role="menuitem"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2a10 10 0 1 0 10 10" />
+                      <polyline points="22 4 12 14 9 11" />
+                    </svg>
+                    Replay tour
                   </button>
                   <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
                   <button

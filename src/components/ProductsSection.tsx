@@ -90,6 +90,7 @@ export function ProductsSection({
 
   return (
     <div
+      data-tour-id="products"
       className="p-4 rounded-xl mb-6"
       style={{
         backgroundColor: `${colors.primary}08`,

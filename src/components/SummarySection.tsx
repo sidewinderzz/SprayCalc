@@ -124,6 +124,7 @@ export function SummarySection({
 
   return (
     <div
+      data-tour-id="summary"
       className="p-4 rounded-xl mb-6"
       style={{
         backgroundColor: `${colors.primary}08`,

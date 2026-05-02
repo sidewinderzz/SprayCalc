@@ -181,7 +181,7 @@ export function FieldOperationsSection({
   const chipStyle = { backgroundColor: colors.primary + '12' };
 
   return (
-    <div className="rounded-xl overflow-hidden border mb-6" style={{ borderColor: colors.primary + '25' }}>
+    <div data-tour-id="field-operations" className="rounded-xl overflow-hidden border mb-6" style={{ borderColor: colors.primary + '25' }}>
       {/* Toggle header */}
       <button
         onClick={() => setShowFieldOps(!showFieldOps)}

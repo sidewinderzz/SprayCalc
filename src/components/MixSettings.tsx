@@ -29,6 +29,7 @@ export function MixSettings({
 
   return (
     <div
+      data-tour-id="mix-information"
       className="p-4 rounded-xl mb-6"
       style={{
         backgroundColor: `${colors.primary}08`,

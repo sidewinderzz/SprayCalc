@@ -11,7 +11,10 @@ import { ProductsSection } from './components/ProductsSection';
 import { SummarySection } from './components/SummarySection';
 import { FieldQuantities } from './components/FieldQuantities';
 import { FieldOperationsSection } from './components/FieldOperationsSection';
+import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
+
+const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 
 const AgSprayCalculator = () => {
   const state = useCalculatorState();
@@ -36,6 +39,18 @@ const AgSprayCalculator = () => {
 
   const mixHistory = useMixHistory();
 
+  const [showTour, setShowTour] = React.useState(false);
+
+  const closeTour = () => {
+    setShowTour(false);
+    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (_) {}
+  };
+
+  const startTour = () => {
+    closeHeaderMenus();
+    setShowTour(true);
+  };
+
   // Load saved settings, mixes, and history on component mount.
   // If the URL carries a shared mix link (?m=...), apply it instead of the
   // last auto-saved settings, then strip the param so reloads don't re-apply.
@@ -52,6 +67,14 @@ const AgSprayCalculator = () => {
     mixStorage.loadAllMixes();
     mixHistory.loadHistory();
     setTimeout(() => { state.hasLoaded.current = true; }, 300);
+
+    // Auto-launch the onboarding tour for first-time visitors.
+    try {
+      if (!localStorage.getItem(TOUR_SEEN_KEY)) {
+        // Wait briefly for the layout to settle so spotlight targets exist.
+        setTimeout(() => setShowTour(true), 600);
+      }
+    } catch (_) { /* localStorage unavailable */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -139,6 +162,7 @@ const AgSprayCalculator = () => {
           loadHistoryEntry={mixStorage.loadMix}
           deleteHistoryEntry={mixHistory.deleteHistoryEntry}
           clearHistory={mixHistory.clearHistory}
+          onShowTour={startTour}
         />
 
         <TipsSection
@@ -218,6 +242,13 @@ const AgSprayCalculator = () => {
 
       {/* Floating snackbar for settings feedback (Saved/Loaded/etc.) */}
       <SettingsToast message={state.settingsFeedback} />
+
+      <OnboardingTour
+        open={showTour}
+        steps={TOUR_STEPS}
+        onClose={closeTour}
+        onComplete={closeTour}
+      />
     </div>
   );
 };
