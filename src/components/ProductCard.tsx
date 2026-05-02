@@ -228,7 +228,7 @@ interface ProductCardProps {
   onEnterFromLastField: () => void;
 }
 
-export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
+const ProductCardInner = forwardRef<ProductCardHandle, ProductCardProps>(({
   product,
   onProductChange,
   onToggleFormatMenu,
@@ -408,3 +408,5 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
     </div>
   );
 });
+
+export const ProductCard = React.memo(ProductCardInner);

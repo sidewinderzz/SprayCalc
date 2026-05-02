@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Product, MixData } from '../types';
 import { calculateAmount } from '../utils/calculations';
 
@@ -42,6 +42,7 @@ export function useCalculatorState() {
 
   // Tracks whether initial load has finished so auto-save doesn't fire too early
   const hasLoaded = useRef(false);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>();
 
   // Calculate acres per fill
   const acresPerFill = applicationRate > 0 ? fillVolume / applicationRate : 0;
@@ -63,16 +64,19 @@ export function useCalculatorState() {
     }
   }, [fillVolume, applicationRate]);
 
-  // Auto-save all inputs to localStorage on every change
+  // Auto-save all inputs to localStorage, debounced to avoid excessive writes
   useEffect(() => {
     if (!hasLoaded.current) return;
-    try {
-      localStorage.setItem('agSprayCalcSettings', JSON.stringify({
-        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime
-      }));
-    } catch (err) {
-      console.error('Auto-save failed:', err);
-    }
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem('agSprayCalcSettings', JSON.stringify({
+          fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime
+        }));
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+      }
+    }, 500);
   }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime]);
 
   // Load settings from localStorage (startup)
@@ -81,38 +85,27 @@ export function useCalculatorState() {
       const savedSettings = localStorage.getItem('agSprayCalcSettings');
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
+        const fv: number = settings.fillVolume || settings.tankSize || 0;
+        const ar: number = settings.applicationRate || 0;
 
-        if (settings.fillVolume) setFillVolume(settings.fillVolume);
-        if (settings.tankSize && !settings.fillVolume) setFillVolume(settings.tankSize);
-        if (settings.applicationRate) setApplicationRate(settings.applicationRate);
-        if (settings.products) setProducts(settings.products.map((p: Product) => ({
-          jugSize: 128,
-          ...p
-        })));
+        if (fv) setFillVolume(fv);
+        if (ar) setApplicationRate(ar);
+        if (settings.products) {
+          setProducts(settings.products.map((p: Product) => ({
+            jugSize: 128,
+            ...p,
+            tankAmount: calculateAmount(p.rate, p.unit, fv, ar)
+          })));
+        }
         if (settings.fieldSize) setFieldSize(settings.fieldSize);
         if (settings.implementWidth) setImplementWidth(settings.implementWidth);
         if (settings.speed) setSpeed(settings.speed);
         if (settings.fillTime) setFillTime(settings.fillTime);
-
-        setTimeout(() => {
-          if (settings.products) {
-            setProducts(currentProducts =>
-              currentProducts.map(product => ({
-                ...product,
-                tankAmount: calculateAmount(
-                  product.rate,
-                  product.unit,
-                  settings.fillVolume || settings.tankSize,
-                  settings.applicationRate
-                )
-              }))
-            );
-          }
-        }, 100);
       }
     } catch (err) {
       console.error('Failed to load settings:', err);
     }
+    hasLoaded.current = true;
   };
 
   // Clear current settings (reset inputs)
@@ -140,7 +133,7 @@ export function useCalculatorState() {
   };
 
   // Set fill volume with validation
-  const handleFillVolumeChange = (value: string) => {
+  const handleFillVolumeChange = useCallback((value: string) => {
     const newValue = parseFloat(value) || 0;
     setFillVolume(newValue);
     setProducts(currentProducts =>
@@ -149,10 +142,10 @@ export function useCalculatorState() {
         tankAmount: calculateAmount(product.rate, product.unit, newValue, applicationRate)
       }))
     );
-  };
+  }, [applicationRate]);
 
   // Set application rate with validation
-  const handleApplicationRateChange = (value: string) => {
+  const handleApplicationRateChange = useCallback((value: string) => {
     const newValue = parseFloat(value) || 0;
     setApplicationRate(newValue);
     setProducts(currentProducts =>
@@ -161,15 +154,15 @@ export function useCalculatorState() {
         tankAmount: calculateAmount(product.rate, product.unit, fillVolume, newValue)
       }))
     );
-  };
+  }, [fillVolume]);
 
   // Handle acres per fill input change
-  const handleAcresPerFillInputChange = (value: string) => {
+  const handleAcresPerFillInputChange = useCallback((value: string) => {
     setAcresPerFillInput(value);
-  };
+  }, []);
 
   // Apply acres per fill change on blur
-  const handleAcresPerFillBlur = () => {
+  const handleAcresPerFillBlur = useCallback(() => {
     const newAcresPerFill = parseFloat(acresPerFillInput) || 0;
     if (newAcresPerFill > 0 && fillVolume > 0) {
       const newApplicationRate = fillVolume / newAcresPerFill;
@@ -181,14 +174,14 @@ export function useCalculatorState() {
         }))
       );
     }
-  };
+  }, [acresPerFillInput, fillVolume]);
 
   // Handle product changes
-  const handleProductChange = (id: number, field: string, value: string | number) => {
+  const handleProductChange = useCallback((id: number, field: string, value: string | number) => {
     setProducts(currentProducts =>
       currentProducts.map(product => {
         if (product.id === id) {
-          const updatedProduct = {
+          return {
             ...product,
             [field]: value,
             tankAmount: (field === 'rate' || field === 'unit')
@@ -200,76 +193,76 @@ export function useCalculatorState() {
                 )
               : product.tankAmount
           };
-          return updatedProduct;
         }
         return product;
       })
     );
-  };
+  }, [fillVolume, applicationRate]);
 
   // Toggle format menu for a product
-  const toggleFormatMenu = (productId: number) => {
-    if (openFormatMenuId === productId) {
-      setOpenFormatMenuId(null);
-    } else {
-      setOpenFormatMenuId(productId);
-    }
-  };
+  const toggleFormatMenu = useCallback((productId: number) => {
+    setOpenFormatMenuId(prev => prev === productId ? null : productId);
+  }, []);
 
   // Select a format for a product
-  const selectFormat = (productId: number, format: string) => {
-    handleProductChange(productId, 'outputFormat', format);
+  const selectFormat = useCallback((productId: number, format: string) => {
+    setProducts(currentProducts =>
+      currentProducts.map(product =>
+        product.id === productId ? { ...product, outputFormat: format } : product
+      )
+    );
     setOpenFormatMenuId(null);
-  };
+  }, []);
 
   // Add a new product to the list
-  const addNewProduct = () => {
-    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    const newProduct: Product = {
-      id: newId,
-      name: `Product ${newId}`,
-      rate: 0,
-      unit: 'oz/acre',
-      tankAmount: 0,
-      outputFormat: 'auto',
-      jugSize: 128
-    };
-    setProducts([...products, newProduct]);
-    setPendingFocusId(newId);
-  };
+  const addNewProduct = useCallback(() => {
+    setProducts(currentProducts => {
+      const newId = currentProducts.length > 0
+        ? Math.max(...currentProducts.map(p => p.id)) + 1
+        : 1;
+      const newProduct: Product = {
+        id: newId,
+        name: `Product ${newId}`,
+        rate: 0,
+        unit: 'oz/acre',
+        tankAmount: 0,
+        outputFormat: 'auto',
+        jugSize: 128
+      };
+      setPendingFocusId(newId);
+      return [...currentProducts, newProduct];
+    });
+  }, []);
 
-  const clearPendingFocusId = () => setPendingFocusId(null);
+  const clearPendingFocusId = useCallback(() => setPendingFocusId(null), []);
 
   // Remove a product from the list
-  const removeProduct = (id: number) => {
-    setProducts(products.filter(product => product.id !== id));
-  };
+  const removeProduct = useCallback((id: number) => {
+    setProducts(currentProducts => currentProducts.filter(product => product.id !== id));
+  }, []);
 
   // Load a mix into the calculator state (used by useMixStorage)
-  const applyMixData = (mixData: MixData) => {
+  const applyMixData = useCallback((mixData: MixData) => {
     try {
-      if (mixData.fillVolume !== undefined) setFillVolume(mixData.fillVolume);
-      if (mixData.applicationRate !== undefined) setApplicationRate(mixData.applicationRate);
-      if (mixData.products) setProducts(mixData.products.map(p => ({ jugSize: 128, ...p })));
+      const fv = mixData.fillVolume ?? 0;
+      const ar = mixData.applicationRate ?? 0;
+      if (mixData.fillVolume !== undefined) setFillVolume(fv);
+      if (mixData.applicationRate !== undefined) setApplicationRate(ar);
+      if (mixData.products) {
+        setProducts(mixData.products.map(p => ({
+          jugSize: 128,
+          ...p,
+          tankAmount: calculateAmount(p.rate, p.unit, fv, ar)
+        })));
+      }
       if (mixData.fieldSize !== undefined) setFieldSize(mixData.fieldSize);
       if (mixData.implementWidth !== undefined) setImplementWidth(mixData.implementWidth);
       if (mixData.speed !== undefined) setSpeed(mixData.speed);
       if (mixData.fillTime !== undefined) setFillTime(mixData.fillTime);
-
-      setTimeout(() => {
-        if (mixData.products) {
-          setProducts(current =>
-            current.map(p => ({
-              ...p,
-              tankAmount: calculateAmount(p.rate, p.unit, mixData.fillVolume, mixData.applicationRate)
-            }))
-          );
-        }
-      }, 100);
     } catch (err) {
       console.error('Failed to apply mix data:', err);
     }
-  };
+  }, []);
 
   return {
     // State

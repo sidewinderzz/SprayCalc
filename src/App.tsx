@@ -29,10 +29,9 @@ const AgSprayCalculator = () => {
 
   // Load saved settings, mixes, and history on component mount
   useEffect(() => {
-    state.loadSettings();
+    state.loadSettings();   // sets hasLoaded.current = true on completion
     mixStorage.loadAllMixes();
     mixHistory.loadHistory();
-    setTimeout(() => { state.hasLoaded.current = true; }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
