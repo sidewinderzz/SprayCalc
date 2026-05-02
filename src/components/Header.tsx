@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { SavedMix, MixData, MixHistoryEntry, colors } from '../types';
 import { formatRelativeTime } from '../utils/relativeTime';
+import { useScrollDirection } from '../hooks/useScrollDirection';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -56,8 +57,20 @@ export function Header({
   onShowTour,
 }: HeaderProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
-  const [isStuck, setIsStuck] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
+
+  // Track scroll position/direction so the header can hide-on-scroll-down,
+  // reveal-on-scroll-up, and switch to its translucent/compact "stuck" look.
+  const { isNearTop, isHidden } = useScrollDirection({
+    topThreshold: 8,
+    hideAfter: 80,
+  });
+  const isStuck = !isNearTop;
+
+  // While any header dropdown or the save-mix dialog is open, freeze the
+  // header in its visible position so menus stay anchored to their button.
+  const isMenuOpen = showMixesMenu || showOverflowMenu || showSaveMixDialog;
+  const shouldHide = isHidden && !isMenuOpen;
   // Top offset (in px) used when rendering the Mixes dropdown as a fixed-
   // position panel so it can't overflow off-screen on narrow viewports.
   const [mixesMenuTop, setMixesMenuTop] = useState(0);
@@ -92,19 +105,6 @@ export function Header({
       mixNameInputRef.current.focus();
     }
   }, [showSaveMixDialog, mixNameInputRef]);
-
-  // Detect when the sticky header has pinned to the top of the viewport so
-  // we can elevate it with a subtle shadow.
-  useEffect(() => {
-    const node = stickyRef.current;
-    if (!node || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsStuck(entry.intersectionRatio < 1),
-      { threshold: [1], rootMargin: '-1px 0px 0px 0px' }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   // Escape closes any open header menu
   useEffect(() => {
@@ -188,19 +188,43 @@ export function Header({
           using negative margins so the white background runs full-width. */}
       <div
         ref={stickyRef}
-        className="sticky top-0 z-30 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 mb-4 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 rounded-t-2xl"
+        className={`header-shell sticky z-30 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 mb-4 px-4 sm:px-6 rounded-t-2xl${
+          isStuck ? ' header-shell--stuck' : ''
+        }`}
         style={{
-          backgroundColor: 'white',
+          // Sticky pins to viewport top (y=0). With viewport-fit=cover, that
+          // is *under* the status bar / notch, so the white/translucent
+          // surface naturally extends behind the inset. The padding-top
+          // below adds the inset back so the actual header content lands
+          // below the notch — no clipping, no awkward white sliver.
+          top: 0,
+          paddingTop: `calc(env(safe-area-inset-top) + ${
+            isStuck ? '0.625rem' : '1rem'
+          })`,
+          paddingBottom: isStuck ? '0.5rem' : '0.75rem',
+          backgroundColor: isStuck ? 'rgba(255,255,255,0.78)' : '#ffffff',
+          backdropFilter: isStuck ? 'saturate(180%) blur(12px)' : 'none',
+          WebkitBackdropFilter: isStuck ? 'saturate(180%) blur(12px)' : 'none',
           boxShadow: isStuck
-            ? '0 2px 8px rgba(73,138,90,0.10), 0 1px 2px rgba(0,0,0,0.04)'
+            ? '0 1px 0 rgba(73,138,90,0.10), 0 4px 14px rgba(73,138,90,0.06)'
             : 'none',
-          transition: 'box-shadow 200ms ease',
+          transform: shouldHide ? 'translateY(-100%)' : 'translateY(0)',
+          transition:
+            'transform 200ms ease, background-color 200ms ease, ' +
+            'backdrop-filter 200ms ease, -webkit-backdrop-filter 200ms ease, ' +
+            'padding 200ms ease, box-shadow 200ms ease',
+          willChange: 'transform',
         }}
       >
         <div className="flex justify-between items-center gap-2">
           <h1
-            className="text-lg xs:text-xl font-bold whitespace-nowrap"
-            style={{ color: colors.primary }}
+            className={`${
+              isStuck ? 'text-base xs:text-lg' : 'text-lg xs:text-xl'
+            } font-bold whitespace-nowrap`}
+            style={{
+              color: colors.primary,
+              transition: 'font-size 200ms ease',
+            }}
           >
             Spray Calc
           </h1>

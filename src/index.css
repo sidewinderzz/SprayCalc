@@ -4,7 +4,7 @@
 
 html {
   /* Keep focused inputs from being hidden under the sticky header. */
-  scroll-padding-top: 88px;
+  scroll-padding-top: calc(88px + env(safe-area-inset-top));
 }
 
 body {
@@ -12,4 +12,21 @@ body {
   background-attachment: fixed;
   color: #1c291f;
   min-height: 100vh;
+}
+
+/* Honor reduced-motion: header still translucent + compacts, but no slide. */
+@media (prefers-reduced-motion: reduce) {
+  .header-shell {
+    transform: none !important;
+    transition: background-color 200ms ease, box-shadow 200ms ease,
+      backdrop-filter 200ms ease, padding 200ms ease !important;
+  }
+}
+
+/* Solid-color fallback for browsers without backdrop-filter support so the
+   translucent header stays legible over colored cards. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header-shell.header-shell--stuck {
+    background-color: #ffffff !important;
+  }
 }
