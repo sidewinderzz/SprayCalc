@@ -3,6 +3,7 @@ import { Product, colors } from '../types';
 import { formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { generateSummaryText, exportPDF, buildSharePayload } from '../utils/export';
+import { trackEvent } from '../utils/analytics';
 
 interface SummarySectionProps {
   fillVolume: number;
@@ -65,6 +66,13 @@ export function SummarySection({
 
   const handleShareSummary = async () => {
     const payload = buildSharePayload(buildExportState());
+    trackEvent('share_mix', {
+      product_count: products.length,
+      fill_volume: fillVolume,
+      application_rate: applicationRate,
+      method: typeof navigator.share === 'function' ? 'web_share' : 'clipboard',
+      too_large: payload.tooLarge,
+    });
     // Short text body that pairs with the link (avoid duplicating the long
     // plain-text summary when a recipient can just open the link).
     const shortText = `${payload.text.split('\n').slice(0, 6).join('\n')}\n\nOpen this mix in SprayCalc:`;
@@ -107,6 +115,11 @@ export function SummarySection({
 
   const handleExportPDF = async () => {
     onMixSnapshot?.();
+    trackEvent('export_pdf', {
+      product_count: products.length,
+      fill_volume: fillVolume,
+      application_rate: applicationRate,
+    });
     try {
       await exportPDF(buildExportState());
     } catch (err) {

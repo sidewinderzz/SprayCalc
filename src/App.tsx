@@ -13,6 +13,7 @@ import { FieldQuantities } from './components/FieldQuantities';
 import { FieldOperationsSection } from './components/FieldOperationsSection';
 import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
+import { trackEvent, trackPageView } from './utils/analytics';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 
@@ -61,8 +62,13 @@ const AgSprayCalculator = () => {
       clearMixParamFromURL();
       state.setSettingsFeedback('Mix loaded from link');
       setTimeout(() => state.setSettingsFeedback(''), 2500);
+      trackPageView('/?shared=1', 'Ag Spray Calculator — Shared Mix');
+      trackEvent('view_shared_mix', {
+        product_count: Array.isArray(sharedMix.products) ? sharedMix.products.length : 0,
+      });
     } else {
       state.loadSettings();
+      trackPageView();
     }
     mixStorage.loadAllMixes();
     mixHistory.loadHistory();
@@ -117,9 +123,31 @@ const AgSprayCalculator = () => {
   const handleSaveMix = () => {
     if (mixStorage.mixNameInput.trim()) {
       mixHistory.addToHistory(getCurrentMixData());
+      const data = getCurrentMixData();
+      trackEvent('save_mix', {
+        product_count: data.products.length,
+        fill_volume: data.fillVolume,
+        application_rate: data.applicationRate,
+      });
     }
     mixStorage.saveMix(getCurrentMixData);
   };
+
+  // Fire a debounced `calculate_mix` event after the user has settled on inputs
+  // that produce a real result (≥1 product with a rate, plus fill/app rate).
+  useEffect(() => {
+    if (!state.hasLoaded.current) return;
+    const hasValidProduct = state.products.some(p => (p.rate ?? 0) > 0);
+    if (!hasValidProduct || state.fillVolume <= 0 || state.applicationRate <= 0) return;
+    const t = setTimeout(() => {
+      trackEvent('calculate_mix', {
+        product_count: state.products.length,
+        fill_volume: state.fillVolume,
+        application_rate: state.applicationRate,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [state.products, state.fillVolume, state.applicationRate]);
 
   // Snapshot the current mix into recent history (used by Copy and PDF
   // actions in SummarySection).
