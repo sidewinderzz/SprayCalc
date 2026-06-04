@@ -41,6 +41,12 @@ export function useCalculatorState() {
   // Field Operations section open/closed
   const [showFieldOps, setShowFieldOps] = useState(true);
 
+  // Active workflow tab: tank-first vs field-first entry
+  const [activeTab, setActiveTab] = useState<'tank' | 'field'>('tank');
+
+  // How to split a field's mix across tanks when total volume > tank capacity
+  const [splitMode, setSplitMode] = useState<'fullPlusPartial' | 'even'>('fullPlusPartial');
+
   // Tracks whether initial load has finished so auto-save doesn't fire too early
   const hasLoaded = useRef(false);
 
@@ -69,12 +75,12 @@ export function useCalculatorState() {
     if (!hasLoaded.current) return;
     try {
       localStorage.setItem('agSprayCalcSettings', JSON.stringify({
-        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime
+        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode
       }));
     } catch (err) {
       console.error('Auto-save failed:', err);
     }
-  }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime]);
+  }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode]);
 
   // Load settings from localStorage (startup)
   const loadSettings = () => {
@@ -94,6 +100,8 @@ export function useCalculatorState() {
         if (settings.implementWidth) setImplementWidth(settings.implementWidth);
         if (settings.speed) setSpeed(settings.speed);
         if (settings.fillTime) setFillTime(settings.fillTime);
+        if (settings.activeTab === 'tank' || settings.activeTab === 'field') setActiveTab(settings.activeTab);
+        if (settings.splitMode === 'fullPlusPartial' || settings.splitMode === 'even') setSplitMode(settings.splitMode);
 
         setTimeout(() => {
           if (settings.products) {
@@ -128,6 +136,8 @@ export function useCalculatorState() {
       setImplementWidth(0);
       setSpeed(0);
       setFillTime(0);
+      setActiveTab('tank');
+      setSplitMode('fullPlusPartial');
       setSettingsFeedback('Calculator cleared!');
       setTimeout(() => {
         hasLoaded.current = true;
@@ -298,6 +308,10 @@ export function useCalculatorState() {
     setShowQuantities,
     showFieldOps,
     setShowFieldOps,
+    activeTab,
+    setActiveTab,
+    splitMode,
+    setSplitMode,
     acresPerFill,
     hasLoaded,
     pendingFocusId,

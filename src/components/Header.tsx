@@ -28,6 +28,8 @@ interface HeaderProps {
   deleteHistoryEntry: (id: string) => void;
   clearHistory: () => void;
   onShowTour: () => void;
+  activeTab: 'tank' | 'field';
+  setActiveTab: (val: 'tank' | 'field') => void;
 }
 
 export function Header({
@@ -55,6 +57,8 @@ export function Header({
   deleteHistoryEntry,
   clearHistory,
   onShowTour,
+  activeTab,
+  setActiveTab,
 }: HeaderProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -583,6 +587,41 @@ export function Header({
               )}
             </div>
           </div>
+        </div>
+
+        {/* Mode toggle: Tank-first vs Field-first workflow */}
+        <div
+          role="tablist"
+          aria-label="Calculator mode"
+          className="mt-2 flex items-stretch rounded-lg overflow-hidden"
+          style={{ border: `1px solid ${colors.primary}40` }}
+        >
+          {(['tank', 'field'] as const).map((mode) => {
+            const isActive = activeTab === mode;
+            const label = mode === 'tank' ? 'Tank Mix' : 'Field Mix';
+            const subtitle = mode === 'tank' ? 'per-tank inputs' : 'whole-field inputs';
+            return (
+              <button
+                key={mode}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(mode)}
+                className="flex-1 py-1.5 px-3 text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: isActive ? colors.primary : 'transparent',
+                  color: isActive ? 'white' : colors.primaryDark,
+                }}
+              >
+                <span className="block leading-tight">{label}</span>
+                <span
+                  className="block text-[10px] leading-tight"
+                  style={{ opacity: isActive ? 0.85 : 0.6 }}
+                >
+                  {subtitle}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </>

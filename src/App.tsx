@@ -7,8 +7,10 @@ import { Header } from './components/Header';
 import { SettingsToast } from './components/SettingsToast';
 import { TipsSection } from './components/TipsSection';
 import { MixSettings } from './components/MixSettings';
+import { FieldMixSettings } from './components/FieldMixSettings';
 import { ProductsSection } from './components/ProductsSection';
 import { SummarySection } from './components/SummarySection';
+import { TankBreakdown } from './components/TankBreakdown';
 import { FieldQuantities } from './components/FieldQuantities';
 import { FieldOperationsSection } from './components/FieldOperationsSection';
 import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
@@ -163,6 +165,8 @@ const AgSprayCalculator = () => {
           deleteHistoryEntry={mixHistory.deleteHistoryEntry}
           clearHistory={mixHistory.clearHistory}
           onShowTour={startTour}
+          activeTab={state.activeTab}
+          setActiveTab={state.setActiveTab}
         />
 
         <TipsSection
@@ -170,16 +174,29 @@ const AgSprayCalculator = () => {
           onClose={() => state.setShowTips(false)}
         />
 
-        <MixSettings
-          fillVolume={state.fillVolume}
-          applicationRate={state.applicationRate}
-          acresPerFill={state.acresPerFill}
-          acresPerFillInput={state.acresPerFillInput}
-          onFillVolumeChange={state.handleFillVolumeChange}
-          onApplicationRateChange={state.handleApplicationRateChange}
-          onAcresPerFillInputChange={state.handleAcresPerFillInputChange}
-          onAcresPerFillBlur={state.handleAcresPerFillBlur}
-        />
+        {state.activeTab === 'tank' ? (
+          <MixSettings
+            fillVolume={state.fillVolume}
+            applicationRate={state.applicationRate}
+            acresPerFill={state.acresPerFill}
+            acresPerFillInput={state.acresPerFillInput}
+            onFillVolumeChange={state.handleFillVolumeChange}
+            onApplicationRateChange={state.handleApplicationRateChange}
+            onAcresPerFillInputChange={state.handleAcresPerFillInputChange}
+            onAcresPerFillBlur={state.handleAcresPerFillBlur}
+          />
+        ) : (
+          <FieldMixSettings
+            fieldSize={state.fieldSize}
+            applicationRate={state.applicationRate}
+            fillVolume={state.fillVolume}
+            splitMode={state.splitMode}
+            onFieldSizeChange={(v) => state.setFieldSize(parseFloat(v) || 0)}
+            onApplicationRateChange={state.handleApplicationRateChange}
+            onFillVolumeChange={state.handleFillVolumeChange}
+            onSplitModeChange={state.setSplitMode}
+          />
+        )}
 
         <ProductsSection
           products={state.products}
@@ -193,20 +210,30 @@ const AgSprayCalculator = () => {
           onClearPendingFocusId={state.clearPendingFocusId}
         />
 
-        <SummarySection
-          fillVolume={state.fillVolume}
-          applicationRate={state.applicationRate}
-          acresPerFill={state.acresPerFill}
-          products={state.products}
-          fieldSize={state.fieldSize}
-          implementWidth={state.implementWidth}
-          speed={state.speed}
-          fillTime={state.fillTime}
-          currentTime={state.currentTime}
-          copyFeedback={state.copyFeedback}
-          setCopyFeedback={state.setCopyFeedback}
-          onMixSnapshot={handleMixSnapshot}
-        />
+        {state.activeTab === 'tank' ? (
+          <SummarySection
+            fillVolume={state.fillVolume}
+            applicationRate={state.applicationRate}
+            acresPerFill={state.acresPerFill}
+            products={state.products}
+            fieldSize={state.fieldSize}
+            implementWidth={state.implementWidth}
+            speed={state.speed}
+            fillTime={state.fillTime}
+            currentTime={state.currentTime}
+            copyFeedback={state.copyFeedback}
+            setCopyFeedback={state.setCopyFeedback}
+            onMixSnapshot={handleMixSnapshot}
+          />
+        ) : (
+          <TankBreakdown
+            products={state.products}
+            fieldSize={state.fieldSize}
+            applicationRate={state.applicationRate}
+            fillVolume={state.fillVolume}
+            splitMode={state.splitMode}
+          />
+        )}
 
         <FieldQuantities
           products={state.products}
@@ -216,6 +243,7 @@ const AgSprayCalculator = () => {
           fillVolume={state.fillVolume}
           showQuantities={state.showQuantities}
           setShowQuantities={state.setShowQuantities}
+          showPerMixAmounts={state.activeTab === 'tank'}
         />
 
         <FieldOperationsSection

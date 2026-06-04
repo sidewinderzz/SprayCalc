@@ -11,6 +11,7 @@ interface FieldQuantitiesProps {
   fillVolume: number;
   showQuantities: boolean;
   setShowQuantities: (val: boolean) => void;
+  showPerMixAmounts?: boolean;
 }
 
 export function FieldQuantities({
@@ -20,7 +21,8 @@ export function FieldQuantities({
   applicationRate,
   fillVolume,
   showQuantities,
-  setShowQuantities
+  setShowQuantities,
+  showPerMixAmounts = true
 }: FieldQuantitiesProps) {
   if (fieldSize <= 0) return null;
 
@@ -97,10 +99,10 @@ export function FieldQuantities({
           </div>
 
           {/* Divider */}
-          <div style={{borderTop: `1px solid ${colors.primary}20`}}/>
+          {showPerMixAmounts && <div style={{borderTop: `1px solid ${colors.primary}20`}}/>}
 
           {/* ── Per Mix Amounts ───────────────────────────────────── */}
-          <div>
+          {showPerMixAmounts && <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-5 rounded-full" style={{backgroundColor: colors.primary}}/>
               <h3 className="font-bold text-sm" style={{color: colors.primaryDark}}>Per Mix Amounts</h3>
@@ -146,7 +148,7 @@ export function FieldQuantities({
                 </div>
               )}
             </div>
-          </div>
+          </div>}
 
         </div>
       )}
