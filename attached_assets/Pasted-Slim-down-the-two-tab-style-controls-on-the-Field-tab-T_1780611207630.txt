@@ -1,0 +1,18 @@
+Slim down the two tab-style controls on the Field tab. Two changes:
+
+1. src/components/Header.tsx — convert the Tank/Field mode toggle to underline tabs.
+
+Find the "Mode toggle" block (the <div role="tablist"> with the filled segmented buttons, each rendering a label line + a subtitle line like "per-tank inputs"/"whole-field inputs"). Replace the filled-segmented styling with lightweight underline tabs:
+
+Remove the outer border/rounded-lg/overflow-hidden box. Make the container a flex row with a bottom border: borderBottom: 1px solid ${colors.primary}25.
+Each tab is a borderless transparent button, single line, no subtitle. Font ~14px, fontWeight: 600.
+Inactive tab text color #7c867c (muted); active tab text color colors.primaryDark with a 2.5px green underline (colors.primary) sitting on the container's bottom border (inset ~10px from each side of the tab).
+Move the old subtitle text ("per-tank inputs" / "whole-field inputs") into each button's title and aria-label so it's still available on hover and to screen readers. Keep role="tab", aria-selected, and the existing onClick={() => setActiveTab(mode)}.
+2. src/components/FieldMixSettings.tsx — move the Tank Split control inline, inside the card.
+
+Find the "Split mode toggle" block (the <p>Tank Split</p> label followed by the role="radiogroup" filled segmented control with two-line buttons).
+
+Delete the stacked <p>Tank Split</p> label line and the verbose per-option sub text ("fill tanks; last is leftover" / "split evenly across tanks").
+Re-render it as a compact, single-line inline row placed right after the 3-input grid and before the live summary box: a small uppercase label "Tank split" (text-xs font-semibold uppercase tracking-wider, colors.primaryDark) sitting on the same line, immediately followed by a compact segmented control that only takes up its content width (not full width).
+The segmented control keeps its role="radiogroup"/role="radio"/aria-checked semantics and the onSplitModeChange handlers. Buttons are single-line ("Full + partial" / "Even loads"), ~6px 13px padding, text-sm font-medium, active = colors.primary bg + white text, inactive = transparent + colors.primaryDark. Move each option's old sub description into the button's title.
+Keep all existing props, state, and calculations unchanged — this is purely a presentation change. Don't alter the Tank tab's MixSettings component.

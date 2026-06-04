@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SprayCalc — hybrid tab controls</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #dfe4de; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
+    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #dfe4de; z-index: 9999; }
+    #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
+    #__bundler_placeholder { color: #999; font-size: 14px; }
+  </style>
+  <noscript>
+    <style>#__bundler_loading { display: none; }</style>
+    <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
+      This page requires JavaScript to display.
+    </div>
+  </noscript>
+</head>
+<body>
+  <div id="__bundler_thumbnail">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect x="340" y="150" width="520" height="500" rx="40" fill="#ffffff" stroke="#e3e8e2" stroke-width="4"></rect>
+      <text x="390" y="250" font-family="sans-serif" font-size="46" font-weight="700" fill="#498a5a">Spray Calc</text>
+      <text x="392" y="330" font-family="sans-serif" font-size="34" font-weight="700" fill="#2d6840">Tank Mix</text>
+      <text x="560" y="330" font-family="sans-serif" font-size="34" font-weight="700" fill="#7c867c">Field Mix</text>
+      <rect x="558" y="350" width="120" height="7" rx="3" fill="#498a5a"></rect>
+      <rect x="392" y="370" width="416" height="2" fill="#cfe0d5"></rect>
+      <rect x="392" y="420" width="200" height="46" rx="10" fill="#498a5a"></rect>
+      <rect x="600" y="420" width="160" height="46" rx="10" fill="#ffffff" stroke="#cfe0d5" stroke-width="3"></rect>
+    </svg>
+  </div>
+  <div id="__bundler_loading">Unpacking...</div>
+
+  <script>
+    
+document.addEventListener('DOMContentLoaded', async function() {
+  const loading = document.getElementById('__bundler_loading');
+  function setStatus(msg) { if (loading) loading.textContent = msg; }
+
+  // Error sink persists across replaceWith since it's on window, not the DOM.
+  window.addEventListener('error', function(e) {
+    var p = document.body || document.documentElement;
+    var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
+    d.id = '__bundler_err';
+    d.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;border:1px solid #5c2b2e;z-index:99999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
+      '[bundle] ' + (e.message || e.type) +
+      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '');
+  }, true);
+
+  try {
+    const manifestEl = document.querySelector('script[type="__bundler/manifest"]');
+    const templateEl = document.querySelector('script[type="__bundler/template"]');
+    if (!manifestEl || !templateEl) {
+      setStatus('Error: missing bundle data');
+      console.error('[bundler] Missing script tags — manifestEl:', !!manifestEl, 'templateEl:', !!templateEl);
+      return;
+    }
+
+    const manifest = JSON.parse(manifestEl.textContent);
+    let template = JSON.parse(templateEl.textContent);
+
+    const uuids = Object.keys(manifest);
+    setStatus('Unpacking ' + uuids.length + ' assets...');
+
+    const blobUrls = {};
+    await Promise.all(uuids.map(async (uuid) => {
+      const entry = manifest[uuid];
+      try {
+        const binaryStr = atob(entry.data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        let finalBytes = bytes;
+        if (entry.compressed) {
+          if (typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('gzip');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            writer.write(bytes);
+            writer.close();
+            const chunks = [];
+            let totalLen = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+              totalLen += value.length;
+            }
+            finalBytes = new Uint8Array(totalLen);
+            let offset = 0;
+            for (const chunk of chunks) { finalBytes.set(chunk, offset); offset += chunk.length; }
+          } else {
+            console.warn('DecompressionStream not available, asset ' + uuid + ' may not render');
+          }
+        }
+
+        blobUrls[uuid] = URL.createObjectURL(new Blob([finalBytes], { type: entry.mime }));
+      } catch (err) {
+        console.error('Failed to decode asset ' + uuid + ':', err);
+        blobUrls[uuid] = URL.createObjectURL(new Blob([], { type: entry.mime }));
+      }
+    }));
+
+    const extResEl = document.querySelector('script[type="__bundler/ext_resources"]');
+    const extResources = extResEl ? JSON.parse(extResEl.textContent) : [];
+    const resourceMap = {};
+    for (const entry of extResources) {
+      if (blobUrls[entry.uuid]) resourceMap[entry.id] = blobUrls[entry.uuid];
+    }
+
+    setStatus('Rendering...');
+    for (const uuid of uuids) template = template.split(uuid).join(blobUrls[uuid]);
+
+    // Strip integrity + crossorigin — blob URLs from a file:// document inherit
+    // a null origin, so crossorigin forces a CORS fetch that SRI then rejects.
+    // The manifest bytes are ours; SRI protects against CDN compromise, not this.
+    template = template.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '');
+
+    const resourceScript = '<script>window.__resources = ' +
+      JSON.stringify(resourceMap).split('</' + 'script>').join('<\\/' + 'script>') +
+      ';</' + 'script>';
+    // Inject after <head> so the DOCTYPE stays first; prepending the script
+    // would push the parser into quirks mode. DOMParser always emits a <head>
+    // (synthesizing one if the source HTML omitted it) but may carry
+    // attributes through, so match the full opening tag. slice() rather than
+    // replace() keeps us clear of $-pattern substitution in resourceScript.
+    const headOpen = template.match(/<head[^>]*>/i);
+    if (headOpen) {
+      const i = headOpen.index + headOpen[0].length;
+      template = template.slice(0, i) + resourceScript + template.slice(i);
+    }
+
+    // Parse the template and swap the root element. Scripts inserted via
+    // DOMParser/replaceWith are inert per spec — re-create each with
+    // createElement so they execute, awaiting onload for src scripts to
+    // preserve ordering (React before ReactDOM before Babel before text/babel).
+    const doc = new DOMParser().parseFromString(template, 'text/html');
+    document.documentElement.replaceWith(doc.documentElement);
+    const dead = Array.from(document.scripts);
+    for (const old of dead) {
+      const s = document.createElement('script');
+      for (const a of old.attributes) s.setAttribute(a.name, a.value);
+      s.textContent = old.textContent;
+      // text/babel scripts with a src: fetch and inline. transformScriptTags
+      // does XHR against the src, but blob:null/ from a file:// origin is
+      // silently dropped. Inlining makes it a plain inline babel script,
+      // which transformScriptTags handles unconditionally.
+      if ((s.type === 'text/babel' || s.type === 'text/jsx') && s.src) {
+        const r = await fetch(s.src);
+        s.textContent = await r.text();
+        s.removeAttribute('src');
+      }
+      const p = s.src ? new Promise(function(r) { s.onload = s.onerror = r; }) : null;
+      old.replaceWith(s);
+      if (p) await p;
+    }
+    // Babel standalone auto-transforms type=text/babel on DOMContentLoaded,
+    // which fired before we swapped the document. Trigger manually if present.
+    if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
+      window.Babel.transformScriptTags();
+    }
+  } catch (err) {
+    setStatus('Error unpacking: ' + err.message);
+    console.error('Bundle unpack error:', err);
+  }
+});
+
+  </script>
+
+  <script type="__bundler/manifest">
+{}
+  </script>
+
+  <script type="__bundler/ext_resources">
+[]
+  </script>
+
+  <script type="__bundler/template">
+"<!DOCTYPE html>\n<html lang=\"en\"><head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>SprayCalc — hybrid tab controls<\u002Ftitle>\n<style>\n  :root{\n    --primary:#498a5a; --primary-dark:#2d6840; --primary-light:#76a886;\n    --secondary:#d1c343; --secondary-dark:#b2a529; --ink:#1c291f;\n    --p08:rgba(73,138,90,.045); --p15:rgba(73,138,90,.09);\n    --p20:rgba(73,138,90,.13); --p25:rgba(73,138,90,.16);\n    --p40:rgba(73,138,90,.30); --p50:rgba(73,138,90,.40);\n    --app-bg:#dfe4de;\n  }\n  *{box-sizing:border-box;}\n  html,body{margin:0;padding:0;}\n  body{background:var(--app-bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}\n\n  .bar{position:sticky;top:0;z-index:20;background:#f3f5f2;border-bottom:1px solid #b9c1b8;padding:14px 22px;}\n  .bar h1{margin:0 0 3px;font-size:18px;font-weight:700;color:var(--primary-dark);}\n  .bar p{margin:0;font-size:13px;color:#5a635a;max-width:780px;line-height:1.45;}\n  .bar .tabs{margin-top:11px;display:flex;gap:7px;}\n  .bar .t{appearance:none;border:1px solid #b0b8af;background:#fff;color:#46504a;font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:9px;cursor:pointer;white-space:nowrap;}\n  .bar .t[aria-selected=\"true\"]{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff;}\n\n  .stage{display:flex;justify-content:center;gap:42px;padding:34px 20px 70px;align-items:flex-start;flex-wrap:wrap;}\n  .col{display:flex;flex-direction:column;align-items:center;gap:12px;}\n  .col .tag{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6c756b;}\n  .col .tag.rec{color:var(--primary-dark);}\n  .phone{width:412px;background:#fff;border-radius:22px;box-shadow:0 12px 34px rgba(0,0,0,.20);overflow:hidden;border:1px solid #e3e8e2;}\n\n  .ah{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 10px;}\n  .ah .brand{font-size:19px;font-weight:700;color:var(--primary);}\n  .ah .acts{display:flex;gap:8px;}\n  .ah .btn{height:34px;display:flex;align-items:center;gap:6px;padding:0 11px;border-radius:9px;border:1px solid var(--p50);color:var(--primary-dark);font-size:13.5px;font-weight:500;background:#fff;}\n  .ah .ic{width:36px;height:34px;border:none;background:transparent;color:var(--primary-dark);display:flex;align-items:center;justify-content:center;border-radius:9px;}\n  .ah svg{display:block;}\n  .body{padding:0 16px 18px;}\n\n  /* segmented */\n  .seg{display:flex;align-items:stretch;border:1px solid var(--p40);border-radius:9px;overflow:hidden;background:#fff;}\n  .seg button{flex:1;border:none;background:transparent;color:var(--primary-dark);font:inherit;cursor:pointer;transition:background .15s,color .15s;}\n  .seg button.on{background:var(--primary);color:#fff;}\n  .seg.two button{padding:7px 12px;}\n  .seg.two .l{display:block;font-size:14px;font-weight:500;line-height:1.15;}\n  .seg.two .s{display:block;font-size:10px;line-height:1.15;opacity:.62;}\n  .seg.two button.on .s{opacity:.85;}\n  .seg.one.compact{flex:0 0 auto;width:auto;}\n  .seg.one.compact button{flex:0 0 auto;padding:6px 13px;font-size:12.5px;font-weight:600;line-height:1;}\n\n  .blocklabel{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--primary-dark);margin:0 0 7px;}\n\n  /* underline tabs */\n  .utabs{display:flex;gap:4px;border-bottom:1.5px solid var(--p25);}\n  .utabs button{border:none;background:transparent;font:inherit;cursor:pointer;padding:9px 14px 8px;font-size:14.5px;font-weight:600;color:#7c867c;position:relative;}\n  .utabs button.on{color:var(--primary-dark);}\n  .utabs button.on::after{content:\"\";position:absolute;left:10px;right:10px;bottom:-1.5px;height:2.5px;border-radius:2px;background:var(--primary);}\n\n  .fmi{background:var(--p08);border:1px solid var(--p25);border-radius:13px;padding:15px;margin-top:12px;}\n  .fmi h2{margin:0 0 11px;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--primary-dark);}\n  .inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}\n  .inputs .f label{display:block;font-size:11.5px;font-weight:500;color:var(--ink);margin-bottom:4px;}\n  .inputs .f .ip{height:42px;border:1px solid var(--p40);border-radius:9px;background:#fff;display:flex;align-items:center;padding:0 11px;color:#9aa39a;font-size:15px;}\n\n  .splitrow{display:flex;align-items:center;gap:10px;margin-top:13px;}\n  .splitrow .rl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--primary-dark);white-space:nowrap;}\n\n  .sum{margin-top:13px;background:#fff;border:1px solid var(--p20);border-radius:9px;padding:10px 12px;font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;}\n  .sum b{color:var(--primary-dark);}\n  .sum .dot{opacity:.4;}\n\n  .products-hint{margin-top:14px;}\n  .products-hint .ph-h{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--primary-dark);margin-bottom:8px;opacity:.55;}\n  .products-hint .ph-bar{height:46px;border:1px dashed var(--p40);border-radius:10px;background:repeating-linear-gradient(135deg,transparent 0 9px,var(--p08) 9px 18px);}\n\n  .meas{font-size:12px;color:#6c756b;background:#fff;border:1px dashed #b0b8af;border-radius:16px;padding:5px 13px;}\n  .meas b{color:var(--primary-dark);}\n  .note{font-size:12.5px;color:#5a635a;max-width:430px;line-height:1.55;background:#fff;border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:11px 14px;align-self:center;}\n  .note b{color:var(--primary-dark);}\n  .note ul{margin:8px 0 0;padding-left:18px;} .note li{margin:3px 0;}\n<\u002Fstyle>\n<\u002Fhead>\n<body>\n  \n  <div class=\"bar\">\n    <h1>Hybrid: underline mode tabs + inline tank split<\u002Fh1>\n    <p>Tank/Field becomes lightweight <b>underline tabs<\u002Fb> (reads as navigation). The <b>Tank Split<\u002Fb> control moves inside the Field Mix card as a compact inline segmented control — so the two never look alike or stack as twin bars. Toggle the tab to see the Tank view (no split control) vs the Field view.<\u002Fp>\n    <div class=\"tabs\" id=\"tabs\">\n      <button class=\"t\" data-view=\"field\" aria-selected=\"true\">Field Mix view<\u002Fbutton>\n      <button class=\"t\" data-view=\"tank\" aria-selected=\"false\">Tank Mix view<\u002Fbutton>\n    <\u002Fdiv>\n  <\u002Fdiv>\n\n  <div class=\"stage\">\n    <div class=\"col\">\n      <div class=\"tag\">Current<\u002Fdiv>\n      <div class=\"phone\" id=\"phoneCurrent\"><\u002Fdiv>\n      <div class=\"meas\">Two stacked two-line bars + label line · ~92px<\u002Fdiv>\n    <\u002Fdiv>\n    <div class=\"col\">\n      <div class=\"tag rec\">Proposed · Hybrid<\u002Fdiv>\n      <div class=\"phone\" id=\"phoneProp\"><\u002Fdiv>\n      <div class=\"meas\" id=\"measProp\"><\u002Fdiv>\n    <\u002Fdiv>\n    <div class=\"note\">\n      <b>Why this works.<\u002Fb>\n      <ul>\n        <li>Mode switch reads as <i>navigation<\u002Fi> (underline), not a setting.<\u002Fli>\n        <li>Split is a compact pill <i>inside<\u002Fi> the mix card — clearly a property of this mix.<\u002Fli>\n        <li>No two full-width green bars competing; the verbose subtitles are gone.<\u002Fli>\n        <li>On the Tank tab the split control simply isn't there, so that view gets even lighter.<\u002Fli>\n      <\u002Ful>\n    <\u002Fdiv>\n  <\u002Fdiv>\n\n<script>\nconst appHeader = `\n  <div class=\"ah\">\n    <div class=\"brand\">Spray Calc<\u002Fdiv>\n    <div class=\"acts\">\n      <div class=\"btn\"><svg viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"12 2 22 8.5 12 15 2 8.5 12 2\"/><polyline points=\"2 15.5 12 22 22 15.5\"/><polyline points=\"2 12 12 18.5 22 12\"/><\u002Fsvg>Mixes<\u002Fdiv>\n      <button class=\"ic\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"currentColor\"><circle cx=\"12\" cy=\"5\" r=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><circle cx=\"12\" cy=\"19\" r=\"2\"/><\u002Fsvg><\u002Fbutton>\n    <\u002Fdiv>\n  <\u002Fdiv>`;\n\nconst fieldInputs = `\n  <div class=\"inputs\">\n    <div class=\"f\"><label>Total Acres<\u002Flabel><div class=\"ip\">340<\u002Fdiv><\u002Fdiv>\n    <div class=\"f\"><label>Rate (GPA)<\u002Flabel><div class=\"ip\">15<\u002Fdiv><\u002Fdiv>\n    <div class=\"f\"><label>Tank (gal)<\u002Flabel><div class=\"ip\">1200<\u002Fdiv><\u002Fdiv>\n  <\u002Fdiv>`;\nconst tankInputs = `\n  <div class=\"inputs\">\n    <div class=\"f\"><label>Tank (gal)<\u002Flabel><div class=\"ip\">1200<\u002Fdiv><\u002Fdiv>\n    <div class=\"f\"><label>Rate (GPA)<\u002Flabel><div class=\"ip\">15<\u002Fdiv><\u002Fdiv>\n    <div class=\"f\"><label>Acres / fill<\u002Flabel><div class=\"ip\">80.0<\u002Fdiv><\u002Fdiv>\n  <\u002Fdiv>`;\n\nconst fieldSummary = `<div class=\"sum\"><span>Total mix: <b>5,100.0 gal<\u002Fb><\u002Fspan><span class=\"dot\">·<\u002Fspan><span>Tanks: <b>4 full × 1200 gal + 1 partial × 300 gal<\u002Fb><\u002Fspan><\u002Fdiv>`;\nconst productsHint = `<div class=\"products-hint\"><div class=\"ph-h\">Products<\u002Fdiv><div class=\"ph-bar\"><\u002Fdiv><\u002Fdiv>`;\n\n/* ---------- CURRENT (today's build) ---------- */\nfunction modeTwoLine(active){\n  return `<div class=\"seg two\" style=\"margin-top:8px\">\n    <button class=\"${active==='tank'?'on':''}\"><span class=\"l\">Tank Mix<\u002Fspan><span class=\"s\">per-tank inputs<\u002Fspan><\u002Fbutton>\n    <button class=\"${active==='field'?'on':''}\"><span class=\"l\">Field Mix<\u002Fspan><span class=\"s\">whole-field inputs<\u002Fspan><\u002Fbutton>\n  <\u002Fdiv>`;\n}\nfunction splitTwoLineBlock(){\n  return `<div style=\"margin-top:14px\">\n    <p class=\"blocklabel\">Tank Split<\u002Fp>\n    <div class=\"seg two\">\n      <button class=\"on\"><span class=\"l\">Full + partial<\u002Fspan><span class=\"s\">fill tanks; last is leftover<\u002Fspan><\u002Fbutton>\n      <button><span class=\"l\">Even loads<\u002Fspan><span class=\"s\">split evenly across tanks<\u002Fspan><\u002Fbutton>\n    <\u002Fdiv><\u002Fdiv>`;\n}\nfunction currentPhone(view){\n  const fmiTitle = view==='field' ? 'Field Mix Information' : 'Tank Mix Information';\n  const inner = (view==='field'?fieldInputs:tankInputs) + (view==='field'?fieldSummary:'');\n  const split = view==='field' ? splitTwoLineBlock() : '';\n  return `<div>${appHeader}<div class=\"body\">${modeTwoLine(view)}\n    <div class=\"fmi\"><h2>${fmiTitle}<\u002Fh2>${inner}<\u002Fdiv>${split}${productsHint}<\u002Fdiv><\u002Fdiv>`;\n}\n\n/* ---------- HYBRID ---------- */\nfunction modeUnderline(active){\n  return `<div class=\"utabs\" style=\"margin-top:4px\">\n    <button class=\"${active==='tank'?'on':''}\">Tank Mix<\u002Fbutton>\n    <button class=\"${active==='field'?'on':''}\">Field Mix<\u002Fbutton>\n  <\u002Fdiv>`;\n}\nfunction splitInline(){\n  return `<div class=\"splitrow\">\n    <span class=\"rl\">Tank split<\u002Fspan>\n    <div class=\"seg one compact\">\n      <button class=\"on\">Full + partial<\u002Fbutton><button>Even loads<\u002Fbutton>\n    <\u002Fdiv><\u002Fdiv>`;\n}\nfunction hybridPhone(view){\n  const fmiTitle = view==='field' ? 'Field Mix Information' : 'Tank Mix Information';\n  const inner = (view==='field'?fieldInputs:tankInputs)\n    + (view==='field'? splitInline() : '')\n    + (view==='field'? fieldSummary : '');\n  return `<div>${appHeader}<div class=\"body\">${modeUnderline(view)}\n    <div class=\"fmi\"><h2>${fmiTitle}<\u002Fh2>${inner}<\u002Fdiv>${productsHint}<\u002Fdiv><\u002Fdiv>`;\n}\n\nconst phoneCurrent = document.getElementById('phoneCurrent');\nconst phoneProp = document.getElementById('phoneProp');\nconst measProp = document.getElementById('measProp');\nlet view='field';\n\nfunction render(){\n  phoneCurrent.innerHTML = currentPhone(view);\n  phoneProp.innerHTML = hybridPhone(view);\n  measProp.innerHTML = view==='field'\n    ? 'Underline tabs + one inline pill · <b>~46px<\u002Fb>'\n    : 'Underline tabs only · <b>~34px<\u002Fb>';\n  document.querySelectorAll('.bar .t').forEach(b=>b.setAttribute('aria-selected', b.dataset.view===view?'true':'false'));\n  wire();\n}\nfunction wire(){\n  document.querySelectorAll('.phone .seg, .phone .utabs').forEach(group=>{\n    group.querySelectorAll('button').forEach(btn=>{\n      btn.onclick=()=>{group.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');};\n    });\n  });\n}\ndocument.querySelectorAll('.bar .t').forEach(b=>b.addEventListener('click',()=>{view=b.dataset.view;render();}));\nrender();\n<\u002Fscript>\n\n\n<\u002Fbody><\u002Fhtml>"
+  </script>
+</body>
+</html>
