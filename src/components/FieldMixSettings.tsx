@@ -113,17 +113,17 @@ export function FieldMixSettings({
       </div>
 
       {/* Split mode toggle */}
-      <div className="mt-4">
-        <p
-          className="text-xs font-semibold uppercase tracking-wider mb-2"
+      <div className="mt-4 flex items-center gap-3">
+        <span
+          className="text-xs font-semibold uppercase tracking-wider"
           style={{ color: colors.primaryDark }}
         >
-          Tank Split
-        </p>
+          Tank split
+        </span>
         <div
           role="radiogroup"
           aria-label="Tank split mode"
-          className="flex items-stretch rounded-lg overflow-hidden"
+          className="inline-flex items-stretch rounded-lg overflow-hidden"
           style={{ border: `1px solid ${colors.primary}40`, backgroundColor: 'white' }}
         >
           {([
@@ -137,19 +137,15 @@ export function FieldMixSettings({
                 role="radio"
                 aria-checked={isActive}
                 onClick={() => onSplitModeChange(opt.value)}
-                className="flex-1 py-2 px-3 text-sm font-medium transition-colors"
+                title={opt.sub}
+                className="text-sm font-medium transition-colors"
                 style={{
+                  padding: '6px 13px',
                   backgroundColor: isActive ? colors.primary : 'transparent',
                   color: isActive ? 'white' : colors.primaryDark,
                 }}
               >
-                <span className="block leading-tight">{opt.label}</span>
-                <span
-                  className="block text-[10px] leading-tight"
-                  style={{ opacity: isActive ? 0.85 : 0.6 }}
-                >
-                  {opt.sub}
-                </span>
+                {opt.label}
               </button>
             );
           })}

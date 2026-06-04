@@ -593,8 +593,8 @@ export function Header({
         <div
           role="tablist"
           aria-label="Calculator mode"
-          className="mt-2 flex items-stretch rounded-lg overflow-hidden"
-          style={{ border: `1px solid ${colors.primary}40` }}
+          className="mt-2 flex items-stretch"
+          style={{ borderBottom: `1px solid ${colors.primary}25` }}
         >
           {(['tank', 'field'] as const).map((mode) => {
             const isActive = activeTab === mode;
@@ -606,19 +606,30 @@ export function Header({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(mode)}
-                className="flex-1 py-1.5 px-3 text-sm font-medium transition-colors"
+                title={subtitle}
+                aria-label={`${label} (${subtitle})`}
+                className="relative bg-transparent border-0 px-4 py-2 transition-colors"
                 style={{
-                  backgroundColor: isActive ? colors.primary : 'transparent',
-                  color: isActive ? 'white' : colors.primaryDark,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: isActive ? colors.primaryDark : '#7c867c',
                 }}
               >
-                <span className="block leading-tight">{label}</span>
-                <span
-                  className="block text-[10px] leading-tight"
-                  style={{ opacity: isActive ? 0.85 : 0.6 }}
-                >
-                  {subtitle}
-                </span>
+                {label}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      left: 10,
+                      right: 10,
+                      bottom: -1,
+                      height: 2.5,
+                      borderRadius: 2,
+                      backgroundColor: colors.primary,
+                    }}
+                  />
+                )}
               </button>
             );
           })}
