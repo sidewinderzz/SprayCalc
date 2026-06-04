@@ -73,35 +73,13 @@ export function Header({
 
   // While any header dropdown or the save-mix dialog is open, freeze the
   // header in its visible position so menus stay anchored to their button.
-  const isMenuOpen = showMixesMenu || showOverflowMenu || showSaveMixDialog;
+  const isMenuOpen = showOverflowMenu || showSaveMixDialog;
   const shouldHide = isHidden && !isMenuOpen;
-  // Top offset (in px) used when rendering the Mixes dropdown as a fixed-
-  // position panel so it can't overflow off-screen on narrow viewports.
-  const [mixesMenuTop, setMixesMenuTop] = useState(0);
 
-  // Recompute the dropdown's top edge whenever it opens, and on resize/scroll
-  // while open, so it always sits just under the Mixes button.
+  // Reset the "clear history" confirmation when the overflow menu closes
   useEffect(() => {
-    if (!showMixesMenu) return;
-    const update = () => {
-      const node = mixesMenuRef.current;
-      if (!node) return;
-      const rect = node.getBoundingClientRect();
-      setMixesMenuTop(rect.bottom + 8);
-    };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [showMixesMenu, mixesMenuRef]);
-
-  // Reset the "clear history" confirmation when the Mixes menu closes
-  useEffect(() => {
-    if (!showMixesMenu) setConfirmClearHistory(false);
-  }, [showMixesMenu]);
+    if (!showOverflowMenu) setConfirmClearHistory(false);
+  }, [showOverflowMenu]);
 
   // Focus mix name input when dialog opens
   useEffect(() => {
@@ -234,60 +212,45 @@ export function Header({
           </h1>
 
           <div className="flex items-center gap-2">
-            {/* Mixes button + dropdown */}
-            <div className="relative" ref={mixesMenuRef}>
+            {/* Overflow menu (contains Mixes + settings) */}
+            <div className="relative" ref={overflowMenuRef}>
               <button
                 onClick={() => {
-                  setShowMixesMenu(!showMixesMenu);
-                  if (!showMixesMenu) setShowOverflowMenu(false);
+                  setShowOverflowMenu(!showOverflowMenu);
                 }}
-                className="h-11 w-11 xs:h-9 xs:w-auto xs:px-3 flex items-center justify-center xs:gap-1.5 rounded-lg text-sm font-medium whitespace-nowrap"
+                className="h-11 w-11 xs:h-9 xs:w-9 flex items-center justify-center rounded-lg"
                 style={{
-                  backgroundColor: showMixesMenu ? colors.primary + '15' : 'transparent',
+                  backgroundColor: showOverflowMenu ? colors.primary + '20' : 'transparent',
                   color: colors.primaryDark,
-                  border: `1px solid ${colors.primary}50`,
                 }}
-                title="Saved & Recent Mixes"
-                aria-label="Saved and Recent Mixes"
-                aria-expanded={showMixesMenu}
+                title="More options"
+                aria-label="More options"
+                aria-expanded={showOverflowMenu}
                 aria-haspopup="true"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" />
-                  <polyline points="2 15.5 12 22 22 15.5" />
-                  <polyline points="2 12 12 18.5 22 12" />
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
                 </svg>
-                <span className="hidden xs:inline">Mixes</span>
               </button>
 
-              {showMixesMenu && (
+              {showOverflowMenu && (
                 <div
-                  className="fixed rounded-xl shadow-xl border z-40 overflow-hidden"
+                  className="absolute right-0 mt-2 rounded-xl shadow-xl border z-40"
                   style={{
-                    top: mixesMenuTop,
-                    right: 8,
-                    maxHeight: `calc(100vh - ${mixesMenuTop + 16}px)`,
-                    overflowY: 'auto',
                     backgroundColor: 'white',
                     borderColor: colors.primary + '30',
                     width: 'min(320px, calc(100vw - 16px))',
+                    maxHeight: 'calc(100vh - 120px)',
+                    overflowY: 'auto',
                   }}
                   role="menu"
                 >
                   {/* Save current mix action */}
                   <button
                     onClick={() => {
-                      setShowMixesMenu(false);
+                      setShowOverflowMenu(false);
                       openSaveMixDialog();
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
@@ -326,7 +289,7 @@ export function Header({
                         No saved mixes yet. Use "Save current mix…" above to save your first one.
                       </p>
                     ) : (
-                      <div className="space-y-1 max-h-60 overflow-y-auto">
+                      <div className="space-y-1">
                         {savedMixes.map((mix) => (
                           <div
                             key={mix.name}
@@ -334,7 +297,7 @@ export function Header({
                             style={{ backgroundColor: colors.primary + '08' }}
                           >
                             <button
-                              onClick={() => loadMix(mix.data)}
+                              onClick={() => { loadMix(mix.data); setShowOverflowMenu(false); }}
                               className="flex-1 text-left text-sm font-medium truncate"
                               style={{ color: colors.primaryDark }}
                             >
@@ -347,15 +310,7 @@ export function Header({
                               title={`Delete "${mix.name}"`}
                               aria-label={`Delete saved mix ${mix.name}`}
                             >
-                              <svg
-                                viewBox="0 0 14 14"
-                                width="11"
-                                height="11"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              >
+                              <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <line x1="1" y1="1" x2="13" y2="13" />
                                 <line x1="13" y1="1" x2="1" y2="13" />
                               </svg>
@@ -381,10 +336,7 @@ export function Header({
                         (confirmClearHistory ? (
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => {
-                                clearHistory();
-                                setConfirmClearHistory(false);
-                              }}
+                              onClick={() => { clearHistory(); setConfirmClearHistory(false); }}
                               className="text-xs font-semibold"
                               style={{ color: '#b91c1c' }}
                             >
@@ -415,7 +367,7 @@ export function Header({
                         No recent mixes yet. Saving, copying, or exporting a mix will log it here.
                       </p>
                     ) : (
-                      <div className="space-y-1 max-h-60 overflow-y-auto">
+                      <div className="space-y-1">
                         {historyEntries.map((entry) => (
                           <div
                             key={entry.id}
@@ -423,19 +375,13 @@ export function Header({
                             style={{ backgroundColor: colors.primary + '08' }}
                           >
                             <button
-                              onClick={() => loadHistoryEntry(entry.data)}
+                              onClick={() => { loadHistoryEntry(entry.data); setShowOverflowMenu(false); }}
                               className="flex-1 text-left min-w-0"
                             >
-                              <div
-                                className="text-sm font-medium truncate"
-                                style={{ color: colors.primaryDark }}
-                              >
+                              <div className="text-sm font-medium truncate" style={{ color: colors.primaryDark }}>
                                 {entry.summary}
                               </div>
-                              <div
-                                className="text-xs mt-0.5 truncate"
-                                style={{ color: colors.lightText + '80' }}
-                              >
+                              <div className="text-xs mt-0.5 truncate" style={{ color: colors.lightText + '80' }}>
                                 {formatRelativeTime(entry.timestamp)}
                               </div>
                             </button>
@@ -446,15 +392,7 @@ export function Header({
                               title="Remove from history"
                               aria-label="Remove from history"
                             >
-                              <svg
-                                viewBox="0 0 14 14"
-                                width="11"
-                                height="11"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              >
+                              <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <line x1="1" y1="1" x2="13" y2="13" />
                                 <line x1="13" y1="1" x2="1" y2="13" />
                               </svg>
@@ -464,45 +402,10 @@ export function Header({
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* Overflow menu */}
-            <div className="relative" ref={overflowMenuRef}>
-              <button
-                onClick={() => {
-                  setShowOverflowMenu(!showOverflowMenu);
-                  if (!showOverflowMenu) setShowMixesMenu(false);
-                }}
-                className="h-11 w-11 xs:h-9 xs:w-9 flex items-center justify-center rounded-lg"
-                style={{
-                  backgroundColor: showOverflowMenu ? colors.primary + '20' : 'transparent',
-                  color: colors.primaryDark,
-                }}
-                title="More options"
-                aria-label="More options"
-                aria-expanded={showOverflowMenu}
-                aria-haspopup="true"
-              >
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                  <circle cx="12" cy="5" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="12" cy="19" r="2" />
-                </svg>
-              </button>
+                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
 
-              {showOverflowMenu && (
-                <div
-                  className="absolute right-0 mt-2 rounded-xl shadow-xl border z-40 overflow-hidden"
-                  style={{
-                    backgroundColor: 'white',
-                    borderColor: colors.primary + '30',
-                    minWidth: '220px',
-                    maxWidth: 'calc(100vw - 16px)',
-                  }}
-                  role="menu"
-                >
+                  {/* Settings actions */}
                   <button
                     onClick={() => {
                       setShowTips(!showTips);
