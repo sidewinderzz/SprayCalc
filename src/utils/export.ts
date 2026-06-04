@@ -199,10 +199,13 @@ const MARGIN_TOP = 13;
 const FOOTER_HEIGHT = 22;
 const CONTENT_W = PAGE_W - MARGIN_X * 2;
 
-// Field operations strip is pinned just above the footer
+// Application Record sits just above the footer; Field Operations sits just
+// above the Application Record. Both are pinned to the bottom of the page.
 const OPS_BOX_HEIGHT = 14;
 const OPS_TOTAL_HEIGHT = OPS_BOX_HEIGHT + 5; // label + box
-const OPS_TOP = PAGE_H - FOOTER_HEIGHT - OPS_TOTAL_HEIGHT - 3;
+const APP_RECORD_HEIGHT = 8;
+const APP_RECORD_TOP = PAGE_H - FOOTER_HEIGHT - APP_RECORD_HEIGHT - 1;
+const OPS_TOP = APP_RECORD_TOP - OPS_TOTAL_HEIGHT - 4;
 
 function setFillRGB(doc: jsPDF, c: [number, number, number]) { doc.setFillColor(c[0], c[1], c[2]); }
 function setDrawRGB(doc: jsPDF, c: [number, number, number]) { doc.setDrawColor(c[0], c[1], c[2]); }
@@ -474,9 +477,10 @@ function drawNoPartialNote(
   return y + h;
 }
 
-function drawApplicationRecord(doc: jsPDF, y: number): number {
+function drawApplicationRecord(doc: jsPDF): void {
+  const y = APP_RECORD_TOP;
   drawSeclabel(doc, MARGIN_X, y, 'Application record');
-  y += 5;
+  const lineY = y + 5;
   const fields = ['Applicator', 'Date applied', 'Wind / weather'];
   const gap = 9;
   const colW = (CONTENT_W - gap * (fields.length - 1)) / fields.length;
@@ -485,13 +489,12 @@ function drawApplicationRecord(doc: jsPDF, y: number): number {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     setTextRGB(doc, C.muted);
-    doc.text(label, x, y + 4);
+    doc.text(label, x, lineY + 4);
     const lblW = doc.getTextWidth(label);
     setDrawRGB(doc, C.line);
     doc.setLineWidth(0.3);
-    doc.line(x + lblW + 2.5, y + 4.5, x + colW, y + 4.5);
+    doc.line(x + lblW + 2.5, lineY + 4.5, x + colW, lineY + 4.5);
   });
-  return y + 8;
 }
 
 // ----- pinned bottom strip: field operations as quiet, secondary numbers -----
@@ -687,9 +690,9 @@ export async function exportPDF(state: ExportState): Promise<void> {
     }
   }
 
-  drawApplicationRecord(doc, y);
-
   drawFieldOpsStrip(doc, state);
+
+  drawApplicationRecord(doc);
 
   const total = doc.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
