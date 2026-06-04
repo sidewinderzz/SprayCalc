@@ -1,5 +1,4 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import QRCode from 'qrcode';
 import { MixData, Product } from '../types';
 import {
@@ -7,7 +6,8 @@ import {
   calculateMixPlanning,
   formatOutput,
   formatPurchaseAmount,
-  calculateAmount
+  calculateAmount,
+  isWeightUnit,
 } from './calculations';
 import { displayProductName } from './productName';
 import { buildMixLink } from './mixLink';
@@ -177,471 +177,414 @@ export function exportStateToMixData(state: ExportState): MixData {
   };
 }
 
-// ---------- PDF generation ----------
+// ---------- PDF generation (V3 refined: field-mixing reference sheet) ----------
 
-// Theme colors (sourced from src/types.ts colors)
 const C = {
   primary: [73, 138, 90] as [number, number, number],
   primaryDark: [45, 104, 64] as [number, number, number],
-  primaryLight: [118, 168, 134] as [number, number, number],
-  primaryBg: [232, 243, 235] as [number, number, number],
-  secondary: [209, 195, 67] as [number, number, number],
-  secondaryDark: [178, 165, 41] as [number, number, number],
-  secondaryBg: [247, 241, 196] as [number, number, number],
-  border: [200, 222, 206] as [number, number, number],
-  text: [28, 41, 31] as [number, number, number],
-  muted: [118, 168, 134] as [number, number, number],
-  divider: [220, 230, 222] as [number, number, number],
+  ink: [28, 41, 31] as [number, number, number],
+  ink2: [68, 80, 74] as [number, number, number],
+  muted: [141, 150, 141] as [number, number, number],
+  lineStrong: [167, 176, 167] as [number, number, number],
+  line: [215, 221, 215] as [number, number, number],
+  divider: [237, 240, 237] as [number, number, number],
+  noteBg: [246, 248, 245] as [number, number, number],
 };
 
 // Letter portrait, mm units
 const PAGE_W = 215.9;
 const PAGE_H = 279.4;
-const MARGIN_X = 14;
-const MARGIN_TOP = 16;
-const FOOTER_HEIGHT = 36; // reserved at bottom for QR/footer
-const CONTENT_BOTTOM = PAGE_H - FOOTER_HEIGHT;
+const MARGIN_X = 13;
+const MARGIN_TOP = 13;
+const FOOTER_HEIGHT = 22;
 const CONTENT_W = PAGE_W - MARGIN_X * 2;
 
-function setFillRGB(doc: jsPDF, c: [number, number, number]) {
-  doc.setFillColor(c[0], c[1], c[2]);
-}
-function setDrawRGB(doc: jsPDF, c: [number, number, number]) {
-  doc.setDrawColor(c[0], c[1], c[2]);
-}
-function setTextRGB(doc: jsPDF, c: [number, number, number]) {
-  doc.setTextColor(c[0], c[1], c[2]);
+// Field operations strip is pinned just above the footer
+const OPS_BOX_HEIGHT = 14;
+const OPS_TOTAL_HEIGHT = OPS_BOX_HEIGHT + 5; // label + box
+const OPS_TOP = PAGE_H - FOOTER_HEIGHT - OPS_TOTAL_HEIGHT - 3;
+
+function setFillRGB(doc: jsPDF, c: [number, number, number]) { doc.setFillColor(c[0], c[1], c[2]); }
+function setDrawRGB(doc: jsPDF, c: [number, number, number]) { doc.setDrawColor(c[0], c[1], c[2]); }
+function setTextRGB(doc: jsPDF, c: [number, number, number]) { doc.setTextColor(c[0], c[1], c[2]); }
+
+function formatNum(n: number): string {
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.1) return n.toFixed(2);
+  if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n));
+  return n.toFixed(1);
 }
 
-function ensureSpace(doc: jsPDF, cursorY: number, needed: number): number {
-  if (cursorY + needed > CONTENT_BOTTOM) {
-    doc.addPage();
-    return MARGIN_TOP;
+function formatWeightPdf(oz: number): string {
+  if (oz >= 16) return `${formatNum(oz / 16)} lb`;
+  return `${formatNum(oz)} oz`;
+}
+
+function formatJugSub(amountOz: number, jugSizeOz: number): string | null {
+  if (jugSizeOz <= 0 || amountOz <= 0) return null;
+  const jugGal = jugSizeOz / 128;
+  const totalGal = amountOz / 128;
+  const exact = totalGal / jugGal;
+  if (exact < 1) return null;
+  const rounded = Math.round(exact);
+  const ceiled = Math.ceil(exact);
+  const sizeLabel = `${formatNum(jugGal)}-gal jug`;
+  if (rounded > 0 && Math.abs(exact - rounded) < 0.02) {
+    return `${rounded} × ${sizeLabel}`;
   }
-  return cursorY;
+  return `≈ ${ceiled} × ${sizeLabel}`;
 }
 
-function drawSectionHeading(doc: jsPDF, cursorY: number, title: string): number {
-  cursorY = ensureSpace(doc, cursorY, 9);
+// Clean primary amount + optional jug/bag sub-line for the V3 mix tables.
+function formatV3(
+  amountOz: number,
+  format: string,
+  unit: string,
+  jugSizeOz: number,
+): { primary: string; sub: string | null } {
+  if (amountOz === 0) {
+    return { primary: unit && isWeightUnit(unit) ? '0 oz' : '0 fl oz', sub: null };
+  }
+  if (unit && isWeightUnit(unit)) {
+    return { primary: formatWeightPdf(amountOz), sub: null };
+  }
+  const totalGal = amountOz / 128;
+  let primary: string;
+  switch (format) {
+    case 'floz':
+      primary = `${formatNum(amountOz)} fl oz`;
+      break;
+    case 'gal':
+      primary = `${formatNum(totalGal)} gal`;
+      break;
+    case 'gal_oz': {
+      const g = Math.floor(amountOz / 128);
+      const ozR = parseFloat((amountOz % 128).toFixed(1));
+      primary = ozR === 0 ? `${g} gal` : `${g} gal ${ozR} fl oz`;
+      break;
+    }
+    case 'qt':
+      primary = `${formatNum(amountOz / 32)} qt`;
+      break;
+    case 'pt':
+      primary = `${formatNum(amountOz / 16)} pt`;
+      break;
+    case 'cups':
+      primary = `${formatNum(amountOz / 8)} cups`;
+      break;
+    case 'auto':
+    default: {
+      if (amountOz < 256) {
+        primary = `${formatNum(amountOz)} fl oz`;
+      } else {
+        const g = Math.floor(amountOz / 128);
+        const ozR = parseFloat((amountOz % 128).toFixed(1));
+        primary = ozR === 0 ? `${g} gal` : `${g} gal ${ozR} fl oz`;
+      }
+    }
+  }
+  return { primary, sub: formatJugSub(amountOz, jugSizeOz) };
+}
+
+function formatGeneratedDate(d: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  let h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h}:${m} ${ampm}`;
+}
+
+// ----- header: brand + setup line + generated date + heavy underline -----
+function drawHeader(
+  doc: jsPDF,
+  state: ExportState,
+  planning: ReturnType<typeof calculateMixPlanning>,
+  generatedAt: Date,
+): number {
+  const baseY = MARGIN_TOP + 6;
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  setTextRGB(doc, C.primaryDark);
-  doc.text(title.toUpperCase(), MARGIN_X, cursorY);
-  // underline
-  setDrawRGB(doc, C.primary);
-  doc.setLineWidth(0.6);
-  doc.line(MARGIN_X, cursorY + 1.4, MARGIN_X + CONTENT_W, cursorY + 1.4);
-  return cursorY + 6;
-}
-
-interface KpiBox {
-  label: string;
-  value: string;
-}
-
-function drawKpiRow(doc: jsPDF, cursorY: number, boxes: KpiBox[]): number {
-  const gap = 4;
-  const w = (CONTENT_W - gap * (boxes.length - 1)) / boxes.length;
-  const h = 16;
-  cursorY = ensureSpace(doc, cursorY, h);
-  boxes.forEach((box, i) => {
-    const x = MARGIN_X + i * (w + gap);
-    setFillRGB(doc, C.primaryBg);
-    setDrawRGB(doc, C.border);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(x, cursorY, w, h, 1.6, 1.6, 'FD');
-    setTextRGB(doc, C.primaryDark);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(box.label.toUpperCase(), x + 3, cursorY + 5);
-    setTextRGB(doc, C.text);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text(box.value, x + 3, cursorY + 12);
-  });
-  return cursorY + h + 4;
-}
-
-function drawHeader(doc: jsPDF, generatedAt: Date): number {
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
+  doc.setFontSize(16);
+  setTextRGB(doc, C.ink);
+  doc.text('Spray', MARGIN_X, baseY);
+  const wSpray = doc.getTextWidth('Spray');
   setTextRGB(doc, C.primary);
-  doc.text('SprayCalc Mix Report', MARGIN_X, MARGIN_TOP);
+  doc.text('Calc', MARGIN_X + wSpray, baseY);
+  const wCalc = doc.getTextWidth('Calc');
+  setTextRGB(doc, C.ink);
+  doc.text(' Mix Report', MARGIN_X + wSpray + wCalc, baseY);
+
+  // The setup line: tank / GPA / ac-per-fill / field / total — the V3 idea
+  // is that these numbers live ONCE, here, not in a redundant band below.
+  const subBits: string[] = [
+    `${formatNum(state.fillVolume)} gal tank`,
+    `${formatNum(state.applicationRate)} GPA`,
+  ];
+  if (state.acresPerFill > 0) subBits.push(`${formatNum(state.acresPerFill)} ac/fill`);
+  if (state.fieldSize > 0) {
+    subBits.push(`${formatNum(state.fieldSize)} ac field`);
+    if (planning) subBits.push(`${formatNum(planning.totalSprayNeeded)} gal total`);
+  }
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(8);
+  setTextRGB(doc, C.ink2);
+  doc.text(subBits.join(' · '), MARGIN_X, baseY + 4.8);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  setTextRGB(doc, C.muted);
-  doc.text(`Generated ${generatedAt.toLocaleString()}`, MARGIN_X, MARGIN_TOP + 5);
-
-  // accent bar
-  setFillRGB(doc, C.primary);
-  doc.rect(MARGIN_X, MARGIN_TOP + 8, CONTENT_W, 0.8, 'F');
-
-  return MARGIN_TOP + 13;
-}
-
-function drawRatesAsEntered(doc: jsPDF, cursorY: number, products: Product[]): number {
-  if (!products.length) return cursorY;
-  cursorY = ensureSpace(doc, cursorY, 6);
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   setTextRGB(doc, C.muted);
-  doc.text('RATES AS ENTERED', MARGIN_X, cursorY);
-  cursorY += 4;
+  doc.text('Generated', PAGE_W - MARGIN_X, baseY - 2, { align: 'right' });
+  doc.text(formatGeneratedDate(generatedAt), PAGE_W - MARGIN_X, baseY + 1.5, { align: 'right' });
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  setTextRGB(doc, C.text);
+  setDrawRGB(doc, C.ink);
+  doc.setLineWidth(0.6);
+  doc.line(MARGIN_X, baseY + 7.8, PAGE_W - MARGIN_X, baseY + 7.8);
 
-  const lineHeight = 4.2;
-  let x = MARGIN_X;
-  let y = cursorY;
-  products.forEach((p, i) => {
-    const name = displayProductName(p.name, i);
-    const rateStr = `${p.rate} ${p.unit}`;
-    const segment = `${name} — ${rateStr}`;
-    const w = doc.getTextWidth(segment) + 6;
-    if (x + w > MARGIN_X + CONTENT_W) {
-      x = MARGIN_X;
-      y += lineHeight;
-      y = ensureSpace(doc, y, lineHeight);
-    }
-    doc.setFont('helvetica', 'bold');
-    setTextRGB(doc, C.text);
-    doc.text(name, x, y);
-    const nameW = doc.getTextWidth(name);
-    doc.setFont('helvetica', 'normal');
+  return baseY + 12;
+}
+
+function drawSeclabel(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  label: string,
+  smallText?: string,
+  color: [number, number, number] = C.primaryDark,
+): void {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  setTextRGB(doc, color);
+  const upper = label.toUpperCase();
+  doc.text(upper, x, y);
+  if (smallText) {
+    const w = doc.getTextWidth(upper);
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
     setTextRGB(doc, C.muted);
-    doc.text(' — ', x + nameW, y);
-    setTextRGB(doc, C.primary);
-    doc.text(rateStr, x + nameW + doc.getTextWidth(' — '), y);
-    x += w;
-  });
-  return y + 6;
+    doc.text(smallText, x + w + 2.5, y);
+  }
 }
 
-function runAutoTable(
+// ----- mix table: product / [rate] / amount, with jug sub-line under the amount -----
+function drawMixTable(
   doc: jsPDF,
-  cursorY: number,
-  head: string[][],
-  body: (string | number)[][],
-  options: {
-    headFill?: [number, number, number];
-    columnStyles?: Record<number, { halign?: 'left' | 'center' | 'right'; cellWidth?: number | 'auto' | 'wrap' }>;
-  } = {}
+  x: number,
+  y: number,
+  width: number,
+  products: Product[],
+  showRate: boolean,
+  amountFor: (p: Product) => { primary: string; sub: string | null },
 ): number {
-  const headFill = options.headFill ?? C.primary;
-  autoTable(doc, {
-    startY: cursorY,
-    head,
-    body: body as (string | number)[][],
-    margin: { left: MARGIN_X, right: MARGIN_X, bottom: FOOTER_HEIGHT },
-    styles: {
-      font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 2.2,
-      textColor: C.text,
-      lineColor: C.border,
-      lineWidth: 0.2,
-    },
-    headStyles: {
-      fillColor: headFill,
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 8.5,
-      halign: 'left',
-    },
-    alternateRowStyles: { fillColor: [248, 251, 249] },
-    columnStyles: options.columnStyles,
-    theme: 'grid',
-  });
-  // @ts-expect-error - lastAutoTable is added at runtime by jspdf-autotable
-  return doc.lastAutoTable.finalY + 5;
-}
-
-function drawProductsPerMix(doc: jsPDF, cursorY: number, products: Product[]): number {
-  cursorY = drawSectionHeading(doc, cursorY, 'Products Per Mix');
-  const body = products.map((p, i) => {
-    const name = displayProductName(p.name, i);
-    const amount = formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128);
-    return [name, `${p.rate} ${p.unit}`, amount];
-  });
-  return runAutoTable(doc, cursorY, [['Product', 'Rate', 'Per Mix Amount']], body, {
-    columnStyles: {
-      0: { cellWidth: 70 },
-      1: { cellWidth: 45 },
-      2: { cellWidth: 'auto', halign: 'right' },
-    },
-  });
-}
-
-function drawFieldOverview(
-  doc: jsPDF,
-  cursorY: number,
-  state: ExportState
-): number {
-  const planning = calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume);
-  if (!planning) return cursorY;
-
-  cursorY = drawSectionHeading(doc, cursorY, 'Field Overview');
-
-  const chips = [
-    `${state.fieldSize} acres`,
-    `${planning.totalSprayNeeded.toFixed(0)} gal total`,
-    `${planning.fullMixes} full mix${planning.fullMixes !== 1 ? 'es' : ''}`,
-  ];
-  if (planning.hasPartialMix) {
-    chips.push(`1 partial (${planning.remainingSpray.toFixed(1)} gal / ${planning.remainingAcres.toFixed(2)} ac)`);
+  let colA: number;
+  let colR: number;
+  let colP: number;
+  if (showRate) {
+    colA = Math.min(40, width * 0.34);
+    colR = Math.min(26, width * 0.22);
+    colP = width - colA - colR;
   } else {
-    chips.push('No partial mix');
+    colA = Math.min(38, width * 0.46);
+    colR = 0;
+    colP = width - colA;
   }
 
-  const chipH = 7;
-  cursorY = ensureSpace(doc, cursorY, chipH);
-  let x = MARGIN_X;
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  chips.forEach((label, i) => {
-    const padX = 4;
-    const w = doc.getTextWidth(label) + padX * 2;
-    const isPartial = i === 3 && planning.hasPartialMix;
-    const fill = isPartial ? C.secondaryBg : C.primaryBg;
-    const stroke = isPartial ? C.secondary : C.border;
-    const textCol = isPartial ? C.secondaryDark : C.primaryDark;
-    if (x + w > MARGIN_X + CONTENT_W) {
-      x = MARGIN_X;
-      cursorY += chipH + 1;
-      cursorY = ensureSpace(doc, cursorY, chipH);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  setTextRGB(doc, C.muted);
+  doc.text('PRODUCT', x + 2, y);
+  if (showRate) doc.text('RATE', x + colP + 2, y);
+  doc.text(showRate ? 'PER MIX' : 'AMOUNT', x + width - 2, y, { align: 'right' });
+
+  setDrawRGB(doc, C.lineStrong);
+  doc.setLineWidth(0.4);
+  doc.line(x, y + 1.5, x + width, y + 1.5);
+  y += 4.5;
+
+  products.forEach((p, i) => {
+    const parts = amountFor(p);
+    const nameLines = doc.splitTextToSize(displayProductName(p.name, i), colP - 4) as string[];
+    const nameLineCount = Math.min(nameLines.length, 2);
+    const nameH = nameLineCount * 3.5 + 2.5;
+    const amtH = parts.sub ? 8.5 : 5.5;
+    const rowH = Math.max(nameH, amtH);
+    const rowTop = y;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    setTextRGB(doc, C.ink);
+    nameLines.slice(0, 2).forEach((ln, lnIdx) => {
+      doc.text(ln, x + 2, rowTop + 3.5 + lnIdx * 3.5);
+    });
+
+    if (showRate) {
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      setTextRGB(doc, C.ink2);
+      doc.text(`${p.rate} ${p.unit}`, x + colP + 2, rowTop + 3.5);
     }
-    setFillRGB(doc, fill);
-    setDrawRGB(doc, stroke);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(x, cursorY, w, chipH, 2, 2, 'FD');
-    setTextRGB(doc, textCol);
-    doc.text(label, x + padX, cursorY + chipH - 2.2);
-    x += w + 3;
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(10);
+    setTextRGB(doc, C.primaryDark);
+    doc.text(parts.primary, x + width - 2, rowTop + 3.5, { align: 'right' });
+
+    if (parts.sub) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      setTextRGB(doc, C.muted);
+      doc.text(parts.sub, x + width - 2, rowTop + 7, { align: 'right' });
+    }
+
+    y = rowTop + rowH;
+
+    if (i < products.length - 1) {
+      setDrawRGB(doc, C.divider);
+      doc.setLineWidth(0.15);
+      doc.line(x, y - 0.4, x + width, y - 0.4);
+    }
   });
-  return cursorY + chipH + 5;
+  return y;
 }
 
-function drawWhatToBuy(
+function drawNoPartialNote(
   doc: jsPDF,
-  cursorY: number,
-  state: ExportState
+  x: number,
+  y: number,
+  width: number,
+  fullMixes: number,
 ): number {
-  if (!state.fieldSize) return cursorY;
-  cursorY = drawSectionHeading(doc, cursorY, 'What to Buy (Field Total)');
-
-  const body = state.products.map((p, i) => {
-    const totalOz = calculateFieldAmount(p.rate, p.unit, state.fieldSize, state.applicationRate);
-    const info = formatPurchaseAmount(totalOz, p.unit, p.jugSize ?? 128);
-    const best = info.containers[0];
-    const alts = info.containers.slice(1, 3).map(c => `${c.display} (${c.wastePercent.toFixed(0)}% waste)`).join('\n');
-    return [
-      displayProductName(p.name, i),
-      info.display,
-      best ? `${best.display}\n${best.wastePercent.toFixed(0)}% waste` : '—',
-      alts || '—',
-    ];
+  const padY = 4;
+  const padX = 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const text = `Field divides evenly into ${fullMixes} full mix${fullMixes === 1 ? '' : 'es'} — no partial tank needed.`;
+  const lines = doc.splitTextToSize(text, width - padX * 2) as string[];
+  const h = padY * 2 + lines.length * 4;
+  setFillRGB(doc, C.noteBg);
+  setDrawRGB(doc, C.lineStrong);
+  doc.setLineWidth(0.3);
+  doc.setLineDashPattern([1.2, 1.2], 0);
+  doc.roundedRect(x, y, width, h, 1, 1, 'FD');
+  doc.setLineDashPattern([], 0);
+  setTextRGB(doc, C.ink2);
+  lines.forEach((line, i) => {
+    doc.text(line, x + padX, y + padY + 3 + i * 4);
   });
-  return runAutoTable(doc, cursorY, [['Product', 'Total Needed', 'Best Buy', 'Alternates']], body, {
-    headFill: C.secondaryDark,
-    columnStyles: {
-      0: { cellWidth: 50 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 'auto' },
-    },
-  });
+  return y + h;
 }
 
-function drawPerMixAmounts(doc: jsPDF, cursorY: number, state: ExportState): number {
-  const planning = calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume);
-  if (!planning) return cursorY;
-
-  if (state.splitMode === 'even') {
-    const numTanks = Math.ceil(planning.totalSprayNeeded / state.fillVolume);
-    if (numTanks <= 0) return cursorY;
-    const perTankVol = planning.totalSprayNeeded / numTanks;
-    const perTankAcres = perTankVol / state.applicationRate;
-    cursorY = drawSectionHeading(
-      doc,
-      cursorY,
-      `Mix x ${numTanks}  (${perTankVol.toFixed(1)} gal · ${perTankAcres.toFixed(2)} ac each)`
-    );
-    const body = state.products.map((p, i) => {
-      const amt = calculateAmount(p.rate, p.unit, perTankVol, state.applicationRate);
-      return [
-        displayProductName(p.name, i),
-        formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128),
-      ];
-    });
-    return runAutoTable(doc, cursorY, [['Product', 'Amount']], body, {
-      columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
-    });
-  }
-
-  // Full mix table
-  cursorY = drawSectionHeading(
-    doc,
-    cursorY,
-    `Full Mix x ${planning.fullMixes}  (${state.fillVolume} gal · ${state.acresPerFill.toFixed(2)} ac each)`
-  );
-  const fullBody = state.products.map((p, i) => [
-    displayProductName(p.name, i),
-    formatOutput(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
-  ]);
-  cursorY = runAutoTable(doc, cursorY, [['Product', 'Amount']], fullBody, {
-    columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
+function drawApplicationRecord(doc: jsPDF, y: number): number {
+  drawSeclabel(doc, MARGIN_X, y, 'Application record');
+  y += 5;
+  const fields = ['Applicator', 'Date applied', 'Wind / weather'];
+  const gap = 9;
+  const colW = (CONTENT_W - gap * (fields.length - 1)) / fields.length;
+  fields.forEach((label, i) => {
+    const x = MARGIN_X + i * (colW + gap);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    setTextRGB(doc, C.muted);
+    doc.text(label, x, y + 4);
+    const lblW = doc.getTextWidth(label);
+    setDrawRGB(doc, C.line);
+    doc.setLineWidth(0.3);
+    doc.line(x + lblW + 2.5, y + 4.5, x + colW, y + 4.5);
   });
-
-  if (planning.hasPartialMix) {
-    cursorY = drawSectionHeading(
-      doc,
-      cursorY,
-      `Partial Mix x 1  (${planning.remainingSpray.toFixed(1)} gal · ${planning.remainingAcres.toFixed(2)} ac)`
-    );
-    const partialBody = state.products.map((p, i) => {
-      const amt = calculateAmount(p.rate, p.unit, planning.remainingSpray, state.applicationRate);
-      return [
-        displayProductName(p.name, i),
-        formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128),
-      ];
-    });
-    cursorY = runAutoTable(doc, cursorY, [['Product', 'Amount']], partialBody, {
-      headFill: C.secondaryDark,
-      columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
-    });
-  }
-  return cursorY;
+  return y + 8;
 }
 
-function drawFieldOperations(doc: jsPDF, cursorY: number, state: ExportState): number {
+// ----- pinned bottom strip: field operations as quiet, secondary numbers -----
+function drawFieldOpsStrip(doc: jsPDF, state: ExportState): void {
   const { fieldSize, implementWidth, speed, fillTime, acresPerFill, currentTime } = state;
-  if (!(fieldSize && implementWidth && speed)) return cursorY;
+  if (!(fieldSize && implementWidth && speed)) return;
 
   const acresPerHour = speed * implementWidth * 0.1212;
   const tanksNeeded = acresPerFill > 0 ? fieldSize / acresPerFill : 0;
   const sprayHours = fieldSize / acresPerHour;
   const totalFillTimeHours = (fillTime / 60) * tanksNeeded;
   const totalJobHours = sprayHours + totalFillTimeHours;
-  const effectiveAcresPerHour = totalJobHours > 0 ? fieldSize / totalJobHours : 0;
   const completionTime = new Date(currentTime.getTime() + totalJobHours * 60 * 60 * 1000);
 
-  cursorY = drawSectionHeading(doc, cursorY, 'Field Operations');
-  const body: [string, string][] = [
-    ['Implement Width', `${implementWidth} ft`],
-    ['Speed', `${speed} mph`],
-    ['Fill Time', `${fillTime} min`],
-    ['Working Rate', `${acresPerHour.toFixed(1)} ac/hr`],
-    ['Effective Rate (with filling)', `${effectiveAcresPerHour.toFixed(1)} ac/hr`],
-    ['Mixes Needed', `${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})`],
-    ['Spray Time', formatHours(sprayHours)],
-    ['Total Fill Time', formatHours(totalFillTimeHours)],
-    ['Estimated Job Completion', formatHours(totalJobHours)],
-    ['Estimated Finish Time', formatETAText(completionTime)],
+  const cells: Array<{ k: string; v: string; green?: boolean }> = [
+    { k: 'Working rate', v: `${acresPerHour.toFixed(1)} ac/hr` },
+    { k: 'Mixes needed', v: `${Math.ceil(tanksNeeded)} (${tanksNeeded.toFixed(1)})` },
+    { k: 'Spray time', v: formatHours(sprayHours) },
+    { k: 'Total job', v: formatHours(totalJobHours), green: true },
+    { k: 'Finish (est.)', v: formatETAText(completionTime) },
   ];
-  return runAutoTable(doc, cursorY, [['Metric', 'Value']], body, {
-    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 'auto' } },
-  });
-}
 
-function drawApplicationRecord(doc: jsPDF, cursorY: number): number {
-  // Approx 32mm needed for the section + 4 lines
-  cursorY = ensureSpace(doc, cursorY, 36);
-  cursorY = drawSectionHeading(doc, cursorY, 'Application Record');
-  const labels = ['Applicator', 'Date Applied', 'Wind / Weather', 'Notes'];
-  const rowH = 7;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  labels.forEach((label) => {
-    setTextRGB(doc, C.primaryDark);
-    doc.text(`${label}:`, MARGIN_X, cursorY + rowH - 2);
-    const labelW = doc.getTextWidth(`${label}:`) + 3;
-    setDrawRGB(doc, C.divider);
-    doc.setLineWidth(0.3);
-    doc.line(MARGIN_X + labelW, cursorY + rowH - 1.5, MARGIN_X + CONTENT_W, cursorY + rowH - 1.5);
-    cursorY += rowH;
-  });
-  return cursorY + 2;
-}
+  drawSeclabel(doc, MARGIN_X, OPS_TOP, 'Field operations', undefined, C.ink2);
 
-interface FooterContext {
-  qrDataUrl: string | null;
-  url: string;
-  tooLarge: boolean;
-}
-
-function drawFooterOnAllPages(doc: jsPDF, ctx: FooterContext) {
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    drawFooterForCurrentPage(doc, ctx, i, totalPages);
-  }
-}
-
-function drawFooterForCurrentPage(doc: jsPDF, ctx: FooterContext, page: number, total: number) {
-  const footerTop = PAGE_H - FOOTER_HEIGHT + 2;
-
-  // Divider line above footer
-  setDrawRGB(doc, C.border);
+  const boxY = OPS_TOP + 3;
+  setDrawRGB(doc, C.line);
   doc.setLineWidth(0.3);
-  doc.line(MARGIN_X, footerTop, MARGIN_X + CONTENT_W, footerTop);
+  doc.roundedRect(MARGIN_X, boxY, CONTENT_W, OPS_BOX_HEIGHT, 1, 1, 'D');
 
-  const qrSize = 26;
+  const cellW = CONTENT_W / cells.length;
+  cells.forEach((cell, i) => {
+    const cx = MARGIN_X + i * cellW;
+    if (i > 0) {
+      setDrawRGB(doc, C.line);
+      doc.setLineWidth(0.3);
+      doc.line(cx, boxY, cx, boxY + OPS_BOX_HEIGHT);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    setTextRGB(doc, C.muted);
+    doc.text(cell.k.toUpperCase(), cx + 3, boxY + 4);
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(9);
+    setTextRGB(doc, cell.green ? C.primaryDark : C.ink);
+    const valLines = doc.splitTextToSize(cell.v, cellW - 4) as string[];
+    doc.text(valLines[0] ?? cell.v, cx + 3, boxY + 10.5);
+  });
+}
+
+// ----- footer: disclaimer + QR (no printed URL) -----
+function drawFooter(doc: jsPDF, qrDataUrl: string | null, tooLarge: boolean): void {
+  const footerTop = PAGE_H - FOOTER_HEIGHT + 2;
+  setDrawRGB(doc, C.line);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN_X, footerTop, PAGE_W - MARGIN_X, footerTop);
+
+  const qrSize = 13;
   const qrX = PAGE_W - MARGIN_X - qrSize;
   const qrY = footerTop + 3;
 
-  // QR (or fallback note) on the right
-  if (ctx.qrDataUrl && !ctx.tooLarge) {
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  setTextRGB(doc, C.muted);
+  const disc = 'Always verify calculations against product labels and follow all safety guidelines. SprayCalc is a planning tool only.';
+  const capW = 22;
+  const discMaxW = qrX - MARGIN_X - capW - 6;
+  const discLines = doc.splitTextToSize(disc, discMaxW) as string[];
+  discLines.slice(0, 3).forEach((ln, i) => {
+    doc.text(ln, MARGIN_X, footerTop + 5.5 + i * 3);
+  });
+
+  if (qrDataUrl && !tooLarge) {
     try {
-      doc.addImage(ctx.qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-      doc.setFontSize(7);
-      setTextRGB(doc, C.primaryDark);
-      doc.text('Scan to load this mix', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+      doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
     } catch (err) {
-      // ignore — we'll still print the URL on the left
+      // ignore
     }
-  } else if (ctx.tooLarge) {
+  } else if (tooLarge) {
+    setDrawRGB(doc, C.lineStrong);
+    doc.setLineWidth(0.3);
+    doc.rect(qrX, qrY, qrSize, qrSize, 'D');
+    doc.setFontSize(6);
     setTextRGB(doc, C.muted);
-    doc.setFontSize(7);
-    doc.text('(mix too large for QR)', qrX + qrSize / 2, qrY + qrSize / 2, { align: 'center' });
+    doc.text('mix too large', qrX + qrSize / 2, qrY + qrSize / 2 + 1, { align: 'center' });
   }
 
-  // Left side: link + disclaimer + page number
-  const leftX = MARGIN_X;
-  const leftMaxW = qrX - leftX - 6;
-
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(6.5);
   setTextRGB(doc, C.primaryDark);
-  doc.text('Re-open this mix:', leftX, footerTop + 5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  setTextRGB(doc, C.primary);
-  const urlLines = doc.splitTextToSize(ctx.url, leftMaxW) as string[];
-  // limit to 3 lines so the footer doesn't overflow
-  const shownUrl = urlLines.slice(0, 3);
-  shownUrl.forEach((line, i) => {
-    doc.text(line, leftX, footerTop + 9 + i * 3.5);
+  const caption = 'Scan to re-open\nthis mix';
+  caption.split('\n').forEach((ln, i) => {
+    doc.text(ln, qrX - 2, qrY + 4 + i * 3, { align: 'right' });
   });
-
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7.5);
-  setTextRGB(doc, C.muted);
-  const disclaimer = 'Always verify calculations against product labels and follow all safety guidelines. SprayCalc is a planning tool only.';
-  const discLines = doc.splitTextToSize(disclaimer, leftMaxW) as string[];
-  const discBaseY = PAGE_H - 8;
-  discLines.slice(0, 2).forEach((line, i) => {
-    doc.text(line, leftX, discBaseY - (discLines.length - 1 - i) * 3);
-  });
-
-  // Page number
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  setTextRGB(doc, C.muted);
-  doc.text(`Page ${page} of ${total}`, PAGE_W - MARGIN_X, PAGE_H - 4, { align: 'right' });
 }
 
 function buildFilename(date: Date): string {
@@ -657,7 +600,6 @@ function buildFilename(date: Date): string {
 export async function exportPDF(state: ExportState): Promise<void> {
   const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
 
-  // Build mix re-load link + QR data URL up front
   const link = buildMixLink(exportStateToMixData(state));
   let qrDataUrl: string | null = null;
   if (!link.tooLarge) {
@@ -673,44 +615,87 @@ export async function exportPDF(state: ExportState): Promise<void> {
     }
   }
 
-  // Header
-  let y = drawHeader(doc, new Date());
+  const planning = state.fieldSize
+    ? calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume)
+    : null;
 
-  // Mix Information
-  y = drawSectionHeading(doc, y, 'Mix Information');
-  y = drawKpiRow(doc, y, [
-    { label: 'Fill Volume', value: `${state.fillVolume} gal` },
-    { label: 'Application Rate', value: `${state.applicationRate} GPA` },
-    { label: 'Acres Per Fill', value: `${state.acresPerFill.toFixed(2)} ac` },
-  ]);
+  let y = drawHeader(doc, state, planning, new Date());
+  y += 4;
 
-  // Rates as entered
-  y = drawRatesAsEntered(doc, y, state.products);
-
-  // Products per mix
   if (state.products.length > 0) {
-    y = drawProductsPerMix(doc, y, state.products);
+    if (planning && state.splitMode !== 'even') {
+      // Side-by-side full + partial mix tables
+      const gap = 7;
+      const leftW = (CONTENT_W - gap) * 0.6;
+      const rightW = (CONTENT_W - gap) - leftW;
+      const leftX = MARGIN_X;
+      const rightX = MARGIN_X + leftW + gap;
+
+      drawSeclabel(
+        doc,
+        leftX,
+        y,
+        'Full mix',
+        `× ${planning.fullMixes} · ${formatNum(state.fillVolume)} gal each`,
+      );
+      const partialSmall = planning.hasPartialMix
+        ? `× 1 · ${formatNum(planning.remainingSpray)} gal · ${planning.remainingAcres.toFixed(1)} ac`
+        : '';
+      drawSeclabel(doc, rightX, y, 'Partial mix', partialSmall);
+      y += 5;
+
+      const leftEnd = drawMixTable(doc, leftX, y, leftW, state.products, true, (p) =>
+        formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
+      );
+
+      let rightEnd: number;
+      if (planning.hasPartialMix) {
+        rightEnd = drawMixTable(doc, rightX, y, rightW, state.products, false, (p) => {
+          const amt = calculateAmount(p.rate, p.unit, planning.remainingSpray, state.applicationRate);
+          return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
+        });
+      } else {
+        rightEnd = drawNoPartialNote(doc, rightX, y, rightW, planning.fullMixes);
+      }
+
+      y = Math.max(leftEnd, rightEnd) + 8;
+    } else if (planning && state.splitMode === 'even') {
+      const numTanks = Math.ceil(planning.totalSprayNeeded / state.fillVolume);
+      const perTankVol = planning.totalSprayNeeded / numTanks;
+      const perTankAc = perTankVol / state.applicationRate;
+      drawSeclabel(
+        doc,
+        MARGIN_X,
+        y,
+        'Mix',
+        `× ${numTanks} · ${formatNum(perTankVol)} gal · ${perTankAc.toFixed(1)} ac each`,
+      );
+      y += 5;
+      y = drawMixTable(doc, MARGIN_X, y, CONTENT_W, state.products, true, (p) => {
+        const amt = calculateAmount(p.rate, p.unit, perTankVol, state.applicationRate);
+        return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
+      });
+      y += 8;
+    } else {
+      // Tank-only mode: no field, just per-mix amounts
+      drawSeclabel(doc, MARGIN_X, y, 'Full mix', `${formatNum(state.fillVolume)} gal`);
+      y += 5;
+      y = drawMixTable(doc, MARGIN_X, y, CONTENT_W, state.products, true, (p) =>
+        formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
+      );
+      y += 8;
+    }
   }
 
-  // Field overview / what to buy / per-mix amounts
-  if (state.fieldSize) {
-    y = drawFieldOverview(doc, y, state);
-    y = drawWhatToBuy(doc, y, state);
-    y = drawPerMixAmounts(doc, y, state);
+  drawApplicationRecord(doc, y);
+
+  drawFieldOpsStrip(doc, state);
+
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    drawFooter(doc, qrDataUrl, link.tooLarge);
   }
-
-  // Field operations
-  y = drawFieldOperations(doc, y, state);
-
-  // Application record
-  y = drawApplicationRecord(doc, y);
-
-  // Draw footer (with QR + URL + page numbers) on every page
-  drawFooterOnAllPages(doc, {
-    qrDataUrl,
-    url: link.url,
-    tooLarge: link.tooLarge,
-  });
 
   doc.save(buildFilename(new Date()));
 }
