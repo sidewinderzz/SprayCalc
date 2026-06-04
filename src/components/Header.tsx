@@ -593,6 +593,7 @@ export function Header({
         <div
           role="tablist"
           aria-label="Calculator mode"
+          data-tour-id="mode-tabs"
           className="mt-2 flex items-stretch"
           style={{ borderBottom: `1px solid ${colors.primary}25` }}
         >

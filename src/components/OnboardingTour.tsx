@@ -352,6 +352,13 @@ export const TOUR_STEPS: TourStep[] = [
     placement: 'center',
   },
   {
+    id: 'mode-tabs',
+    targetSelector: '[data-tour-id="mode-tabs"]',
+    title: 'Two modes: Tank Mix & Field Mix',
+    body: 'Tank Mix uses per-tank inputs — enter your tank volume and application rate to plan a single fill. Field Mix uses whole-field inputs — enter total acres, rate, and tank capacity to calculate total product needed and how many loads it takes.',
+    placement: 'bottom',
+  },
+  {
     id: 'mix-info',
     targetSelector: '[data-tour-id="mix-information"]',
     title: 'Start with your mix info',
