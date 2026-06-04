@@ -16,6 +16,7 @@ interface FieldOperationsSectionProps {
   currentTime: Date;
   showFieldOps: boolean;
   setShowFieldOps: (val: boolean) => void;
+  hideFieldSizeInput?: boolean;
 }
 
 interface FieldOpsEstimates {
@@ -162,7 +163,8 @@ export function FieldOperationsSection({
   setFillTime,
   currentTime,
   showFieldOps,
-  setShowFieldOps
+  setShowFieldOps,
+  hideFieldSizeInput = false
 }: FieldOperationsSectionProps) {
   const inputStyle = {
     borderColor: `${colors.primary}30`,
@@ -225,22 +227,24 @@ export function FieldOperationsSection({
       {showFieldOps && (
         <div className="p-4 space-y-5">
           {/* Inputs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium uppercase tracking-wide mb-1" style={labelStyle}>
-                Field Size (acres)
-              </label>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={fieldSize || ''}
-                onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
-                style={inputStyle}
-                min="0"
-                placeholder="0"
-              />
-            </div>
+          <div className={`grid gap-3 ${hideFieldSizeInput ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+            {!hideFieldSizeInput && (
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide mb-1" style={labelStyle}>
+                  Field Size (acres)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={fieldSize || ''}
+                  onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                  style={inputStyle}
+                  min="0"
+                  placeholder="0"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wide mb-1" style={labelStyle}>
                 Width (feet)

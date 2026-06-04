@@ -23,6 +23,9 @@ interface SerializedMix {
   sp: number;
   ft: number;
   p: SerializedProduct[];
+  // Added in schema v1 (optional for back-compat with older v1 payloads)
+  at?: 'tank' | 'field';
+  sm?: 'fullPlusPartial' | 'even';
 }
 
 function serialize(data: MixData): SerializedMix {
@@ -42,6 +45,8 @@ function serialize(data: MixData): SerializedMix {
       o: typeof p.outputFormat === 'string' ? p.outputFormat : 'auto',
       j: typeof p.jugSize === 'number' ? p.jugSize : 128,
     })),
+    at: data.activeTab === 'field' ? 'field' : 'tank',
+    sm: data.splitMode === 'even' ? 'even' : 'fullPlusPartial',
   };
 }
 
@@ -63,6 +68,8 @@ function deserialize(raw: SerializedMix): MixData {
     speed: typeof raw.sp === 'number' ? raw.sp : 0,
     fillTime: typeof raw.ft === 'number' ? raw.ft : 0,
     products,
+    activeTab: raw.at === 'field' ? 'field' : 'tank',
+    splitMode: raw.sm === 'even' ? 'even' : 'fullPlusPartial',
   };
 }
 
