@@ -5,7 +5,7 @@ import { migrateProductUnits } from '../utils/productName';
 
 export function useCalculatorState() {
   const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }
+    { id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 0 }
   ]);
   const [fillVolume, setFillVolume] = useState(0);
   const [applicationRate, setApplicationRate] = useState(0);
@@ -35,8 +35,8 @@ export function useCalculatorState() {
   // Acres per fill input state (allows free typing)
   const [acresPerFillInput, setAcresPerFillInput] = useState('');
 
-  // Product Quantities section open/closed
-  const [showQuantities, setShowQuantities] = useState(true);
+  // Product Quantities section open/closed (default closed — secondary lookup)
+  const [showQuantities, setShowQuantities] = useState(false);
 
   // Field Operations section open/closed
   const [showFieldOps, setShowFieldOps] = useState(true);
@@ -131,7 +131,7 @@ export function useCalculatorState() {
       localStorage.removeItem('agSprayCalcSettings');
       setFillVolume(0);
       setApplicationRate(0);
-      setProducts([{ id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 128 }]);
+      setProducts([{ id: 1, name: '', rate: 0, unit: 'fl oz/acre', tankAmount: 0, outputFormat: 'auto', jugSize: 0 }]);
       setFieldSize(0);
       setImplementWidth(0);
       setSpeed(0);
@@ -243,7 +243,7 @@ export function useCalculatorState() {
       unit: 'fl oz/acre',
       tankAmount: 0,
       outputFormat: 'auto',
-      jugSize: 128
+      jugSize: 0
     };
     setProducts([...products, newProduct]);
     setPendingFocusId(newId);
@@ -266,6 +266,8 @@ export function useCalculatorState() {
       if (mixData.implementWidth !== undefined) setImplementWidth(mixData.implementWidth);
       if (mixData.speed !== undefined) setSpeed(mixData.speed);
       if (mixData.fillTime !== undefined) setFillTime(mixData.fillTime);
+      setActiveTab(mixData.activeTab === 'field' ? 'field' : 'tank');
+      setSplitMode(mixData.splitMode === 'even' ? 'even' : 'fullPlusPartial');
 
       setTimeout(() => {
         if (mixData.products) {

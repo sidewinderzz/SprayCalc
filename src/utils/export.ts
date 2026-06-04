@@ -21,6 +21,7 @@ export interface ExportState {
   speed: number;
   fillTime: number;
   products: Product[];
+  splitMode: 'fullPlusPartial' | 'even';
   currentTime: Date;
 }
 
@@ -35,6 +36,7 @@ export function generateSummaryText(state: ExportState): string {
     speed,
     fillTime,
     products,
+    splitMode,
     currentTime
   } = state;
 
@@ -56,20 +58,32 @@ export function generateSummaryText(state: ExportState): string {
       text += `\nFIELD MIX PLANNING:\n`;
       text += `Field Size: ${fieldSize} acres\n`;
       text += `Total Spray Volume: ${mixPlanning.totalSprayNeeded.toFixed(0)} gallons\n`;
-      text += `Full Mixes Needed: ${mixPlanning.fullMixes}\n`;
 
-      if (mixPlanning.hasPartialMix) {
-        text += `Partial Mix: ${mixPlanning.remainingSpray.toFixed(1)} gallons for ${mixPlanning.remainingAcres.toFixed(2)} acres\n`;
-        text += `\nPRODUCTS FOR PARTIAL MIX:\n`;
+      if (splitMode === 'even') {
+        const numTanks = Math.ceil(mixPlanning.totalSprayNeeded / fillVolume);
+        const perTankVol = mixPlanning.totalSprayNeeded / numTanks;
+        const perTankAcres = perTankVol / applicationRate;
+        text += `Even Loads: ${numTanks} × ${perTankVol.toFixed(1)} gallons (${perTankAcres.toFixed(2)} acres each)\n`;
+        text += `\nPRODUCTS PER EVEN MIX:\n`;
         products.forEach((product, idx) => {
-          const partialAmount = calculateAmount(
-            product.rate,
-            product.unit,
-            mixPlanning.remainingSpray,
-            applicationRate
-          );
-          text += `${displayProductName(product.name, idx)}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+          const amt = calculateAmount(product.rate, product.unit, perTankVol, applicationRate);
+          text += `${displayProductName(product.name, idx)}: ${formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
         });
+      } else {
+        text += `Full Mixes Needed: ${mixPlanning.fullMixes}\n`;
+        if (mixPlanning.hasPartialMix) {
+          text += `Partial Mix: ${mixPlanning.remainingSpray.toFixed(1)} gallons for ${mixPlanning.remainingAcres.toFixed(2)} acres\n`;
+          text += `\nPRODUCTS FOR PARTIAL MIX:\n`;
+          products.forEach((product, idx) => {
+            const partialAmount = calculateAmount(
+              product.rate,
+              product.unit,
+              mixPlanning.remainingSpray,
+              applicationRate
+            );
+            text += `${displayProductName(product.name, idx)}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+          });
+        }
       }
     }
 
@@ -159,6 +173,7 @@ export function exportStateToMixData(state: ExportState): MixData {
     implementWidth: state.implementWidth,
     speed: state.speed,
     fillTime: state.fillTime,
+    splitMode: state.splitMode,
   };
 }
 
@@ -443,6 +458,28 @@ function drawWhatToBuy(
 function drawPerMixAmounts(doc: jsPDF, cursorY: number, state: ExportState): number {
   const planning = calculateMixPlanning(state.fieldSize, state.applicationRate, state.fillVolume);
   if (!planning) return cursorY;
+
+  if (state.splitMode === 'even') {
+    const numTanks = Math.ceil(planning.totalSprayNeeded / state.fillVolume);
+    if (numTanks <= 0) return cursorY;
+    const perTankVol = planning.totalSprayNeeded / numTanks;
+    const perTankAcres = perTankVol / state.applicationRate;
+    cursorY = drawSectionHeading(
+      doc,
+      cursorY,
+      `Mix x ${numTanks}  (${perTankVol.toFixed(1)} gal · ${perTankAcres.toFixed(2)} ac each)`
+    );
+    const body = state.products.map((p, i) => {
+      const amt = calculateAmount(p.rate, p.unit, perTankVol, state.applicationRate);
+      return [
+        displayProductName(p.name, i),
+        formatOutput(amt, p.outputFormat, p.unit, p.jugSize ?? 128),
+      ];
+    });
+    return runAutoTable(doc, cursorY, [['Product', 'Amount']], body, {
+      columnStyles: { 0: { cellWidth: 110 }, 1: { cellWidth: 'auto', halign: 'right' } },
+    });
+  }
 
   // Full mix table
   cursorY = drawSectionHeading(

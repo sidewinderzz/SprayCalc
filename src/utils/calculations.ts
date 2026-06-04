@@ -143,7 +143,7 @@ export function formatOutputParts(
     return { primary: formatWeightOz(value), jugBreakdown: null };
   }
 
-  const hasBreakdown = value >= jugSizeOz;
+  const hasBreakdown = jugSizeOz > 0 && value >= jugSizeOz;
 
   switch (format) {
     case 'floz':

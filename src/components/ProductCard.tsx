@@ -113,9 +113,10 @@ function UnitPillSelector({ unit, onChange }: UnitPillSelectorProps) {
 
 // ─── Jug Size Pill Selector ───────────────────────────────────────────────────
 
-const JUG_PRESETS = [
-  { label: '2.5 gal', oz: 320 },
-  { label: '1 gal',   oz: 128 },
+const JUG_PRESETS: Array<{ label: string; oz: number; icon?: 'ban' }> = [
+  { label: 'Disabled', oz: 0, icon: 'ban' },
+  { label: '1 gal',    oz: 128 },
+  { label: '2.5 gal',  oz: 320 },
 ];
 
 interface JugSizePillSelectorProps {
@@ -169,18 +170,40 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {JUG_PRESETS.map(preset => (
-        <button
-          key={preset.oz}
-          type="button"
-          onClick={() => handlePreset(preset.oz)}
-          className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2"
-          style={pillStyle(!isCustomActive && jugSize === preset.oz)}
-          aria-pressed={!isCustomActive && jugSize === preset.oz}
-        >
-          {preset.label}
-        </button>
-      ))}
+      {JUG_PRESETS.map(preset => {
+        const active = !isCustomActive && jugSize === preset.oz;
+        return (
+          <button
+            key={preset.oz}
+            type="button"
+            onClick={() => handlePreset(preset.oz)}
+            className="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 flex items-center justify-center"
+            style={pillStyle(active)}
+            aria-pressed={active}
+            aria-label={preset.icon === 'ban' ? 'Disable jug suggestions' : preset.label}
+            title={preset.icon === 'ban' ? 'Disable jug suggestions' : preset.label}
+          >
+            {preset.icon === 'ban' ? (
+              <svg
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+            ) : (
+              preset.label
+            )}
+          </button>
+        );
+      })}
       <button
         type="button"
         onClick={handleOpenCustom}

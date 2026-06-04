@@ -28,6 +28,8 @@ export interface MixData {
   implementWidth: number;
   speed: number;
   fillTime: number;
+  activeTab?: 'tank' | 'field';
+  splitMode?: 'fullPlusPartial' | 'even';
 }
 
 export interface MixPlanning {
