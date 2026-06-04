@@ -230,7 +230,7 @@ export function Header({
               transition: 'font-size 200ms ease',
             }}
           >
-            Spray Calc
+            <span style={{ color: '#1c291f' }}>Spray</span><span style={{ color: colors.primary }}>Calc</span>
           </h1>
 
           <div className="flex items-center gap-2">
