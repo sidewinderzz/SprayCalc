@@ -35,5 +35,18 @@ dist/           - Production build output
 - Run `npm run build` to create a production build
 - Run `npm run preview` to preview the production build
 
+## Analytics
+Optional Google Analytics 4 integration in `src/utils/analytics.ts`.
+- Set `VITE_GA_MEASUREMENT_ID` (e.g. `G-XXXXXXXXXX`) at build time to enable.
+  When unset, the GA script is never loaded and all `trackEvent` / `trackPageView`
+  calls are silent no-ops.
+- Tracked events (non-PII; product/mix names are never sent):
+  - `page_view` on initial load, plus a second `page_view` + `view_shared_mix`
+    when a `?m=` shared link opens the app.
+  - `calculate_mix` (debounced) when the user has entered a valid mix.
+  - `save_mix` when a named mix is saved.
+  - `share_mix` when the share button is used (records `method`).
+  - `export_pdf` when the PDF is exported.
+
 ## Deployment
 Configured for static deployment using the `dist` directory after building.

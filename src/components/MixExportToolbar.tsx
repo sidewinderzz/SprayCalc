@@ -1,6 +1,7 @@
 import React from 'react';
 import { colors } from '../types';
 import { generateSummaryText, exportPDF, buildSharePayload, ExportState } from '../utils/export';
+import { trackEvent } from '../utils/analytics';
 
 interface MixExportToolbarProps {
   buildExportState: () => ExportState;
@@ -34,7 +35,15 @@ export function MixExportToolbar({
   };
 
   const handleShareSummary = async () => {
-    const payload = buildSharePayload(buildExportState());
+    const state = buildExportState();
+    const payload = buildSharePayload(state);
+    trackEvent('share_mix', {
+      product_count: state.products.length,
+      fill_volume: state.fillVolume,
+      application_rate: state.applicationRate,
+      method: typeof navigator.share === 'function' ? 'web_share' : 'clipboard',
+      too_large: payload.tooLarge,
+    });
     const shortText = `${payload.text.split('\n').slice(0, 6).join('\n')}\n\nOpen this mix in SprayCalc:`;
     const isAbort = (err: unknown): boolean =>
       !!err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError';
@@ -68,8 +77,14 @@ export function MixExportToolbar({
 
   const handleExportPDF = async () => {
     onMixSnapshot?.();
+    const state = buildExportState();
+    trackEvent('export_pdf', {
+      product_count: state.products.length,
+      fill_volume: state.fillVolume,
+      application_rate: state.applicationRate,
+    });
     try {
-      await exportPDF(buildExportState());
+      await exportPDF(state);
     } catch (err) {
       console.error('PDF export failed:', err);
       setCopyFeedback('PDF failed');

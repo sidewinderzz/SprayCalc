@@ -251,16 +251,26 @@ export function formatPurchaseAmount(
 
   const totalGallons = totalOunces / 128;
 
-  const gallons = Math.floor(totalOunces / 128);
-  const ozRemainder = parseFloat((totalOunces % 128).toFixed(1));
-  let totalDisplay: string;
+  // Build the display string up-front so the jug-disabled branch can reuse it.
+  const displayGallons = Math.floor(totalOunces / 128);
+  const displayOzRemainder = parseFloat((totalOunces % 128).toFixed(1));
+  let displayString: string;
   if (totalOunces < 128) {
-    totalDisplay = `${totalOunces.toFixed(1)} fl oz`;
-  } else if (ozRemainder === 0) {
-    totalDisplay = `${gallons} gal`;
+    displayString = `${totalOunces.toFixed(1)} fl oz`;
+  } else if (displayOzRemainder === 0) {
+    displayString = `${displayGallons} gal`;
   } else {
-    totalDisplay = `${gallons} gal ${ozRemainder} fl oz`;
+    displayString = `${displayGallons} gal ${displayOzRemainder} fl oz`;
   }
+
+  // Explicit 0 means the user disabled jug suggestions — show the total but
+  // no container recommendations. (Undefined means "no preference"; falls
+  // through to the standard waste-sorted list below.)
+  if (preferredJugSizeOz === 0) {
+    return { display: displayString, containers: [] };
+  }
+
+  const totalDisplay = displayString;
 
   const containerSizes = [
     { size: 2.5, name: '2.5 gal jug' },

@@ -2,6 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { initAnalytics } from './utils/analytics';
+
+// Initialize GA early, but defer the first page_view to App.tsx so we can
+// emit a sanitized path that never includes the `?m=` shared-mix payload.
+initAnalytics();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
