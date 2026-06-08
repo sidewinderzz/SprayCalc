@@ -99,18 +99,9 @@ export function ProductsSection({
     >
       <EnterHint />
 
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
-          Products
-        </h2>
-        <button
-          onClick={onAddProduct}
-          className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: colors.primary }}
-        >
-          + Add Product
-        </button>
-      </div>
+      <h2 className="font-bold text-sm uppercase tracking-wide mb-4" style={{ color: colors.primaryDark }}>
+        Products
+      </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((product, index) => (
@@ -131,6 +122,18 @@ export function ProductsSection({
           />
         ))}
       </div>
+
+      <button
+        onClick={onAddProduct}
+        className="mt-4 w-full py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+        style={{
+          color: colors.primaryDark,
+          border: `1.5px dashed ${colors.primary}70`,
+          backgroundColor: `${colors.primary}08`,
+        }}
+      >
+        + Add Product
+      </button>
     </div>
   );
 }
