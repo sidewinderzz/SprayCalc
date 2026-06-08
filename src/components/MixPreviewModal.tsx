@@ -239,14 +239,6 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
             </>
           )}
 
-          {/* Application record */}
-          <SectionHeader title="Application Record" />
-          <Card>
-            {['Applicator', 'Date Applied', 'Wind Speed', 'Wind Direction', 'Temp (°F)', 'Notes'].map((field) => (
-              <Row key={field} label={field} value="_______________" />
-            ))}
-          </Card>
-
           <p className="text-center text-xs mt-5 px-4" style={{ color: '#9ca3af' }}>
             SprayCalc — Always read and follow label directions.
           </p>
