@@ -24,12 +24,12 @@ function EnterHint() {
       }}
     >
       <span>
-        <strong>Tip:</strong> Press{' '}
+        <strong>Tip:</strong> Tap{' '}
         <kbd
           className="px-1.5 py-0.5 rounded text-xs font-mono"
           style={{ backgroundColor: `${colors.primary}20`, border: `1px solid ${colors.primary}30` }}
         >
-          Enter
+          ↵
         </kbd>{' '}
         to move between fields — on the last field it adds a new product automatically.
       </span>
