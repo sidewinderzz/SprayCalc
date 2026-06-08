@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { colors } from '../types';
 import { generateSummaryText, exportPDF, buildSharePayload, ExportState } from '../utils/export';
 import { trackEvent } from '../utils/analytics';
+import { MixPreviewModal } from './MixPreviewModal';
 
 interface MixExportToolbarProps {
   buildExportState: () => ExportState;
@@ -92,6 +93,13 @@ export function MixExportToolbar({
     }
   };
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const handleOpenPreview = () => {
+    onMixSnapshot?.();
+    setPreviewOpen(true);
+  };
+
   const ghostButtonStyle = {
     backgroundColor: 'transparent',
     color: colors.primaryDark,
@@ -99,12 +107,16 @@ export function MixExportToolbar({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {copyFeedback && (
-        <span className="text-sm font-medium" style={{ color: colors.primary }}>
-          {copyFeedback}
-        </span>
+    <>
+      {previewOpen && (
+        <MixPreviewModal state={buildExportState()} onClose={() => setPreviewOpen(false)} />
       )}
+      <div className="flex items-center gap-2">
+        {copyFeedback && (
+          <span className="text-sm font-medium" style={{ color: colors.primary }}>
+            {copyFeedback}
+          </span>
+        )}
       <button
         onClick={handleCopyToClipboard}
         className="h-9 w-9 rounded-lg flex items-center justify-center"
@@ -130,6 +142,18 @@ export function MixExportToolbar({
         </svg>
       </button>
       <button
+        onClick={handleOpenPreview}
+        className="h-9 w-9 rounded-lg flex items-center justify-center"
+        style={ghostButtonStyle}
+        title="Fullscreen preview"
+        aria-label="Fullscreen preview"
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+      <button
         onClick={handleExportPDF}
         className="h-9 px-4 rounded-lg flex items-center gap-1.5 text-sm font-medium text-white whitespace-nowrap"
         style={{ backgroundColor: colors.primary }}
@@ -143,5 +167,6 @@ export function MixExportToolbar({
         PDF
       </button>
     </div>
+    </>
   );
 }
