@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, colors } from '../types';
-import { calculateMixPlanning } from '../utils/calculations';
+import { calculateMixPlanning, calculatePreFill } from '../utils/calculations';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
 
@@ -53,16 +53,39 @@ export function FieldMixSummary({
   const hasInputs = fieldSize > 0 && applicationRate > 0 && fillVolume > 0;
 
   let tankLine: React.ReactNode = null;
+  let preFillLine: string | null = null;
+  let preFillUnavailable = false;
   if (hasInputs && planning) {
     if (splitMode === 'fullPlusPartial') {
       const parts: string[] = [];
       if (planning.fullMixes > 0) parts.push(`${planning.fullMixes} full tank${planning.fullMixes === 1 ? '' : 's'} of ${fillVolume} gal`);
       if (planning.hasPartialMix) parts.push(`1 partial of ${planning.remainingSpray.toFixed(1)} gal`);
       tankLine = parts.join(' + ');
+
+      const fullPreFill = planning.fullMixes > 0
+        ? calculatePreFill(products, fillVolume, applicationRate)
+        : null;
+      const partialPreFill = planning.hasPartialMix
+        ? calculatePreFill(products, planning.remainingSpray, applicationRate)
+        : null;
+      preFillUnavailable =
+        fullPreFill?.available === false || partialPreFill?.available === false;
+      if (!preFillUnavailable) {
+        const preFillParts: string[] = [];
+        if (fullPreFill?.available) preFillParts.push(`${fullPreFill.preFillGallons.toFixed(1)} gal per full tank`);
+        if (partialPreFill?.available) preFillParts.push(`${partialPreFill.preFillGallons.toFixed(1)} gal for the partial`);
+        if (preFillParts.length > 0) preFillLine = preFillParts.join(' + ');
+      }
     } else {
       const numTanks = Math.ceil(planning.totalSprayNeeded / fillVolume);
       const perTankVol = planning.totalSprayNeeded / numTanks;
       tankLine = `${numTanks} even loads of ${perTankVol.toFixed(1)} gal`;
+
+      const evenPreFill = calculatePreFill(products, perTankVol, applicationRate);
+      preFillUnavailable = evenPreFill?.available === false;
+      if (evenPreFill?.available) {
+        preFillLine = `${evenPreFill.preFillGallons.toFixed(1)} gal per load`;
+      }
     }
   }
 
@@ -98,6 +121,16 @@ export function FieldMixSummary({
             {tankLine && (
               <p className="mb-1">
                 • Tank loads: <strong>{tankLine}</strong>
+              </p>
+            )}
+            {preFillLine && (
+              <p className="mb-1">
+                • Pre-fill with water: <strong>{preFillLine}</strong>
+              </p>
+            )}
+            {preFillUnavailable && (
+              <p className="mb-1 text-sm opacity-60">
+                • Water pre-fill estimate unavailable — mix includes weight-based products.
               </p>
             )}
             <p className="text-sm opacity-70 mt-2">

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { colors } from './types';
 import { useCalculatorState } from './hooks/useCalculatorState';
+import { useAuth } from './hooks/useAuth';
 import { useMixStorage } from './hooks/useMixStorage';
 import { useMixHistory } from './hooks/useMixHistory';
 import { Header } from './components/Header';
@@ -35,10 +36,13 @@ const AgSprayCalculator = () => {
     setShowOverflowMenu(false);
   };
 
+  const auth = useAuth(state.setSettingsFeedback);
+
   const mixStorage = useMixStorage(
     state.applyMixData,
     state.setSettingsFeedback,
-    closeHeaderMenus
+    closeHeaderMenus,
+    auth.user
   );
 
   const mixHistory = useMixHistory();
@@ -198,6 +202,10 @@ const AgSprayCalculator = () => {
           onShowTour={startTour}
           activeTab={state.activeTab}
           setActiveTab={state.setActiveTab}
+          authEnabled={auth.enabled}
+          authUser={auth.user}
+          onSignIn={auth.signInWithGoogle}
+          onSignOut={auth.signOutUser}
         />
 
         <TipsSection
