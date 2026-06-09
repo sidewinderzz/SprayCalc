@@ -1,4 +1,4 @@
-import { MixPlanning } from '../types';
+import { MixPlanning, Product } from '../types';
 
 // Convert any rate to oz based on unit type.
 // Note: returns fluid oz for liquid units (fl oz, pt, qt, gal) and weight oz
@@ -89,6 +89,37 @@ export function calculateMixPlanning(
     remainingAcres,
     hasPartialMix: remainingSpray > 0
   };
+}
+
+export interface PreFillResult {
+  // False when the mix contains weight-based products — their displaced
+  // volume is unknown, so a water pre-fill level can't be computed.
+  available: boolean;
+  chemicalVolumeOz: number;
+  preFillGallons: number;
+}
+
+// How much water can go in the tank before adding chemicals: the target
+// tank volume minus the combined liquid volume of every product in the mix.
+export function calculatePreFill(
+  products: Product[],
+  tankVolume: number,
+  applicationRate: number
+): PreFillResult | null {
+  if (!tankVolume || !applicationRate) return null;
+  const activeProducts = products.filter(p => (p.rate ?? 0) > 0);
+  if (activeProducts.length === 0) return null;
+
+  if (activeProducts.some(p => isWeightUnit(p.unit))) {
+    return { available: false, chemicalVolumeOz: 0, preFillGallons: 0 };
+  }
+
+  const chemicalVolumeOz = activeProducts.reduce(
+    (sum, p) => sum + calculateAmount(p.rate, p.unit, tankVolume, applicationRate),
+    0
+  );
+  const preFillGallons = Math.max(0, tankVolume - chemicalVolumeOz / 128);
+  return { available: true, chemicalVolumeOz, preFillGallons };
 }
 
 // Returns true for units where the calculated amount is in weight oz (not fl oz).

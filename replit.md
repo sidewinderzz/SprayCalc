@@ -48,5 +48,43 @@ Optional Google Analytics 4 integration in `src/utils/analytics.ts`.
   - `share_mix` when the share button is used (records `method`).
   - `export_pdf` when the PDF is exported.
 
+## Google Sign-In & Cloud Mix Sync (Firebase)
+Optional Firebase integration lets users sign in with Google and sync their
+saved mixes to Firestore (`users/{uid}/mixes/{mixName}`). The app works fully
+offline/localStorage-only when Firebase is not configured — the sign-in UI is
+simply hidden.
+
+Setup:
+1. Create a project at https://console.firebase.google.com (free Spark plan —
+   no credit card). Free tier limits (50K Firestore reads + 20K writes/day,
+   1 GiB storage, Google sign-in included) are far more than this app needs.
+2. Add a Web app, enable **Authentication → Sign-in method → Google**, and
+   create a **Firestore database** (production mode).
+3. Add your deployed domain under Authentication → Settings → Authorized domains.
+4. Set Firestore security rules so users can only read/write their own mixes:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{uid}/mixes/{mixId} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+5. Set the `VITE_FIREBASE_*` env vars (see `.env.example`) at build time.
+
+Sync behavior: saved mixes always write to localStorage; when signed in they
+also write to Firestore. On sign-in, cloud and local mixes are merged by name
+(newest `updatedAt` wins; ties go to the cloud copy) and local-only mixes are
+uploaded.
+
+## Water Pre-Fill
+When every product in the mix uses a volumetric unit (fl oz/pt/qt/gal), the
+summaries and Per Mix cards show how many gallons of water to pre-fill the
+tank with (tank volume minus total chemical volume) — see `calculatePreFill`
+in `src/utils/calculations.ts`. If any product is weight-based (oz/lb/g), the
+estimate is marked unavailable instead.
+
 ## Deployment
 Configured for static deployment using the `dist` directory after building.

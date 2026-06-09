@@ -11,6 +11,9 @@ export interface Product {
 export interface SavedMix {
   name: string;
   data: MixData;
+  // Last-saved timestamp (ms). Used to resolve conflicts when merging
+  // localStorage mixes with cloud-synced mixes; absent on legacy saves.
+  updatedAt?: number;
 }
 
 export interface MixHistoryEntry {
