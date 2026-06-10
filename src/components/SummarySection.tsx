@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, colors } from '../types';
-import { calculatePreFill, formatOutputParts } from '../utils/calculations';
+import { formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
@@ -72,22 +72,6 @@ export function SummarySection({
       <div style={{ color: colors.lightText }}>
         <p className="mb-1">For a <strong>{fillVolume} gallon</strong> mix at <strong>{applicationRate} GPA</strong>:</p>
         <p className="mb-1">• This mix will cover <strong>{acresPerFill.toFixed(2)} acres</strong></p>
-        {(() => {
-          const preFill = calculatePreFill(products, fillVolume, applicationRate);
-          if (!preFill) return null;
-          if (!preFill.available) {
-            return (
-              <p className="mb-1 text-sm opacity-60">
-                • Water pre-fill estimate unavailable — mix includes weight-based products.
-              </p>
-            );
-          }
-          return (
-            <p className="mb-1">
-              • Pre-fill with water to <strong>{preFill.preFillGallons.toFixed(1)} gal</strong> before adding products
-            </p>
-          );
-        })()}
         <p className="mb-3">• Add the following to your mix:</p>
         <ul className="list-disc pl-6 space-y-1">
           {products.map((product, idx) => {

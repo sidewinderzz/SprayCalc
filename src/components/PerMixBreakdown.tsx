@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, colors } from '../types';
-import { calculateAmount, calculateMixPlanning, calculatePreFill, formatOutput } from '../utils/calculations';
+import { calculateAmount, calculateMixPlanning, formatOutput } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 
 interface PerMixBreakdownProps {
@@ -101,7 +101,6 @@ export function PerMixBreakdown({
         {groups.map((group, i) => {
           const accent = group.isPartial ? colors.secondary : colors.primary;
           const headerBg = group.isPartial ? `${colors.secondary}14` : `${colors.primary}08`;
-          const preFill = calculatePreFill(products, group.volume, applicationRate);
           return (
             <div
               key={i}
@@ -157,19 +156,6 @@ export function PerMixBreakdown({
                   );
                 })}
               </div>
-              {preFill?.available && (
-                <div
-                  className="px-3 py-2 flex items-center justify-between text-sm border-t"
-                  style={{ borderColor: `${colors.primary}20` }}
-                >
-                  <span className="font-medium" style={{ color: colors.lightText }}>
-                    Pre-fill water
-                  </span>
-                  <span className="font-bold flex-shrink-0" style={{ color: colors.primaryDark }}>
-                    {preFill.preFillGallons.toFixed(1)} gal
-                  </span>
-                </div>
-              )}
             </div>
           );
         })}

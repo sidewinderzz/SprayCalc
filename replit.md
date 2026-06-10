@@ -79,12 +79,5 @@ also write to Firestore. On sign-in, cloud and local mixes are merged by name
 (newest `updatedAt` wins; ties go to the cloud copy) and local-only mixes are
 uploaded.
 
-## Water Pre-Fill
-When every product in the mix uses a volumetric unit (fl oz/pt/qt/gal), the
-summaries and Per Mix cards show how many gallons of water to pre-fill the
-tank with (tank volume minus total chemical volume) — see `calculatePreFill`
-in `src/utils/calculations.ts`. If any product is weight-based (oz/lb/g), the
-estimate is marked unavailable instead.
-
 ## Deployment
 Configured for static deployment using the `dist` directory after building.
