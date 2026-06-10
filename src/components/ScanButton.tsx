@@ -30,6 +30,7 @@ export function ScanButton({ onImageSelected }: ScanButtonProps) {
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="sr-only"
         onChange={handleFileChange}
         aria-hidden="true"

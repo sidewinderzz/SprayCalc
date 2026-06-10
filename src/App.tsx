@@ -21,6 +21,7 @@ import { FieldOperationsSection } from './components/FieldOperationsSection';
 import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 import { trackEvent, trackPageView } from './utils/analytics';
+import { calculateAmount } from './utils/calculations';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 
@@ -50,7 +51,7 @@ const AgSprayCalculator = () => {
       name: sp.name,
       rate: sp.rate,
       unit: sp.unit,
-      tankAmount: 0,
+      tankAmount: calculateAmount(sp.rate, sp.unit, state.fillVolume, state.applicationRate),
       outputFormat: 'auto' as const,
       jugSize: 0,
     }));
