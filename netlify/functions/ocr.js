@@ -1,4 +1,4 @@
-const MODEL = 'claude-3-5-sonnet-20241022';
+const MODEL = 'claude-haiku-4-5';
 
 const SYSTEM_PROMPT = `You are extracting spray products from an agricultural recommendation form (such as a Helena Product Use Recommendation).
 Return ONLY a JSON array (no markdown fences, no explanation, no extra text) of objects with this exact shape:
