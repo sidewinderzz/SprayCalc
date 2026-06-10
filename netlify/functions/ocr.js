@@ -17,7 +17,9 @@ Conversion rules:
 - "per 100 gal", "/ 100 gal", "/100 gal" -> "per 100 gal"
 - If rate basis (per acre vs per 100 gal) is unclear, default to "/acre"
 
-For the product name, use the commercial brand name (e.g. "Zeal MVP Miticide"), not the chemical name.
+For the product name, use the product trade name only (e.g. "ENC 11-8-5", "Zeal MVP Miticide").
+Do NOT include distributor or manufacturer names (e.g. "Helena", "Nutrien", "Valent", "BASF", "Syngenta", "Bayer") — these appear as row labels or headers in the form and are not part of the product name.
+If a distributor name appears immediately before or above the product name in the table, omit it and use only the product name itself.
 Only include products that have a clear numeric rate value listed.
 If no products are found, return [].`;
 
