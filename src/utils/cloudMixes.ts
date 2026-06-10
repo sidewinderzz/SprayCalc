@@ -1,6 +1,24 @@
 import { SavedMix, MixData } from '../types';
 import { getDb } from './firebase';
 
+// ─── Firestore security rules ──────────────────────────────────────────────
+// Add these rules in the Firebase Console → Firestore Database → Rules.
+// They allow each signed-in user to read/write only their own data.
+//
+//   rules_version = '2';
+//   service cloud.firestore {
+//     match /databases/{database}/documents {
+//       match /users/{uid}/mixes/{mixId} {
+//         allow read, write: if request.auth != null && request.auth.uid == uid;
+//       }
+//       // Required for the Scan Recommendations (Claude API key) feature:
+//       match /users/{uid}/settings/{docId} {
+//         allow read, write: if request.auth != null && request.auth.uid == uid;
+//       }
+//     }
+//   }
+// ───────────────────────────────────────────────────────────────────────────
+
 // Saved mixes live at users/{uid}/mixes/{docId}. The mix name doubles as the
 // document id (URI-encoded so names with slashes or other reserved characters
 // are valid Firestore ids).

@@ -56,6 +56,7 @@ interface ProductsSectionProps {
   onRemoveProduct: (id: number) => void;
   pendingFocusId: number | null;
   onClearPendingFocusId: () => void;
+  scanButton?: React.ReactNode;
 }
 
 export function ProductsSection({
@@ -67,7 +68,8 @@ export function ProductsSection({
   onAddProduct,
   onRemoveProduct,
   pendingFocusId,
-  onClearPendingFocusId
+  onClearPendingFocusId,
+  scanButton,
 }: ProductsSectionProps) {
   const cardRefs = useRef<Map<number, ProductCardHandle>>(new Map());
 
@@ -99,9 +101,12 @@ export function ProductsSection({
     >
       <EnterHint />
 
-      <h2 className="font-bold text-sm uppercase tracking-wide mb-4" style={{ color: colors.primaryDark }}>
-        Products
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+          Products
+        </h2>
+        {scanButton}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((product, index) => (

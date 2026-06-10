@@ -35,6 +35,14 @@ interface HeaderProps {
   authUser: { displayName: string | null; email: string | null; photoURL: string | null } | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  // Scan Recommendations (Claude API key)
+  apiKey: string;
+  scanEnabled: boolean;
+  setScanEnabled: (v: boolean) => void;
+  keyInput: string;
+  setKeyInput: (v: string) => void;
+  onSaveApiKey: (key: string) => void;
+  onClearApiKey: () => void;
 }
 
 export function Header({
@@ -68,6 +76,13 @@ export function Header({
   authUser,
   onSignIn,
   onSignOut,
+  apiKey,
+  scanEnabled,
+  setScanEnabled,
+  keyInput,
+  setKeyInput,
+  onSaveApiKey,
+  onClearApiKey,
 }: HeaderProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -530,6 +545,86 @@ export function Header({
                     </svg>
                     Replay tour
                   </button>
+                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+
+                  {/* Scan Recommendations */}
+                  <div className="px-4 pt-3 pb-3">
+                    <p
+                      className="text-xs font-semibold uppercase tracking-wider mb-2"
+                      style={{ color: colors.primaryLight }}
+                    >
+                      Scan Recommendations{' '}
+                      <span className="normal-case font-normal opacity-60">Beta</span>
+                    </p>
+                    {apiKey ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono" style={{ color: colors.lightText + '80' }}>
+                            sk-ant-••••••••
+                          </span>
+                          <button
+                            onClick={onClearApiKey}
+                            className="text-xs hover:underline"
+                            style={{ color: '#b91c1c' }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <button
+                            role="switch"
+                            aria-checked={scanEnabled}
+                            onClick={() => setScanEnabled(!scanEnabled)}
+                            className="relative flex-shrink-0 w-8 h-5 rounded-full transition-colors focus:outline-none"
+                            style={{ backgroundColor: scanEnabled ? colors.primary : `${colors.primaryLight}50` }}
+                          >
+                            <span
+                              className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                              style={{ transform: scanEnabled ? 'translateX(12px)' : 'translateX(0)' }}
+                            />
+                          </button>
+                          <span className="text-sm" style={{ color: colors.lightText }}>
+                            Show scan button
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '70' }}>
+                          Add your Claude API key to scan spray recs and auto-fill products.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            value={keyInput}
+                            onChange={e => setKeyInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && keyInput.trim()) onSaveApiKey(keyInput);
+                            }}
+                            placeholder="sk-ant-..."
+                            className="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg border"
+                            style={{
+                              borderColor: `${colors.primary}40`,
+                              color: colors.lightText,
+                              backgroundColor: 'white',
+                            }}
+                          />
+                          <button
+                            onClick={() => keyInput.trim() && onSaveApiKey(keyInput)}
+                            disabled={!keyInput.trim()}
+                            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity"
+                            style={{
+                              backgroundColor: colors.primary,
+                              opacity: keyInput.trim() ? 1 : 0.5,
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
                   <button
                     onClick={() => {

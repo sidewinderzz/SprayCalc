@@ -316,6 +316,7 @@ export function useCalculatorState() {
     setSplitMode,
     acresPerFill,
     hasLoaded,
+    setProducts,
     pendingFocusId,
     clearPendingFocusId,
     // Handlers

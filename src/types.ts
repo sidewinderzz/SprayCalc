@@ -63,6 +63,12 @@ export const outputFormats = [
   {value: 'cups', label: 'Cups'}
 ];
 
+export interface ScannedProduct {
+  name: string;
+  rate: number;
+  unit: string;
+}
+
 export const unitOptions = [
   'fl oz/acre',
   'pt/acre',

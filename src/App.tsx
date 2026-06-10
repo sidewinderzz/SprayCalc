@@ -1,15 +1,18 @@
 import React, { useEffect, useRef } from 'react';
-import { colors } from './types';
+import { colors, ScannedProduct, Product } from './types';
 import { useCalculatorState } from './hooks/useCalculatorState';
 import { useAuth } from './hooks/useAuth';
 import { useMixStorage } from './hooks/useMixStorage';
 import { useMixHistory } from './hooks/useMixHistory';
+import { useApiKey } from './hooks/useApiKey';
 import { Header } from './components/Header';
 import { SettingsToast } from './components/SettingsToast';
 import { TipsSection } from './components/TipsSection';
 import { MixSettings } from './components/MixSettings';
 import { FieldMixSettings } from './components/FieldMixSettings';
 import { ProductsSection } from './components/ProductsSection';
+import { ScanButton } from './components/ScanButton';
+import { ScanReviewModal } from './components/ScanReviewModal';
 import { SummarySection } from './components/SummarySection';
 import { FieldMixSummary } from './components/FieldMixSummary';
 import { PerMixBreakdown } from './components/PerMixBreakdown';
@@ -37,6 +40,32 @@ const AgSprayCalculator = () => {
   };
 
   const auth = useAuth(state.setSettingsFeedback);
+  const apiKeyState = useApiKey(auth.user);
+
+  const [scanModal, setScanModal] = React.useState<{ imageBase64: string; mimeType: string } | null>(null);
+
+  const handleScanApply = (scanned: ScannedProduct[]) => {
+    const newProducts: Product[] = scanned.map(sp => ({
+      id: Date.now() + Math.random(),
+      name: sp.name,
+      rate: sp.rate,
+      unit: sp.unit,
+      tankAmount: 0,
+      outputFormat: 'auto' as const,
+      jugSize: 0,
+    }));
+    const onlyOneEmpty =
+      state.products.length === 1 &&
+      !state.products[0].name &&
+      !state.products[0].rate;
+    if (onlyOneEmpty) {
+      state.setProducts(newProducts);
+    } else {
+      state.setProducts([...state.products, ...newProducts]);
+    }
+    state.setSettingsFeedback(`${newProducts.length} product${newProducts.length !== 1 ? 's' : ''} added from scan`);
+    setTimeout(() => state.setSettingsFeedback(''), 2500);
+  };
 
   const mixStorage = useMixStorage(
     state.applyMixData,
@@ -206,6 +235,13 @@ const AgSprayCalculator = () => {
           authUser={auth.user}
           onSignIn={auth.signInWithGoogle}
           onSignOut={auth.signOutUser}
+          apiKey={apiKeyState.apiKey}
+          scanEnabled={apiKeyState.scanEnabled}
+          setScanEnabled={apiKeyState.setScanEnabled}
+          keyInput={apiKeyState.keyInput}
+          setKeyInput={apiKeyState.setKeyInput}
+          onSaveApiKey={apiKeyState.saveApiKey}
+          onClearApiKey={apiKeyState.clearApiKey}
         />
 
         <TipsSection
@@ -247,6 +283,11 @@ const AgSprayCalculator = () => {
           onRemoveProduct={state.removeProduct}
           pendingFocusId={state.pendingFocusId}
           onClearPendingFocusId={state.clearPendingFocusId}
+          scanButton={
+            apiKeyState.apiKey && apiKeyState.scanEnabled ? (
+              <ScanButton onImageSelected={(base64, mime) => setScanModal({ imageBase64: base64, mimeType: mime })} />
+            ) : undefined
+          }
         />
 
         {state.activeTab === 'tank' ? (
@@ -333,6 +374,16 @@ const AgSprayCalculator = () => {
         onClose={closeTour}
         onComplete={closeTour}
       />
+
+      {scanModal && (
+        <ScanReviewModal
+          imageBase64={scanModal.imageBase64}
+          mimeType={scanModal.mimeType}
+          apiKey={apiKeyState.apiKey}
+          onApply={handleScanApply}
+          onClose={() => setScanModal(null)}
+        />
+      )}
     </div>
   );
 };
