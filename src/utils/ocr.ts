@@ -1,6 +1,11 @@
 import { ScannedProduct } from '../types';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+// In production (Netlify), route through a serverless function to avoid CORS.
+// In local dev, the Anthropic API allows requests from localhost directly.
+const OCR_ENDPOINT = import.meta.env.PROD
+  ? '/.netlify/functions/ocr'
+  : 'https://api.anthropic.com/v1/messages';
+
 const MODEL = 'claude-3-5-haiku-20241022';
 
 const SYSTEM_PROMPT = `You are extracting spray products from an agricultural recommendation form (such as a Helena Product Use Recommendation).
@@ -29,39 +34,41 @@ export async function extractProductsFromImage(
   mimeType: string,
   apiKey: string
 ): Promise<ScannedProduct[]> {
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: imageBase64,
+  // Production: POST slim payload to our Netlify proxy (no CORS restriction).
+  // Dev: call Anthropic directly — localhost is allowed by their CORS policy.
+  const isProd = import.meta.env.PROD;
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (!isProd) {
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-allow-browser'] = 'true';
+  }
+
+  const body = isProd
+    ? JSON.stringify({ imageBase64, mimeType, apiKey })
+    : JSON.stringify({
+        model: MODEL,
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: { type: 'base64', media_type: mimeType, data: imageBase64 },
               },
-            },
-            {
-              type: 'text',
-              text: 'Extract all spray products and their application rates from this recommendation form.',
-            },
-          ],
-        },
-      ],
-    }),
-  });
+              {
+                type: 'text',
+                text: 'Extract all spray products and their application rates from this recommendation form.',
+              },
+            ],
+          },
+        ],
+      });
+
+  const response = await fetch(OCR_ENDPOINT, { method: 'POST', headers, body });
 
   if (!response.ok) {
     const errText = await response.text().catch(() => `HTTP ${response.status}`);
