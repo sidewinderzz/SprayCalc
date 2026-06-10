@@ -7,7 +7,7 @@ interface ScanReviewModalProps {
   imageBase64: string;
   mimeType: string;
   apiKey: string;
-  onApply: (products: ScannedProduct[]) => void;
+  onApply: (products: ScannedProduct[], sprayVolume?: number) => void;
   onClose: () => void;
 }
 
@@ -23,6 +23,8 @@ export function ScanReviewModal({
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [products, setProducts] = useState<ScannedProduct[]>([]);
+  const [sprayVolume, setSprayVolume] = useState<number | undefined>(undefined);
+  const [applySprayVolume, setApplySprayVolume] = useState(true);
 
   const [totalPages, setTotalPages] = useState<number>(1);
   const [selectedPage, setSelectedPage] = useState<number>(1);
@@ -73,7 +75,7 @@ export function ScanReviewModal({
         mime = mimeType;
       }
       const result = await extractProductsFromImage(base64, mime, apiKey);
-      if (result.length === 0) {
+      if (result.products.length === 0) {
         setErrorMsg(
           isPdf
             ? "No products found — try a different page or a clearer PDF."
@@ -81,7 +83,9 @@ export function ScanReviewModal({
         );
         setStatus('error');
       } else {
-        setProducts(result);
+        setProducts(result.products);
+        setSprayVolume(result.sprayVolume);
+        setApplySprayVolume(result.sprayVolume !== undefined);
         setStatus('success');
       }
     } catch (e: any) {
@@ -128,6 +132,11 @@ export function ScanReviewModal({
   const thumbnailSrc = isPdf
     ? (renderedImageBase64 ? `data:image/png;base64,${renderedImageBase64}` : '')
     : `data:${mimeType};base64,${imageBase64}`;
+
+  const handleApply = () => {
+    onApply(validProducts, applySprayVolume ? sprayVolume : undefined);
+    onClose();
+  };
 
   return (
     <div
@@ -334,6 +343,43 @@ export function ScanReviewModal({
               >
                 + Add row
               </button>
+
+              {/* Spray volume row */}
+              {sprayVolume !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => setApplySprayVolume(v => !v)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  style={{
+                    backgroundColor: applySprayVolume ? `${colors.primary}12` : `${colors.primary}06`,
+                    border: `1px solid ${applySprayVolume ? colors.primary + '40' : colors.primary + '18'}`,
+                  }}
+                >
+                  {/* Checkbox */}
+                  <div
+                    className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors"
+                    style={{
+                      backgroundColor: applySprayVolume ? colors.primary : 'white',
+                      border: `1.5px solid ${applySprayVolume ? colors.primary : colors.primary + '50'}`,
+                    }}
+                  >
+                    {applySprayVolume && (
+                      <svg viewBox="0 0 10 8" width="9" height="7" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="1 4 3.5 6.5 9 1" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium" style={{ color: colors.primaryDark }}>
+                      Set application rate to{' '}
+                      <span className="font-bold">{sprayVolume} GPA</span>
+                    </span>
+                    <span className="block text-xs mt-0.5" style={{ color: colors.lightText + '70' }}>
+                      Spray volume from the rec
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -353,7 +399,7 @@ export function ScanReviewModal({
             </button>
             {status === 'success' && (
               <button
-                onClick={() => { onApply(validProducts); onClose(); }}
+                onClick={handleApply}
                 disabled={validProducts.length === 0}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity"
                 style={{

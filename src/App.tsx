@@ -45,13 +45,17 @@ const AgSprayCalculator = () => {
 
   const [scanModal, setScanModal] = React.useState<{ imageBase64: string; mimeType: string } | null>(null);
 
-  const handleScanApply = (scanned: ScannedProduct[]) => {
+  const handleScanApply = (scanned: ScannedProduct[], sprayVolume?: number) => {
+    if (sprayVolume && sprayVolume > 0) {
+      state.handleApplicationRateChange(String(sprayVolume));
+    }
+    const gpa = (sprayVolume && sprayVolume > 0) ? sprayVolume : state.applicationRate;
     const newProducts: Product[] = scanned.map(sp => ({
       id: Date.now() + Math.random(),
       name: sp.name,
       rate: sp.rate,
       unit: sp.unit,
-      tankAmount: calculateAmount(sp.rate, sp.unit, state.fillVolume, state.applicationRate),
+      tankAmount: calculateAmount(sp.rate, sp.unit, state.fillVolume, gpa),
       outputFormat: 'auto' as const,
       jugSize: 0,
     }));
@@ -64,7 +68,8 @@ const AgSprayCalculator = () => {
     } else {
       state.setProducts([...state.products, ...newProducts]);
     }
-    state.setSettingsFeedback(`${newProducts.length} product${newProducts.length !== 1 ? 's' : ''} added from scan`);
+    const gpaNote = sprayVolume && sprayVolume > 0 ? ` · ${sprayVolume} GPA set` : '';
+    state.setSettingsFeedback(`${newProducts.length} product${newProducts.length !== 1 ? 's' : ''} added from scan${gpaNote}`);
     setTimeout(() => state.setSettingsFeedback(''), 2500);
   };
 
