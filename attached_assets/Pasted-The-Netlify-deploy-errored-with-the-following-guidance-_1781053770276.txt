@@ -1,0 +1,77 @@
+The Netlify deploy errored, with the following guidance provided:
+
+- Relevant log lines:
+  - [line 14](#L14) shows install failed during dependency installation.
+  - [line 15](#L15)–[line 17](#L17) show npm ENOTFOUND / getaddrinfo DNS error.
+  - [line 18](#L18) shows npm tried to fetch a tarball from an internal registry host: package-firewall.replit.local.
+
+Diagnosis
+- Error type: npm network/DNS error (ENOTFOUND, getaddrinfo).
+- Cause: npm is configured (via .npmrc, lockfile "resolved" entries, or env config) to use an internal/private registry host package-firewall.replit.local. That hostname is not resolvable from Netlify, so npm cannot download pdfjs-dist and the install fails ([line 18](#L18)).
+
+Solution
+1. Inspect repo and CI settings for registry overrides
+   - Check for a .npmrc in the repository root (or in user-level config) that sets a custom registry. If present, remove or change it.
+   - Check package-lock.json (or npm-shrinkwrap.json) for "resolved" URLs that reference package-firewall.replit.local.
+   - Check Netlify build environment variables for NPM_CONFIG_REGISTRY or registry-related variables.
+
+2. Quick fixes you can apply (pick one)
+   - Force public npm registry by adding a committed .npmrc (or updating existing) with:
+```text
+registry=https://registry.npmjs.org/
+```
+   - Or set the registry in Netlify build environment: add NPM_CONFIG_REGISTRY = https://registry.npmjs.org/ in Site settings → Build & deploy → Environment.
+
+3. If lockfile points to the private host (recommended)
+   - On your local machine (with working internet and correct registry), regenerate the lockfile so resolved URLs point to the public registry:
+```bash
+# ensure registry is public locally
+npm config set registry https://registry.npmjs.org/
+
+# remove lockfile and node_modules, regenerate lockfile
+rm -rf node_modules package-lock.json
+npm install
+
+# commit new lockfile
+git add package-lock.json
+git commit -m "Regenerate package-lock using public npm registry"
+git push
+```
+   - This avoids npm attempting to fetch tarballs from package-firewall.replit.local during Netlify builds.
+
+4. If you intentionally use a private registry (Replit or other)
+   - Ensure Netlify can access it: add required registry URL and auth token(s) to Netlify environment variables (for example, NPM_TOKEN and NPM_CONFIG_REGISTRY). Make sure the host is publicly resolvable from Netlify or use a registry that Netlify can reach.
+
+Extra troubleshooting
+- If you still see the ENOTFOUND error after doing the above, run a local search for occurrences of "package-firewall.replit.local" in .npmrc, package-lock.json, or other config files and remove/update them.
+- If you need to change Node versions in Netlify, see Netlify docs: https://docs.netlify.com/configure-builds/manage-dependencies/#node-js-and-javascript
+
+Summary
+- Root cause: build is trying to fetch pdfjs-dist from an internal/private host that Netlify cannot resolve ([line 18](#L18)), causing the ENOTFOUND network error ([line 15](#L15)). Fix by switching registry to the public npm registry (via .npmrc, environment variable, or regenerating lockfile) or by making the private registry accessible from Netlify.
+
+The relevant error logs are:
+
+Line 4: Preparing Git Reference refs/heads/main
+Line 5: Installing dependencies
+Line 6: mise ~/.config/mise/config.toml tools: python@3.14.3
+Line 7: mise ~/.config/mise/config.toml tools: ruby@3.4.8
+Line 8: mise ~/.config/mise/config.toml tools: go@1.26.2
+Line 9: v22.22.3 is already installed.
+Line 10: Now using node v22.22.3 (npm v10.9.8)
+Line 11: Enabling Node.js Corepack
+Line 12: No npm workspaces detected
+Line 13: Installing npm packages using npm version 10.9.8
+Line 14: Failed during stage 'Install dependencies': dependency_installation script returned non-zero exit code: 1
+Line 15: npm error code ENOTFOUND
+Line 16: npm error syscall getaddrinfo
+Line 17: npm error errno ENOTFOUND
+Line 18: npm error network request to http://package-firewall.replit.local/npm/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz failed, reason: getadd
+Line 19: npm error network This is a problem related to network connectivity.
+Line 20: npm error network In most cases you are behind a proxy or have bad network settings.
+Line 21: npm error network
+Line 22: npm error network If you are behind a proxy, please make sure that the
+Line 23: npm error network 'proxy' config is set properly.  See: 'npm help config'
+Line 24: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-10T01_06_31_079Z-debug-0.log
+Line 25: Error during npm install
+Line 26: Failing build: Failed to install dependencies
+Line 27: Finished processing build request in 1m14.788s
