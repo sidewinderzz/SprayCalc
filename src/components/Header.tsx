@@ -621,6 +621,18 @@ export function Header({
                             Save
                           </button>
                         </div>
+                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '60' }}>
+                          New accounts get free credits.{' '}
+                          <a
+                            href="https://console.anthropic.com/keys"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:opacity-80"
+                            style={{ color: colors.primaryLight }}
+                          >
+                            How to get a key →
+                          </a>
+                        </p>
                       </div>
                     )}
                   </div>
