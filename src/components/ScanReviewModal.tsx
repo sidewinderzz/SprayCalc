@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScannedProduct, unitOptions, colors } from '../types';
 import { extractProductsFromImage } from '../utils/ocr';
+import { getPdfPageCount, renderPdfPageToBase64 } from '../utils/pdfToImage';
 
 interface ScanReviewModalProps {
   imageBase64: string;
@@ -17,17 +18,67 @@ export function ScanReviewModal({
   onApply,
   onClose,
 }: ScanReviewModalProps) {
+  const isPdf = mimeType === 'application/pdf';
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [products, setProducts] = useState<ScannedProduct[]>([]);
 
-  const run = async () => {
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [selectedPage, setSelectedPage] = useState<number>(1);
+  const [renderedImageBase64, setRenderedImageBase64] = useState<string>('');
+  const [pdfReady, setPdfReady] = useState(!isPdf);
+
+  const runRef = useRef(false);
+
+  const initPdf = async () => {
+    try {
+      const count = await getPdfPageCount(imageBase64);
+      setTotalPages(count);
+      const img = await renderPdfPageToBase64(imageBase64, 1);
+      setRenderedImageBase64(img);
+      setPdfReady(true);
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? 'Failed to read PDF.');
+      setStatus('error');
+    }
+  };
+
+  const renderPage = async (page: number) => {
+    try {
+      const img = await renderPdfPageToBase64(imageBase64, page);
+      setRenderedImageBase64(img);
+    } catch {
+    }
+  };
+
+  useEffect(() => {
+    if (isPdf) {
+      initPdf();
+    }
+  }, []);
+
+  const run = async (page?: number) => {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const result = await extractProductsFromImage(imageBase64, mimeType, apiKey);
+      let base64: string;
+      let mime: string;
+      if (isPdf) {
+        const p = page ?? selectedPage;
+        base64 = renderedImageBase64 || await renderPdfPageToBase64(imageBase64, p);
+        mime = 'image/png';
+      } else {
+        base64 = imageBase64;
+        mime = mimeType;
+      }
+      const result = await extractProductsFromImage(base64, mime, apiKey);
       if (result.length === 0) {
-        setErrorMsg("No products found — try a clearer photo of the product table.");
+        setErrorMsg(
+          isPdf
+            ? "No products found — try a different page or a clearer PDF."
+            : "No products found — try a clearer photo of the product table."
+        );
         setStatus('error');
       } else {
         setProducts(result);
@@ -39,7 +90,26 @@ export function ScanReviewModal({
     }
   };
 
-  useEffect(() => { run(); }, []);
+  useEffect(() => {
+    if (!isPdf && !runRef.current) {
+      runRef.current = true;
+      run();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isPdf && pdfReady && !runRef.current) {
+      runRef.current = true;
+      run(selectedPage);
+    }
+  }, [pdfReady]);
+
+  const handlePageChange = async (page: number) => {
+    setSelectedPage(page);
+    await renderPage(page);
+    runRef.current = true;
+    run(page);
+  };
 
   const updateProduct = (idx: number, field: keyof ScannedProduct, value: string | number) => {
     setProducts(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
@@ -54,7 +124,10 @@ export function ScanReviewModal({
   };
 
   const validProducts = products.filter(p => p.name.trim() && p.rate > 0);
-  const imageUrl = `data:${mimeType};base64,${imageBase64}`;
+
+  const thumbnailSrc = isPdf
+    ? (renderedImageBase64 ? `data:image/png;base64,${renderedImageBase64}` : '')
+    : `data:${mimeType};base64,${imageBase64}`;
 
   return (
     <div
@@ -96,15 +169,64 @@ export function ScanReviewModal({
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-5">
-          {/* Image thumbnail */}
-          <div className="mb-4 rounded-lg overflow-hidden border" style={{ borderColor: `${colors.primary}20` }}>
-            <img
-              src={imageUrl}
-              alt="Scanned recommendation"
-              className="w-full object-cover object-top"
-              style={{ maxHeight: 140 }}
-            />
+
+          {/* Thumbnail */}
+          <div
+            className="mb-3 rounded-lg overflow-hidden border flex items-center justify-center"
+            style={{ borderColor: `${colors.primary}20`, minHeight: 80, maxHeight: 140, backgroundColor: `${colors.primary}05` }}
+          >
+            {thumbnailSrc ? (
+              <img
+                src={thumbnailSrc}
+                alt={isPdf ? `PDF page ${selectedPage}` : 'Scanned recommendation'}
+                className="w-full object-cover object-top"
+                style={{ maxHeight: 140 }}
+              />
+            ) : (
+              <div className="flex items-center justify-center py-6">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke={colors.primary + '60'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+            )}
           </div>
+
+          {/* PDF page picker */}
+          {isPdf && totalPages > 1 && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-medium flex-shrink-0" style={{ color: colors.lightText + 'a0' }}>
+                Page
+              </span>
+              <div className="flex gap-1 flex-wrap">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => handlePageChange(p)}
+                    disabled={status === 'loading'}
+                    className="w-7 h-7 rounded text-xs font-medium transition-colors"
+                    style={
+                      p === selectedPage
+                        ? { backgroundColor: colors.primary, color: '#fff' }
+                        : {
+                            backgroundColor: `${colors.primary}12`,
+                            color: colors.primaryDark,
+                            border: `1px solid ${colors.primary}30`,
+                          }
+                    }
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs ml-auto flex-shrink-0" style={{ color: colors.lightText + '60' }}>
+                {totalPages} pages
+              </span>
+            </div>
+          )}
 
           {/* Loading */}
           {status === 'loading' && (
@@ -117,7 +239,7 @@ export function ScanReviewModal({
                 }}
               />
               <p className="text-sm" style={{ color: colors.lightText + '80' }}>
-                Reading recommendation…
+                {isPdf && !pdfReady ? 'Loading PDF…' : 'Reading recommendation…'}
               </p>
             </div>
           )}
@@ -137,7 +259,7 @@ export function ScanReviewModal({
               </div>
               <p className="text-sm max-w-xs" style={{ color: '#b91c1c' }}>{errorMsg}</p>
               <button
-                onClick={run}
+                onClick={() => { runRef.current = true; run(); }}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white"
                 style={{ backgroundColor: colors.primary }}
               >

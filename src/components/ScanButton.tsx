@@ -15,9 +15,8 @@ export function ScanButton({ onImageSelected }: ScanButtonProps) {
     reader.onload = () => {
       const result = reader.result as string;
       const commaIdx = result.indexOf(',');
-      const meta = result.slice(0, commaIdx);
       const data = result.slice(commaIdx + 1);
-      const mimeType = meta.split(':')[1]?.split(';')[0] ?? 'image/jpeg';
+      const mimeType = file.type || 'image/jpeg';
       onImageSelected(data, mimeType);
     };
     reader.readAsDataURL(file);
@@ -29,8 +28,7 @@ export function ScanButton({ onImageSelected }: ScanButtonProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
-        capture="environment"
+        accept="image/*,.pdf"
         className="sr-only"
         onChange={handleFileChange}
         aria-hidden="true"
@@ -44,7 +42,7 @@ export function ScanButton({ onImageSelected }: ScanButtonProps) {
           border: `1px solid ${colors.primary}40`,
           backgroundColor: `${colors.primary}08`,
         }}
-        title="Scan a spray recommendation to auto-fill products"
+        title="Scan a spray recommendation (photo or PDF) to auto-fill products"
         aria-label="Scan spray recommendation"
       >
         <svg
