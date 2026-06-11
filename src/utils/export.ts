@@ -627,41 +627,53 @@ export async function exportPDF(state: ExportState): Promise<void> {
 
   if (state.products.length > 0) {
     if (planning && state.splitMode !== 'even') {
-      // Side-by-side full + partial mix tables
-      const gap = 7;
-      const leftW = (CONTENT_W - gap) * 0.6;
-      const rightW = (CONTENT_W - gap) - leftW;
-      const leftX = MARGIN_X;
-      const rightX = MARGIN_X + leftW + gap;
-
-      drawSeclabel(
-        doc,
-        leftX,
-        y,
-        'Full mix',
-        `× ${planning.fullMixes} · ${formatNum(state.fillVolume)} gal each`,
-      );
-      const partialSmall = planning.hasPartialMix
-        ? `× 1 · ${formatNum(planning.remainingSpray)} gal · ${planning.remainingAcres.toFixed(1)} ac`
-        : '';
-      drawSeclabel(doc, rightX, y, 'Partial mix', partialSmall);
-      y += 5;
-
-      const leftEnd = drawMixTable(doc, leftX, y, leftW, state.products, true, (p) =>
-        formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
-      );
-
-      let rightEnd: number;
-      if (planning.hasPartialMix) {
-        rightEnd = drawMixTable(doc, rightX, y, rightW, state.products, false, (p) => {
+      if (planning.fullMixes === 0 && planning.hasPartialMix) {
+        // Only a partial tank needed — render a single full-width partial mix table
+        const partialSmall = `× 1 · ${formatNum(planning.remainingSpray)} gal · ${planning.remainingAcres.toFixed(1)} ac`;
+        drawSeclabel(doc, MARGIN_X, y, 'Partial mix', partialSmall);
+        y += 5;
+        y = drawMixTable(doc, MARGIN_X, y, CONTENT_W, state.products, false, (p) => {
           const amt = calculateAmount(p.rate, p.unit, planning.remainingSpray, state.applicationRate);
           return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
         });
+        y += 8;
       } else {
-        rightEnd = drawNoPartialNote(doc, rightX, y, rightW, planning.fullMixes);
-      }
+        // Side-by-side full + partial mix tables
+        const gap = 7;
+        const leftW = (CONTENT_W - gap) * 0.6;
+        const rightW = (CONTENT_W - gap) - leftW;
+        const leftX = MARGIN_X;
+        const rightX = MARGIN_X + leftW + gap;
 
-      y = Math.max(leftEnd, rightEnd) + 8;
+        drawSeclabel(
+          doc,
+          leftX,
+          y,
+          'Full mix',
+          `× ${planning.fullMixes} · ${formatNum(state.fillVolume)} gal each`,
+        );
+        const partialSmall = planning.hasPartialMix
+          ? `× 1 · ${formatNum(planning.remainingSpray)} gal · ${planning.remainingAcres.toFixed(1)} ac`
+          : '';
+        drawSeclabel(doc, rightX, y, 'Partial mix', partialSmall);
+        y += 5;
+
+        const leftEnd = drawMixTable(doc, leftX, y, leftW, state.products, true, (p) =>
+          formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
+        );
+
+        let rightEnd: number;
+        if (planning.hasPartialMix) {
+          rightEnd = drawMixTable(doc, rightX, y, rightW, state.products, false, (p) => {
+            const amt = calculateAmount(p.rate, p.unit, planning.remainingSpray, state.applicationRate);
+            return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
+          });
+        } else {
+          rightEnd = drawNoPartialNote(doc, rightX, y, rightW, planning.fullMixes);
+        }
+
+        y = Math.max(leftEnd, rightEnd) + 8;
+      }
     } else if (planning && state.splitMode === 'even') {
       const numTanks = Math.ceil(planning.totalSprayNeeded / state.fillVolume);
       const perTankVol = planning.totalSprayNeeded / numTanks;
