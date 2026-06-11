@@ -224,18 +224,17 @@ function formatWeightPdf(oz: number): string {
 }
 
 function formatJugSub(amountOz: number, jugSizeOz: number): string | null {
-  if (jugSizeOz <= 0 || amountOz <= 0) return null;
+  if (jugSizeOz <= 0 || amountOz <= 0 || amountOz < jugSizeOz) return null;
   const jugGal = jugSizeOz / 128;
-  const totalGal = amountOz / 128;
-  const exact = totalGal / jugGal;
-  if (exact < 1) return null;
-  const rounded = Math.round(exact);
-  const ceiled = Math.ceil(exact);
-  const sizeLabel = `${formatNum(jugGal)}-gal jug`;
-  if (rounded > 0 && Math.abs(exact - rounded) < 0.02) {
-    return `${rounded} × ${sizeLabel}`;
+  const sizeLabel = `${formatNum(jugGal)} gal`;
+  const fullJugs = Math.floor(amountOz / jugSizeOz);
+  const remainder = parseFloat((amountOz % jugSizeOz).toFixed(1));
+  if (remainder === 0) {
+    if (fullJugs === 1) return `1 full jug (${sizeLabel})`;
+    return `${fullJugs} full jugs (${sizeLabel} each)`;
   }
-  return `≈ ${ceiled} × ${sizeLabel}`;
+  const jugLabel = fullJugs === 1 ? 'jug' : 'jugs';
+  return `${fullJugs} full ${jugLabel} (${sizeLabel}) + 1 partial (${remainder} fl oz)`;
 }
 
 // Clean primary amount + optional jug/bag sub-line for the V3 mix tables.
