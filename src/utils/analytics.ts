@@ -2,7 +2,7 @@ type GtagArgs = unknown[];
 
 declare global {
   interface Window {
-    dataLayer?: GtagArgs[];
+    dataLayer?: unknown[];
     gtag?: (...args: GtagArgs) => void;
   }
 }
@@ -28,9 +28,12 @@ export function initAnalytics(): void {
 
   try {
     window.dataLayer = window.dataLayer || [];
-    const gtag = (...args: GtagArgs) => {
-      window.dataLayer!.push(args);
-    };
+    // gtag.js only processes commands pushed as the raw `arguments` object.
+    // Pushing a plain array (e.g. [...args]) silently drops every command —
+    // no config is applied and no hits are ever sent. Match Google's snippet.
+    function gtag(..._args: GtagArgs) {
+      window.dataLayer!.push(arguments);
+    }
     window.gtag = gtag;
     gtag('js', new Date());
     gtag('config', id, { send_page_view: false });
