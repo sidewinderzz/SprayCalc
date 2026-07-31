@@ -1,0 +1,1 @@
+import{r,_ as t}from"./index-430b7f31.js";const o=r("Share",{web:()=>t(()=>import("./web-bd04dd67.js"),["assets/web-bd04dd67.js","assets/index-430b7f31.js","assets/index-f27af311.css"]).then(e=>new e.ShareWeb)});export{o as Share};

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useBackHandler } from '../hooks/useBackHandler';
 import { colors } from '../types';
 import { ExportState } from '../utils/export';
 import {
@@ -73,6 +74,9 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
     splitMode,
     currentTime,
   } = state;
+
+  // Android back button is this modal's Escape key.
+  useBackHandler(true, onClose);
 
   // Close on Escape
   useEffect(() => {

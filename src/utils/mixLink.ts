@@ -1,5 +1,6 @@
 import LZString from 'lz-string';
 import { MixData, Product } from '../types';
+import { shareBaseUrl } from './platform';
 
 const PARAM_NAME = 'm';
 const SCHEMA_VERSION = 1;
@@ -80,9 +81,10 @@ export interface EncodedMixLink {
 }
 
 function originAndPath(): string {
-  if (typeof window === 'undefined') return '';
-  const { origin, pathname } = window.location;
-  return `${origin}${pathname}`;
+  // In the Android app this resolves to the public site rather than the
+  // shell's internal https://localhost origin, so shared links and the PDF
+  // QR code point somewhere a recipient can actually open.
+  return shareBaseUrl();
 }
 
 export function encodeMixToParam(data: MixData): string {
