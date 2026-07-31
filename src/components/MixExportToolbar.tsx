@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { colors } from '../types';
 import { generateSummaryText, exportPDF, buildSharePayload, ExportState } from '../utils/export';
 import { trackEvent } from '../utils/analytics';
+import { shareContent } from '../utils/share';
+import { isNativeApp } from '../utils/platform';
 import { MixPreviewModal } from './MixPreviewModal';
 
 interface MixExportToolbarProps {
@@ -42,29 +44,23 @@ export function MixExportToolbar({
       product_count: state.products.length,
       fill_volume: state.fillVolume,
       application_rate: state.applicationRate,
-      method: typeof navigator.share === 'function' ? 'web_share' : 'clipboard',
+      method: isNativeApp()
+        ? 'native_share'
+        : typeof navigator.share === 'function'
+          ? 'web_share'
+          : 'clipboard',
       too_large: payload.tooLarge,
     });
     const shortText = `${payload.text.split('\n').slice(0, 6).join('\n')}\n\nOpen this mix in SprayCalc:`;
-    const isAbort = (err: unknown): boolean =>
-      !!err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError';
 
-    if (navigator.share) {
-      if (!payload.tooLarge) {
-        try {
-          await navigator.share({ title: payload.title, text: shortText, url: payload.url });
-          return;
-        } catch (err) {
-          if (isAbort(err)) return;
-        }
-      }
-      try {
-        await navigator.share({ title: payload.title, text: payload.text });
-        return;
-      } catch (err) {
-        if (isAbort(err)) return;
-      }
+    // Prefer the link (short, re-openable). If the mix is too big to encode,
+    // or the share sheet rejects a URL payload, fall back to the full text.
+    if (!payload.tooLarge) {
+      const outcome = await shareContent({ title: payload.title, text: shortText, url: payload.url });
+      if (outcome !== 'unsupported') return;
     }
+    const textOutcome = await shareContent({ title: payload.title, text: payload.text });
+    if (textOutcome !== 'unsupported') return;
 
     const clipboardText = payload.tooLarge ? payload.text : `${shortText} ${payload.url}`;
     try {

@@ -3,9 +3,13 @@
 ## Overview
 A React-based agricultural spray mixing calculator that helps calculate product amounts for tank mixes based on fill volume, application rate, and product specifications.
 
+It ships as a PWA and, from the same codebase, as an Android app
+(see [docs/android.md](docs/android.md)).
+
 ## Tech Stack
 - React 18 with TypeScript
 - Vite for build tooling
+- Capacitor for the Android wrapper (`android/`)
 - TailwindCSS for styling
 - PostCSS with Autoprefixer
 - jsPDF + jspdf-autotable for real PDF export
@@ -24,9 +28,15 @@ src/
   App.tsx       - Main application component with all UI and logic
   main.tsx      - React entry point
   index.css     - Global styles and Tailwind imports
+  utils/
+    platform.ts - Native-vs-web detection + the public URL used by the app
+    native.ts   - Android shell setup: status bar, back button, deep links
+    share.ts    - Share sheet and PDF delivery, web and native
 public/
   manifest.json - PWA manifest
-  sw.js         - Service worker for offline support
+  sw.js         - Service worker for offline support (web only)
+android/        - Capacitor Android project
+assets/         - Icon/splash sources for @capacitor/assets
 dist/           - Production build output
 ```
 
@@ -34,6 +44,14 @@ dist/           - Production build output
 - Run `npm run dev` to start the development server on port 5000
 - Run `npm run build` to create a production build
 - Run `npm run preview` to preview the production build
+
+## Android
+The Android app wraps this same build with Capacitor — there is no second
+codebase. `npm run android:sync` rebuilds and copies `dist/` into `android/`;
+`npm run android:apk` produces a debug APK. Platform differences (share sheet,
+PDF delivery, hardware back button, deep links, absolute URLs) are handled at
+runtime behind `isNativeApp()`. Full details, including release signing and
+Play Store steps, are in [docs/android.md](docs/android.md).
 
 ## Analytics
 Optional Google Analytics 4 integration in `src/utils/analytics.ts`.

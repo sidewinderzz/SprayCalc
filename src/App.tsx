@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { colors, ScannedProduct, Product } from './types';
+import { colors, ScannedProduct, Product, MixData } from './types';
 import { useCalculatorState } from './hooks/useCalculatorState';
 import { useAuth } from './hooks/useAuth';
 import { useMixStorage } from './hooks/useMixStorage';
@@ -22,6 +22,8 @@ import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 import { trackEvent, trackPageView } from './utils/analytics';
 import { calculateAmount } from './utils/calculations';
+import { useBackHandler } from './hooks/useBackHandler';
+import { onSharedMixLink } from './utils/native';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 
@@ -94,20 +96,43 @@ const AgSprayCalculator = () => {
     setShowTour(true);
   };
 
+  // Applying a mix that arrived from a share link. On the web this only ever
+  // happens once, from the initial URL; in the Android app the same link can
+  // also arrive later via a deep link while the app is already open.
+  const applySharedMix = (sharedMix: MixData) => {
+    state.applyMixData(sharedMix);
+    state.setSettingsFeedback('Mix loaded from link');
+    setTimeout(() => state.setSettingsFeedback(''), 2500);
+    trackPageView('/?shared=1', 'Ag Spray Calculator — Shared Mix');
+    trackEvent('view_shared_mix', {
+      product_count: Array.isArray(sharedMix.products) ? sharedMix.products.length : 0,
+    });
+  };
+
+  // Android: a SprayCalc link tapped in another app (or used to cold-start the
+  // app) is delivered here rather than through the page URL. No-op on the web.
+  // Subscribed once, through a ref, so a deep link arriving mid-session still
+  // applies against current state without re-registering on every render.
+  const applySharedMixRef = useRef(applySharedMix);
+  applySharedMixRef.current = applySharedMix;
+  useEffect(() => onSharedMixLink(mix => applySharedMixRef.current(mix)), []);
+
+  // Android hardware/gesture back closes whatever is open, innermost first,
+  // and only leaves the app when nothing is. Registered in opening order:
+  // menus sit under the tour, which sits under the scan modal.
+  useBackHandler(showMixesMenu || showOverflowMenu, closeHeaderMenus);
+  useBackHandler(mixStorage.showSaveMixDialog, () => mixStorage.setShowSaveMixDialog(false));
+  useBackHandler(showTour, closeTour);
+  useBackHandler(scanModal !== null, () => setScanModal(null));
+
   // Load saved settings, mixes, and history on component mount.
   // If the URL carries a shared mix link (?m=...), apply it instead of the
   // last auto-saved settings, then strip the param so reloads don't re-apply.
   useEffect(() => {
     const sharedMix = readMixFromCurrentURL();
     if (sharedMix) {
-      state.applyMixData(sharedMix);
+      applySharedMix(sharedMix);
       clearMixParamFromURL();
-      state.setSettingsFeedback('Mix loaded from link');
-      setTimeout(() => state.setSettingsFeedback(''), 2500);
-      trackPageView('/?shared=1', 'Ag Spray Calculator — Shared Mix');
-      trackEvent('view_shared_mix', {
-        product_count: Array.isArray(sharedMix.products) ? sharedMix.products.length : 0,
-      });
     } else {
       state.loadSettings();
       trackPageView();

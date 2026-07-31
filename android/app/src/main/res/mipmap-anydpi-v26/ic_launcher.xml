@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Hand-maintained: `npx @capacitor/assets generate` rewrites this file with a
+    16.7% inset on both layers. That inset is wrong here — it pulls the solid
+    green background in from the edges, so the launcher mask exposes
+    transparent corners, and it shrinks the droplet to roughly half the size
+    Material's key lines call for. Both layers are full-bleed instead, with the
+    droplet already sized to the safe zone by scripts/generate-android-assets.js.
+    Re-apply this file after re-running the asset generator.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <!-- Android 13+ themed icons: the droplet silhouette, tinted by the OS. -->
+    <monochrome android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

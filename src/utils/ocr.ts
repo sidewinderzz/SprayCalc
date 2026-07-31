@@ -1,10 +1,24 @@
 import { ScannedProduct } from '../types';
+import { isNativeApp, publicAppUrl } from './platform';
 
-// In production (Netlify), route through a serverless function to avoid CORS.
-// In local dev, the Anthropic API allows requests from localhost directly.
-const OCR_ENDPOINT = import.meta.env.PROD
-  ? '/.netlify/functions/ocr'
-  : 'https://api.anthropic.com/v1/messages';
+const OCR_FUNCTION_PATH = '/.netlify/functions/ocr';
+
+// The serverless proxy is used everywhere except local web dev, where the
+// Anthropic API accepts browser requests from localhost directly.
+//
+// The Android shell is a production build, but its pages are served from
+// https://localhost — a relative path would resolve inside the app bundle and
+// 404 — so it targets the deployed function by absolute URL. (The function
+// already sends `Access-Control-Allow-Origin: *`, so the cross-origin call
+// from the shell is allowed.)
+function useProxy(): boolean {
+  return isNativeApp() || import.meta.env.PROD;
+}
+
+function ocrEndpoint(): string {
+  if (isNativeApp()) return `${publicAppUrl()}${OCR_FUNCTION_PATH}`;
+  return import.meta.env.PROD ? OCR_FUNCTION_PATH : 'https://api.anthropic.com/v1/messages';
+}
 
 const MODEL = 'claude-haiku-4-5';
 
@@ -50,7 +64,7 @@ export async function extractProductsFromImage(
   mimeType: string,
   apiKey: string
 ): Promise<OcrResult> {
-  const isProd = import.meta.env.PROD;
+  const isProd = useProxy();
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (!isProd) {
@@ -82,7 +96,7 @@ export async function extractProductsFromImage(
         ],
       });
 
-  const response = await fetch(OCR_ENDPOINT, { method: 'POST', headers, body });
+  const response = await fetch(ocrEndpoint(), { method: 'POST', headers, body });
 
   if (!response.ok) {
     const errText = await response.text().catch(() => `HTTP ${response.status}`);

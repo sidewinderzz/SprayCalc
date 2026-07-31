@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Overrides the placeholder indigo that ships with capacitor-android.
+    Values mirror `colors` in src/types.ts and the PWA manifest's theme_color.
+-->
+<resources>
+    <color name="colorPrimary">#498a5a</color>
+    <color name="colorPrimaryDark">#2d6840</color>
+    <color name="colorAccent">#498a5a</color>
+
+    <!-- The page background behind the WebView; keeps the status bar and any
+         overscroll matching the app's own white surface rather than flashing
+         black or indigo. -->
+    <color name="appBackground">#ffffff</color>
+</resources>

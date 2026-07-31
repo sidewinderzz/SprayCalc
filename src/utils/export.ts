@@ -11,6 +11,8 @@ import {
 } from './calculations';
 import { displayProductName } from './productName';
 import { buildMixLink } from './mixLink';
+import { isNativeApp } from './platform';
+import { savePdf } from './share';
 
 export interface ExportState {
   fillVolume: number;
@@ -711,7 +713,20 @@ export async function exportPDF(state: ExportState): Promise<void> {
     drawFooter(doc, qrDataUrl, link.tooLarge);
   }
 
-  doc.save(buildFilename(new Date()));
+  await deliverPdf(doc, buildFilename(new Date()));
+}
+
+// `doc.save()` triggers an anchor download, which the Android WebView ignores.
+// In the app the bytes go to the cache directory and then to the system share
+// sheet (save to Files, print, email, messaging); on the web nothing changes.
+async function deliverPdf(doc: jsPDF, filename: string): Promise<void> {
+  if (!isNativeApp()) {
+    doc.save(filename);
+    return;
+  }
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.slice(dataUri.indexOf('base64,') + 'base64,'.length);
+  await savePdf(base64, filename, 'SprayCalc Mix');
 }
 
 // Build a shareable payload for the share button — caller decides how to use

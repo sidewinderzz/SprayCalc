@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { initAnalytics } from './utils/analytics';
+import { isNativeApp } from './utils/platform';
+import { initNativeShell } from './utils/native';
 
 // Initialize GA early, but defer the first page_view to App.tsx so we can
 // emit a sanitized path that never includes the `?m=` shared-mix payload.
@@ -14,8 +16,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
-if (import.meta.env.PROD) {
-  // Production: register the PWA service worker for offline support.
+// Android shell: status bar, splash screen, hardware back button, deep links.
+// A no-op in the browser.
+initNativeShell();
+
+// Service worker handling is web-only. The Android shell already ships every
+// asset inside the APK, so a service worker buys it no offline capability —
+// it only risks pinning a stale bundle after an app update.
+if (isNativeApp()) {
+  // Nothing to register, nothing to clean up.
+} else if (import.meta.env.PROD) {
+  // Production web: register the PWA service worker for offline support.
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')

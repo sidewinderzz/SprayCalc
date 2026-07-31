@@ -1,0 +1,46 @@
+name: Android
+
+# Builds a debug APK and attaches it to the run, so a phone can be loaded
+# without anyone needing a local Android toolchain. Release/Play Store builds
+# are signed locally — see docs/android.md — since that needs the keystore.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      # Builds dist/ and copies it into android/. Skipping this would package
+      # whatever bundle happened to be committed last.
+      - name: Build web bundle and sync to Android
+        run: npm run android:sync
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spraycalc-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

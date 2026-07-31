@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SprayCalc green. Used directly as the adaptive icon's background layer
+         so it fills the full 108dp canvas under any launcher mask. -->
+    <color name="ic_launcher_background">#498a5a</color>
+</resources>
