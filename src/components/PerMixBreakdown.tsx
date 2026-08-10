@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, colors } from '../types';
-import { calculateAmount, calculateMixPlanning, formatOutput } from '../utils/calculations';
+import { buildFieldLoads, calculateAmount, formatOutput, mixLoadLabel } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 
 interface PerMixBreakdownProps {
@@ -12,60 +12,6 @@ interface PerMixBreakdownProps {
   splitMode: 'fullPlusPartial' | 'even';
 }
 
-interface MixGroup {
-  label: string;
-  volume: number;
-  acres: number;
-  count: number;
-  isPartial: boolean;
-}
-
-function buildGroups(
-  fieldSize: number,
-  applicationRate: number,
-  fillVolume: number,
-  splitMode: 'fullPlusPartial' | 'even'
-): MixGroup[] {
-  const planning = calculateMixPlanning(fieldSize, applicationRate, fillVolume);
-  if (!planning || planning.totalSprayNeeded <= 0) return [];
-
-  if (splitMode === 'fullPlusPartial') {
-    const groups: MixGroup[] = [];
-    if (planning.fullMixes > 0) {
-      groups.push({
-        label: `Full Mix × ${planning.fullMixes}`,
-        volume: fillVolume,
-        acres: fillVolume / applicationRate,
-        count: planning.fullMixes,
-        isPartial: false,
-      });
-    }
-    if (planning.hasPartialMix) {
-      groups.push({
-        label: 'Partial Mix × 1',
-        volume: planning.remainingSpray,
-        acres: planning.remainingAcres,
-        count: 1,
-        isPartial: true,
-      });
-    }
-    return groups;
-  }
-
-  const numTanks = Math.ceil(planning.totalSprayNeeded / fillVolume);
-  if (numTanks <= 0) return [];
-  const perTankVol = planning.totalSprayNeeded / numTanks;
-  return [
-    {
-      label: `Mix × ${numTanks}`,
-      volume: perTankVol,
-      acres: perTankVol / applicationRate,
-      count: numTanks,
-      isPartial: false,
-    },
-  ];
-}
-
 export function PerMixBreakdown({
   products,
   fillVolume,
@@ -75,7 +21,7 @@ export function PerMixBreakdown({
 }: PerMixBreakdownProps) {
   if (fieldSize <= 0 || fillVolume <= 0 || applicationRate <= 0) return null;
 
-  const groups = buildGroups(fieldSize, applicationRate, fillVolume, splitMode);
+  const groups = buildFieldLoads(fieldSize, applicationRate, fillVolume, splitMode);
   if (groups.length === 0) return null;
 
   const gridCols =
@@ -114,7 +60,7 @@ export function PerMixBreakdown({
                 <div className="w-1 rounded-full" style={{ backgroundColor: accent }} />
                 <div className="min-w-0">
                   <p className="font-bold text-sm" style={{ color: colors.primaryDark }}>
-                    {group.label}
+                    {mixLoadLabel(group)}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: `${colors.lightText}cc` }}>
                     {group.volume.toFixed(1)} gal · {group.acres.toFixed(2)} acres

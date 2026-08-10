@@ -91,6 +91,116 @@ export function calculateMixPlanning(
   };
 }
 
+// ─── Mix loads ─────────────────────────────────────────────────────────────
+// One entry per distinct tank load the operator will actually mix.
+//
+// Field Mix mode is acreage-driven: the loads are whatever it takes to finish
+// the field, so a job smaller than one tank is a single *partial* load, not a
+// full one. Tank Mix mode is capacity-driven: the load is the tank.
+//
+// This exists because product amounts used to be read straight off
+// `product.tankAmount`, which is always computed from full tank capacity. In
+// Field Mix mode that overstates the dose whenever the last (or only) load is
+// a partial — 172 ac at 1.5 fl oz/ac in a 500 gal tank showed 375 fl oz where
+// the 344 gal load needs 258, a 45% overdose. Every surface that shows a
+// per-load amount should derive it from these loads instead.
+
+export interface MixLoad {
+  /** Short name for the load, without the count ("Full Mix", "Partial Mix"). */
+  label: string;
+  /** How many identical loads of this kind. Never 0. */
+  count: number;
+  /** Spray volume in this single load, in gallons. */
+  volume: number;
+  /** Acres this single load covers. */
+  acres: number;
+  isPartial: boolean;
+}
+
+function fullTankLoad(fillVolume: number, applicationRate: number): MixLoad {
+  return {
+    label: 'Full Mix',
+    count: 1,
+    volume: fillVolume,
+    acres: applicationRate > 0 ? fillVolume / applicationRate : 0,
+    isPartial: false,
+  };
+}
+
+/**
+ * The loads needed to finish `fieldSize` acres. Returns [] when the inputs
+ * aren't complete enough to plan. A full-tank group is omitted entirely when
+ * the job doesn't fill a tank, so callers never render "Full Mix × 0".
+ */
+export function buildFieldLoads(
+  fieldSize: number,
+  applicationRate: number,
+  fillVolume: number,
+  splitMode: 'fullPlusPartial' | 'even'
+): MixLoad[] {
+  const planning = calculateMixPlanning(fieldSize, applicationRate, fillVolume);
+  if (!planning || planning.totalSprayNeeded <= 0) return [];
+
+  if (splitMode === 'even') {
+    const numTanks = Math.ceil(planning.totalSprayNeeded / fillVolume);
+    if (numTanks <= 0) return [];
+    const perTankVol = planning.totalSprayNeeded / numTanks;
+    return [
+      {
+        label: 'Mix',
+        count: numTanks,
+        volume: perTankVol,
+        acres: perTankVol / applicationRate,
+        // Even loads are all the same size; none is a leftover.
+        isPartial: false,
+      },
+    ];
+  }
+
+  const loads: MixLoad[] = [];
+  if (planning.fullMixes > 0) {
+    loads.push({
+      label: 'Full Mix',
+      count: planning.fullMixes,
+      volume: fillVolume,
+      acres: fillVolume / applicationRate,
+      isPartial: false,
+    });
+  }
+  if (planning.hasPartialMix) {
+    loads.push({
+      label: 'Partial Mix',
+      count: 1,
+      volume: planning.remainingSpray,
+      acres: planning.remainingAcres,
+      isPartial: true,
+    });
+  }
+  return loads;
+}
+
+/**
+ * The loads to display for the active tab. Tank Mix mode is always a single
+ * full tank. Field Mix mode plans against the acreage, falling back to the
+ * full tank only while the field inputs are still incomplete.
+ */
+export function buildMixLoads(
+  activeTab: 'tank' | 'field',
+  fieldSize: number,
+  applicationRate: number,
+  fillVolume: number,
+  splitMode: 'fullPlusPartial' | 'even'
+): MixLoad[] {
+  if (activeTab === 'tank') return [fullTankLoad(fillVolume, applicationRate)];
+  const loads = buildFieldLoads(fieldSize, applicationRate, fillVolume, splitMode);
+  return loads.length > 0 ? loads : [fullTankLoad(fillVolume, applicationRate)];
+}
+
+/** "Full Mix × 3" / "Partial Mix" — the count is dropped when it is 1. */
+export function mixLoadLabel(load: MixLoad): string {
+  return load.count > 1 ? `${load.label} × ${load.count}` : load.label;
+}
+
 // Returns true for units where the calculated amount is in weight oz (not fl oz).
 // Weight units: lb, weight oz, and g. "fl oz" is explicitly fluid.
 export function isWeightUnit(unit: string): boolean {

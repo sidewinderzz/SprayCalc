@@ -7,7 +7,13 @@ import React, {
   useEffect
 } from 'react';
 import { Product, colors, outputFormats } from '../types';
-import { formatOutputParts, isWeightUnit } from '../utils/calculations';
+import {
+  MixLoad,
+  calculateAmount,
+  formatOutputParts,
+  isWeightUnit,
+  mixLoadLabel,
+} from '../utils/calculations';
 
 // ─── Unit helpers ─────────────────────────────────────────────────────────────
 
@@ -253,6 +259,9 @@ interface ProductCardProps {
   onRemoveProduct: (id: number) => void;
   openFormatMenuId: number | null;
   onEnterFromLastField: () => void;
+  /** The tank loads actually being mixed — see buildMixLoads. */
+  loads: MixLoad[];
+  applicationRate: number;
 }
 
 export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
@@ -263,14 +272,28 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
   onSelectFormat,
   onRemoveProduct,
   openFormatMenuId,
-  onEnterFromLastField
+  onEnterFromLastField,
+  loads,
+  applicationRate
 }, ref) => {
   const nameRef = useRef<HTMLInputElement>(null);
   const rateRef = useRef<HTMLInputElement>(null);
   const showJugSelector = !isWeightUnit(product.unit);
   const jugSize = product.jugSize ?? 128;
-  const tankAmountParts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit, jugSize);
-  const hasTankAmount = product.tankAmount > 0;
+
+  // Amounts come from the loads actually being mixed, not from tank capacity.
+  // In Field Mix mode the last (or only) load is often a partial, and showing
+  // the full-tank dose there overstates the product by the difference.
+  const loadRows = loads.map(load => {
+    const amount = calculateAmount(product.rate, product.unit, load.volume, applicationRate);
+    return {
+      load,
+      amount,
+      parts: formatOutputParts(amount, product.outputFormat, product.unit, jugSize),
+    };
+  });
+  const hasTankAmount = loadRows.some(r => r.amount > 0);
+  const isSingleLoad = loadRows.length === 1;
 
   const scrollCenter = (el: HTMLElement | null) =>
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -399,31 +422,44 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
           aria-haspopup="listbox"
           aria-expanded={openFormatMenuId === product.id}
         >
-          <div className="flex flex-col min-w-0">
-            <span
-              className="text-[10px] uppercase tracking-wider font-semibold"
-              style={{ color: `${colors.primaryDark}99` }}
-            >
-              Amount for Tank
-            </span>
-            <span
-              className="font-bold leading-tight mt-0.5"
-              style={{
-                color: colors.primaryDark,
-                fontSize: '1.05rem',
-                opacity: hasTankAmount ? 1 : 0.55
-              }}
-            >
-              {tankAmountParts.primary}
-            </span>
-            {tankAmountParts.jugBreakdown && (
-              <span
-                className="text-xs leading-tight font-normal mt-1"
-                style={{ color: `${colors.primaryDark}aa` }}
-              >
-                {tankAmountParts.jugBreakdown}
-              </span>
-            )}
+          <div className="flex flex-col min-w-0 gap-2">
+            {loadRows.map(({ load, parts }, i) => (
+              <div key={i} className="flex flex-col min-w-0">
+                <span
+                  className="text-[10px] uppercase tracking-wider font-semibold"
+                  style={{ color: `${colors.primaryDark}99` }}
+                >
+                  {isSingleLoad && !load.isPartial
+                    ? 'Amount for Tank'
+                    : `Amount for ${mixLoadLabel(load)}`}
+                  {load.volume > 0 && (
+                    <span className="normal-case font-normal opacity-75">
+                      {' '}· {load.volume.toFixed(1)} gal
+                      {load.acres > 0 ? ` · ${load.acres.toFixed(1)} ac` : ''}
+                      {load.count > 1 ? ' each' : ''}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className="font-bold leading-tight mt-0.5"
+                  style={{
+                    color: colors.primaryDark,
+                    fontSize: '1.05rem',
+                    opacity: hasTankAmount ? 1 : 0.55
+                  }}
+                >
+                  {parts.primary}
+                </span>
+                {parts.jugBreakdown && (
+                  <span
+                    className="text-xs leading-tight font-normal mt-1"
+                    style={{ color: `${colors.primaryDark}aa` }}
+                  >
+                    {parts.jugBreakdown}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
           <span
             className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md transition-colors"

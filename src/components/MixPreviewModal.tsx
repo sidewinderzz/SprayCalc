@@ -167,22 +167,36 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
             )}
           </Card>
 
-          {/* Full tank mix */}
-          <SectionHeader title={isEven && mixPlanning ? `Full Mix (${numEvenTanks} × ${evenTankVol.toFixed(1)} gal, ${evenTankAcres.toFixed(2)} ac)` : 'Full Tank Mix'} />
-          <Card>
-            {products.map((product, idx) => {
-              const amt = isEven && evenTankVol
-                ? calculateAmount(product.rate, product.unit, evenTankVol, applicationRate)
-                : product.tankAmount;
-              return (
-                <Row
-                  key={idx}
-                  label={displayProductName(product.name, idx)}
-                  value={formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}
-                />
-              );
-            })}
-          </Card>
+          {/* Full tank mix. Skipped entirely when the job needs no full tank —
+              showing a full-tank dose for a job that never fills one is how a
+              172 ac / 344 gal load ended up reading as 375 fl oz. */}
+          {!(mixPlanning && !isEven && mixPlanning.fullMixes === 0) && (
+            <>
+              <SectionHeader
+                title={
+                  isEven && mixPlanning
+                    ? `Full Mix (${numEvenTanks} × ${evenTankVol.toFixed(1)} gal, ${evenTankAcres.toFixed(2)} ac)`
+                    : mixPlanning && mixPlanning.fullMixes > 1
+                      ? `Full Tank Mix (× ${mixPlanning.fullMixes})`
+                      : 'Full Tank Mix'
+                }
+              />
+              <Card>
+                {products.map((product, idx) => {
+                  const amt = isEven && evenTankVol
+                    ? calculateAmount(product.rate, product.unit, evenTankVol, applicationRate)
+                    : product.tankAmount;
+                  return (
+                    <Row
+                      key={idx}
+                      label={displayProductName(product.name, idx)}
+                      value={formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}
+                    />
+                  );
+                })}
+              </Card>
+            </>
+          )}
 
           {/* Partial mix (fullPlusPartial mode only) */}
           {!isEven && mixPlanning?.hasPartialMix && (

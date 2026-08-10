@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Product, colors } from '../types';
+import { MixLoad } from '../utils/calculations';
 import { ProductCard, ProductCardHandle } from './ProductCard';
 
 const HINT_KEY = 'agSprayCalcEnterHintDismissed';
@@ -57,6 +58,9 @@ interface ProductsSectionProps {
   pendingFocusId: number | null;
   onClearPendingFocusId: () => void;
   scanButton?: React.ReactNode;
+  /** Tank loads actually being mixed — see buildMixLoads. */
+  loads: MixLoad[];
+  applicationRate: number;
 }
 
 export function ProductsSection({
@@ -70,6 +74,8 @@ export function ProductsSection({
   pendingFocusId,
   onClearPendingFocusId,
   scanButton,
+  loads,
+  applicationRate,
 }: ProductsSectionProps) {
   const cardRefs = useRef<Map<number, ProductCardHandle>>(new Map());
 
@@ -124,6 +130,8 @@ export function ProductsSection({
             onRemoveProduct={onRemoveProduct}
             openFormatMenuId={openFormatMenuId}
             onEnterFromLastField={() => handleEnterFromCard(product.id)}
+            loads={loads}
+            applicationRate={applicationRate}
           />
         ))}
       </div>
