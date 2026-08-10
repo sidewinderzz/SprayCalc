@@ -48,11 +48,19 @@ Optional Google Analytics 4 integration in `src/utils/analytics.ts`.
   - `share_mix` when the share button is used (records `method`).
   - `export_pdf` when the PDF is exported.
 
-## Google Sign-In & Cloud Mix Sync (Firebase)
-Optional Firebase integration lets users sign in with Google and sync their
-saved mixes to Firestore (`users/{uid}/mixes/{mixName}`). The app works fully
+## Google Sign-In & Cloud Sync (Firebase)
+Optional Firebase integration lets users sign in with Google and sync both
+their saved mixes and their Claude API key to Firestore. The app works fully
 offline/localStorage-only when Firebase is not configured — the sign-in UI is
 simply hidden.
+
+Documents written, all under the signed-in user's own subtree:
+
+| Path | Contents |
+| --- | --- |
+| `users/{uid}/mixes/{mixId}` | One saved mix (`name`, `data`, `updatedAt`) |
+| `users/{uid}/settings/claudeApiKey` | Scan Recommendations key (`key`, `scanEnabled`, `updatedAt`) |
+| `users/{uid}/diagnostics/probe` | Transient write/read probe, deleted immediately |
 
 Setup:
 1. Create a project at https://console.firebase.google.com (free Spark plan —
@@ -61,23 +69,52 @@ Setup:
 2. Add a Web app, enable **Authentication → Sign-in method → Google**, and
    create a **Firestore database** (production mode).
 3. Add your deployed domain under Authentication → Settings → Authorized domains.
-4. Set Firestore security rules so users can only read/write their own mixes:
+4. **Publish the security rules.** They live in `firestore.rules` at the repo
+   root — this is the single most common reason cloud sync silently does
+   nothing, because a production-mode database denies every read and write
+   until they are published.
    ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /users/{uid}/mixes/{mixId} {
-         allow read, write: if request.auth != null && request.auth.uid == uid;
-       }
-     }
-   }
+   npx firebase-tools login          # once
+   npx firebase-tools use <project>  # once
+   npm run deploy:rules
    ```
-5. Set the `VITE_FIREBASE_*` env vars (see `.env.example`) at build time.
+   Or paste `firestore.rules` into Firebase Console → Firestore Database →
+   Rules → Publish. Do not hand-write a subset: the rules must cover
+   `settings/{docId}` as well as `mixes/{mixId}`, or the API key will appear to
+   save while never leaving the browser.
+5. Set the `VITE_FIREBASE_*` env vars (see `.env.example`) at build time. On
+   Netlify these go in Site settings → Environment variables; they are read at
+   build time, so a change needs a redeploy to take effect.
 
-Sync behavior: saved mixes always write to localStorage; when signed in they
-also write to Firestore. On sign-in, cloud and local mixes are merged by name
-(newest `updatedAt` wins; ties go to the cloud copy) and local-only mixes are
-uploaded.
+Sync behavior: saves always write to localStorage first, so the app keeps
+working offline and in the field. When signed in they also write to Firestore
+and the UI waits for the server to acknowledge the write before reporting
+success. On sign-in, cloud and local mixes are merged by name (newest
+`updatedAt` wins; ties go to the cloud copy) and local-only mixes are uploaded.
+The API key reconciles in both directions on sign-in, so a key entered before
+signing in gets uploaded rather than stranded on one device.
+
+Any write that fails is placed in a per-user retry queue in localStorage
+(`scPendingCloudWrites:{uid}`) and retried on reconnect, on the next sign-in,
+and on the next page load. Nothing is dropped silently.
+
+### Troubleshooting cloud sync
+Open the ⋮ menu → the account row shows a live sync status, and **Check** runs
+an end-to-end write/read/delete probe against Firestore and reports the exact
+error code.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `permission-denied` | Rules not published, or published without the `settings` match | `npm run deploy:rules` |
+| `not-found` | No Firestore database created in the project | Create one in the Firebase Console |
+| `unauthenticated` | Auth token expired | Sign out and back in |
+| `timeout` / `unavailable` | No connectivity, or a network blocking Firestore's WebChannel | Writes stay queued and retry automatically |
+| "Cloud sync not configured" | `VITE_FIREBASE_*` env vars missing at build time | Set them and redeploy |
+
+Note: the Claude API key is stored in plaintext in Firestore, readable only by
+its owner under these rules. That is the same trust model as keeping it in
+localStorage, but if a key is ever exposed, revoke it at
+https://console.anthropic.com/keys.
 
 ## Deployment
 Configured for static deployment using the `dist` directory after building.

@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { SavedMix, MixData, MixHistoryEntry, colors } from '../types';
 import { formatRelativeTime } from '../utils/relativeTime';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { CloudSyncStatus } from './CloudSyncStatus';
+import type { DiagnosticsResult, SyncStatus } from '../utils/cloudSync';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -35,6 +37,10 @@ interface HeaderProps {
   authUser: { displayName: string | null; email: string | null; photoURL: string | null } | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  syncStatus: SyncStatus;
+  diagnostics: DiagnosticsResult | null;
+  onRunDiagnostics: () => void;
+  runningDiagnostics: boolean;
   // Scan Recommendations (Claude API key)
   apiKey: string;
   scanEnabled: boolean;
@@ -76,6 +82,10 @@ export function Header({
   authUser,
   onSignIn,
   onSignOut,
+  syncStatus,
+  diagnostics,
+  onRunDiagnostics,
+  runningDiagnostics,
   apiKey,
   scanEnabled,
   setScanEnabled,
@@ -296,7 +306,7 @@ export function Header({
                               {authUser.displayName || authUser.email}
                             </p>
                             <p className="text-xs truncate" style={{ color: colors.lightText + '80' }}>
-                              Mixes sync to your account
+                              {authUser.email && authUser.displayName ? authUser.email : 'Signed in'}
                             </p>
                           </div>
                           <button
@@ -331,6 +341,12 @@ export function Header({
                           </span>
                         </button>
                       )}
+                      <CloudSyncStatus
+                        status={syncStatus}
+                        diagnostics={diagnostics}
+                        onRunDiagnostics={onRunDiagnostics}
+                        running={runningDiagnostics}
+                      />
                       <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
                     </>
                   )}
@@ -570,6 +586,14 @@ export function Header({
                             Remove
                           </button>
                         </div>
+                        {/* The key used to save to localStorage only unless you
+                            happened to be signed in at that exact moment, so it
+                            vanished with the browser cache. Say where it lives. */}
+                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '70' }}>
+                          {authUser
+                            ? 'Backed up to your account — restores on any device you sign in to.'
+                            : 'Stored on this device only. Sign in to back it up to your account.'}
+                        </p>
                         <label className="flex items-center gap-2 cursor-pointer select-none">
                           <button
                             role="switch"
