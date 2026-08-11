@@ -1,44 +1,26 @@
 import { SavedMix, MixData } from '../types';
-import { getDb } from './firebase';
-
-// ─── Firestore security rules ──────────────────────────────────────────────
-// Add these rules in the Firebase Console → Firestore Database → Rules.
-// They allow each signed-in user to read/write only their own data.
-//
-//   rules_version = '2';
-//   service cloud.firestore {
-//     match /databases/{database}/documents {
-//       match /users/{uid}/mixes/{mixId} {
-//         allow read, write: if request.auth != null && request.auth.uid == uid;
-//       }
-//       // Required for the Scan Recommendations (Claude API key) feature:
-//       match /users/{uid}/settings/{docId} {
-//         allow read, write: if request.auth != null && request.auth.uid == uid;
-//       }
-//     }
-//   }
-// ───────────────────────────────────────────────────────────────────────────
+import {
+  performWrite,
+  requireFirestore,
+  safeDocId,
+  sanitizeForFirestore,
+  withTimeout,
+} from './cloudSync';
 
 // Saved mixes live at users/{uid}/mixes/{docId}. The mix name doubles as the
-// document id (URI-encoded so names with slashes or other reserved characters
-// are valid Firestore ids).
-function mixDocId(name: string): string {
-  return encodeURIComponent(name);
-}
+// document id (see safeDocId).
+//
+// Security rules for this path live in firestore.rules at the repo root and
+// must be published (`npm run deploy:rules`) before any of this works — an
+// unpublished ruleset rejects every write with `permission-denied`.
 
-// Firestore is loaded on demand so it stays out of the main bundle.
-async function getFirestoreDeps() {
-  const db = await getDb();
-  if (!db) return null;
-  const fs = await import('firebase/firestore');
-  return { db, fs };
+function mixPath(uid: string, name: string): string[] {
+  return ['users', uid, 'mixes', safeDocId(name)];
 }
 
 export async function fetchCloudMixes(uid: string): Promise<SavedMix[]> {
-  const deps = await getFirestoreDeps();
-  if (!deps) return [];
-  const { db, fs } = deps;
-  const snap = await fs.getDocs(fs.collection(db, 'users', uid, 'mixes'));
+  const { db, fs } = await requireFirestore();
+  const snap = await withTimeout(fs.getDocs(fs.collection(db, 'users', uid, 'mixes')));
   const mixes: SavedMix[] = [];
   snap.forEach(d => {
     const raw = d.data() as { name?: string; data?: MixData; updatedAt?: number };
@@ -49,20 +31,28 @@ export async function fetchCloudMixes(uid: string): Promise<SavedMix[]> {
   return mixes;
 }
 
+/**
+ * Uploads a mix and waits for the server to acknowledge it. Rejects (after
+ * queueing the write for retry) if the write does not land, so callers can
+ * tell the user rather than assuming success.
+ */
 export async function uploadCloudMix(uid: string, mix: SavedMix): Promise<void> {
-  const deps = await getFirestoreDeps();
-  if (!deps) return;
-  const { db, fs } = deps;
-  await fs.setDoc(fs.doc(db, 'users', uid, 'mixes', mixDocId(mix.name)), {
-    name: mix.name,
-    data: mix.data,
-    updatedAt: mix.updatedAt ?? Date.now(),
+  await performWrite(uid, {
+    type: 'doc.set',
+    path: mixPath(uid, mix.name),
+    data: sanitizeForFirestore({
+      name: mix.name,
+      data: mix.data,
+      updatedAt: mix.updatedAt ?? Date.now(),
+    }),
+    queuedAt: Date.now(),
   });
 }
 
 export async function deleteCloudMix(uid: string, name: string): Promise<void> {
-  const deps = await getFirestoreDeps();
-  if (!deps) return;
-  const { db, fs } = deps;
-  await fs.deleteDoc(fs.doc(db, 'users', uid, 'mixes', mixDocId(name)));
+  await performWrite(uid, {
+    type: 'doc.delete',
+    path: mixPath(uid, name),
+    queuedAt: Date.now(),
+  });
 }

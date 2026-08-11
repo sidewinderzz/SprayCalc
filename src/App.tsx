@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useMixStorage } from './hooks/useMixStorage';
 import { useMixHistory } from './hooks/useMixHistory';
 import { useApiKey } from './hooks/useApiKey';
+import { useCloudSyncStatus } from './hooks/useCloudSyncStatus';
 import { Header } from './components/Header';
 import { SettingsToast } from './components/SettingsToast';
 import { TipsSection } from './components/TipsSection';
@@ -41,7 +42,8 @@ const AgSprayCalculator = () => {
   };
 
   const auth = useAuth(state.setSettingsFeedback);
-  const apiKeyState = useApiKey(auth.user);
+  const apiKeyState = useApiKey(auth.user, state.setSettingsFeedback);
+  const cloudSync = useCloudSyncStatus(auth.user);
 
   const [scanModal, setScanModal] = React.useState<{ imageBase64: string; mimeType: string } | null>(null);
 
@@ -185,7 +187,7 @@ const AgSprayCalculator = () => {
         application_rate: data.applicationRate,
       });
     }
-    mixStorage.saveMix(getCurrentMixData);
+    void mixStorage.saveMix(getCurrentMixData);
   };
 
   // Fire a debounced `calculate_mix` event after the user has settled on inputs
@@ -252,6 +254,10 @@ const AgSprayCalculator = () => {
           authUser={auth.user}
           onSignIn={auth.signInWithGoogle}
           onSignOut={auth.signOutUser}
+          syncStatus={cloudSync.status}
+          diagnostics={cloudSync.diagnostics}
+          onRunDiagnostics={cloudSync.runDiagnostics}
+          runningDiagnostics={cloudSync.runningDiagnostics}
           apiKey={apiKeyState.apiKey}
           scanEnabled={apiKeyState.scanEnabled}
           setScanEnabled={apiKeyState.setScanEnabled}

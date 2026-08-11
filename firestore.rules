@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Ag Spray Calculator — Firestore security rules.
+//
+// Deploy with:  npm run deploy:rules
+// (or paste into Firebase Console → Firestore Database → Rules → Publish)
+//
+// Every document the app writes lives under users/{uid}/…, and a signed-in
+// user may only touch their own subtree. A Firestore database created in
+// "production mode" denies everything until these rules are published — which
+// makes saves fail with `permission-denied` and silently never reach the
+// database. If cloud sync is not working, publishing this file is the first
+// thing to check.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Saved mixes: users/{uid}/mixes/{mixId}
+    match /users/{uid}/mixes/{mixId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // App settings, including the Claude API key used by Scan
+    // Recommendations: users/{uid}/settings/{docId}
+    //
+    // This match is REQUIRED for the API key to persist across devices and
+    // browser-cache clears. Omitting it is silent: the key still saves to
+    // localStorage, so it appears to work until the cache is cleared.
+    match /users/{uid}/settings/{docId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Connectivity probe written by the in-app cloud diagnostics
+    // (Header → Cloud sync → "Run diagnostics"). Tiny, self-owned, and
+    // deleted immediately after the check.
+    match /users/{uid}/diagnostics/{docId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Anything not matched above is denied.
+  }
+}
