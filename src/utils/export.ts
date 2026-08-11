@@ -2,12 +2,14 @@ import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { MixData, Product } from '../types';
 import {
+  buildFieldLoads,
   calculateFieldAmount,
   calculateMixPlanning,
   formatOutput,
   formatPurchaseAmount,
   calculateAmount,
   isWeightUnit,
+  mixLoadLabel,
 } from './calculations';
 import { displayProductName } from './productName';
 import { buildMixLink } from './mixLink';
@@ -47,10 +49,28 @@ export function generateSummaryText(state: ExportState): string {
   text += `Application Rate: ${applicationRate} GPA\n`;
   text += `Acres Per Fill: ${acresPerFill.toFixed(2)}\n\n`;
 
-  text += `PRODUCTS TO ADD PER MIX:\n`;
-  products.forEach((product, idx) => {
-    text += `${displayProductName(product.name, idx)}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
-  });
+  // One block per load actually being mixed. Reading product.tankAmount here
+  // would always report a full tank, which is wrong whenever the job ends on
+  // a partial — and flatly wrong when the whole job is smaller than one tank.
+  const loads = fieldSize
+    ? buildFieldLoads(fieldSize, applicationRate, fillVolume, splitMode)
+    : [];
+
+  if (loads.length === 0) {
+    text += `PRODUCTS TO ADD PER MIX:\n`;
+    products.forEach((product, idx) => {
+      text += `${displayProductName(product.name, idx)}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+    });
+  } else {
+    loads.forEach(load => {
+      text += `PRODUCTS TO ADD — ${mixLoadLabel(load).toUpperCase()} (${load.volume.toFixed(1)} gal · ${load.acres.toFixed(2)} ac${load.count > 1 ? ' each' : ''}):\n`;
+      products.forEach((product, idx) => {
+        const amt = calculateAmount(product.rate, product.unit, load.volume, applicationRate);
+        text += `${displayProductName(product.name, idx)}: ${formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+      });
+      text += `\n`;
+    });
+  }
 
   if (fieldSize) {
     const mixPlanning = calculateMixPlanning(fieldSize, applicationRate, fillVolume);
@@ -64,25 +84,10 @@ export function generateSummaryText(state: ExportState): string {
         const perTankVol = mixPlanning.totalSprayNeeded / numTanks;
         const perTankAcres = perTankVol / applicationRate;
         text += `Even Loads: ${numTanks} × ${perTankVol.toFixed(1)} gallons (${perTankAcres.toFixed(2)} acres each)\n`;
-        text += `\nPRODUCTS PER EVEN MIX:\n`;
-        products.forEach((product, idx) => {
-          const amt = calculateAmount(product.rate, product.unit, perTankVol, applicationRate);
-          text += `${displayProductName(product.name, idx)}: ${formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
-        });
       } else {
         text += `Full Mixes Needed: ${mixPlanning.fullMixes}\n`;
         if (mixPlanning.hasPartialMix) {
           text += `Partial Mix: ${mixPlanning.remainingSpray.toFixed(1)} gallons for ${mixPlanning.remainingAcres.toFixed(2)} acres\n`;
-          text += `\nPRODUCTS FOR PARTIAL MIX:\n`;
-          products.forEach((product, idx) => {
-            const partialAmount = calculateAmount(
-              product.rate,
-              product.unit,
-              mixPlanning.remainingSpray,
-              applicationRate
-            );
-            text += `${displayProductName(product.name, idx)}: ${formatOutput(partialAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
-          });
         }
       }
     }

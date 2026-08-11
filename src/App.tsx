@@ -21,7 +21,7 @@ import { FieldOperationsSection } from './components/FieldOperationsSection';
 import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 import { trackEvent, trackPageView } from './utils/analytics';
-import { calculateAmount } from './utils/calculations';
+import { buildMixLoads, calculateAmount } from './utils/calculations';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 
@@ -149,6 +149,17 @@ const AgSprayCalculator = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMixesMenu, showOverflowMenu]);
+
+  // The tank loads the operator will actually mix. Field Mix mode plans these
+  // from the acreage, so a job that doesn't fill a tank is a single partial
+  // load rather than a hypothetical full one.
+  const mixLoads = buildMixLoads(
+    state.activeTab,
+    state.fieldSize,
+    state.applicationRate,
+    state.fillVolume,
+    state.activeTab === 'field' ? state.splitMode : 'fullPlusPartial'
+  );
 
   const getCurrentMixData = () => ({
     fillVolume: state.fillVolume,
@@ -280,6 +291,8 @@ const AgSprayCalculator = () => {
         )}
 
         <ProductsSection
+          loads={mixLoads}
+          applicationRate={state.applicationRate}
           products={state.products}
           onProductChange={state.handleProductChange}
           onToggleFormatMenu={state.toggleFormatMenu}

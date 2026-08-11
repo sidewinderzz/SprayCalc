@@ -66,10 +66,11 @@ export function FieldMixSettings({
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
+          <label htmlFor="field-total-acres" className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
             Total Acres
           </label>
           <input
+            id="field-total-acres"
             type="number"
             inputMode="decimal"
             value={fieldSize || ''}
@@ -81,10 +82,11 @@ export function FieldMixSettings({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
+          <label htmlFor="field-app-rate" className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
             Application Rate (GPA)
           </label>
           <input
+            id="field-app-rate"
             type="number"
             inputMode="decimal"
             value={applicationRate || ''}
@@ -96,10 +98,11 @@ export function FieldMixSettings({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
+          <label htmlFor="field-tank-capacity" className="block text-sm font-medium mb-1" style={{ color: colors.lightText }}>
             Tank Capacity (gallons)
           </label>
           <input
+            id="field-tank-capacity"
             type="number"
             inputMode="decimal"
             value={fillVolume || ''}
