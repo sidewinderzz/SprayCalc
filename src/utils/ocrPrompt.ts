@@ -11,16 +11,10 @@
 // parenthesised ACTIVE INGREDIENT lines as if they were products, inventing
 // chemicals that were never in the tank.
 
-// Scan accuracy matters more than per-call cost here: a misread rate or an
-// invented chemical goes into a real spray tank. Change this one constant to
-// trade accuracy for cost.
-const MODEL = 'claude-opus-5';
+export const MODEL = 'claude-opus-5';
+export const MAX_TOKENS = 8000;
 
-// Thinking is on by default on this model and shares the max_tokens budget with
-// the response, so this ceiling covers both. Too low truncates mid-answer.
-const MAX_TOKENS = 8000;
-
-const SYSTEM_PROMPT = `You are extracting the tank-mix products from a photographed agricultural spray recommendation — a Helena "Product Use Recommendation", a PCA rec, or a similar dealer form.
+export const SYSTEM_PROMPT = `You are extracting the tank-mix products from a photographed agricultural spray recommendation — a Helena "Product Use Recommendation", a PCA rec, or a similar dealer form.
 
 Return ONLY a JSON object matching the schema. No markdown fences, no commentary.
 
@@ -82,10 +76,7 @@ Count the rows in the product table, then emit exactly that many entries, in the
 Every entry must come from a printed row that has its own Rate value. If a row's rate is unreadable, omit that row rather than guessing.
 Never invent a product, and never add one that appears only as an active ingredient, a manufacturer, or a field name.`;
 
-// Structured outputs constrain the reply to this schema, so the unit enum is
-// enforced by the API rather than hoped for. A unit outside this list would
-// render as a blank dropdown in the review modal.
-const RESPONSE_SCHEMA = {
+export const RESPONSE_SCHEMA = {
   "type": "object",
   "properties": {
     "products": {
@@ -148,92 +139,5 @@ const RESPONSE_SCHEMA = {
   "additionalProperties": false
 };
 
-const USER_TEXT =
+export const USER_TEXT =
   'Extract the tank-mix products and their application rates from this recommendation form, plus the spray volume (GPA) if it is shown. Read only the product table.';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function respond(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  };
-}
-
-exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS, body: '' };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return respond(405, { error: 'Method not allowed' });
-  }
-
-  let imageBase64, mimeType, apiKey;
-  try {
-    ({ imageBase64, mimeType, apiKey } = JSON.parse(event.body || '{}'));
-  } catch (e) {
-    return respond(400, { error: 'Invalid JSON body' });
-  }
-
-  if (!apiKey || !imageBase64 || !mimeType) {
-    return respond(400, { error: 'Missing required fields: imageBase64, mimeType, apiKey' });
-  }
-
-  let upstream;
-  try {
-    upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        output_config: {
-          effort: 'medium',
-          format: { type: 'json_schema', schema: RESPONSE_SCHEMA },
-        },
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: mimeType, data: imageBase64 },
-              },
-              { type: 'text', text: USER_TEXT },
-            ],
-          },
-        ],
-      }),
-    });
-  } catch (e) {
-    console.error('Fetch to Anthropic failed:', e);
-    return respond(502, { error: 'Could not reach Anthropic API', detail: String(e) });
-  }
-
-  let data;
-  const contentType = upstream.headers.get('content-type') || '';
-  try {
-    if (contentType.includes('application/json')) {
-      data = await upstream.json();
-    } else {
-      const text = await upstream.text();
-      try { data = JSON.parse(text); } catch { data = { error: text }; }
-    }
-  } catch (e) {
-    console.error('Failed to read Anthropic response:', e);
-    return respond(502, { error: 'Unreadable response from Anthropic API' });
-  }
-
-  return respond(upstream.status, data);
-};

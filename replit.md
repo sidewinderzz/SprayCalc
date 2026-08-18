@@ -116,5 +116,31 @@ its owner under these rules. That is the same trust model as keeping it in
 localStorage, but if a key is ever exposed, revoke it at
 https://console.anthropic.com/keys.
 
+## Scan Recommendations (OCR)
+Photograph or upload a dealer spray rec and the products, rates, and spray
+volume are extracted into the calculator. Uses the user's own Claude API key.
+
+- The request runs through `netlify/functions/ocr.js` in production (avoids
+  CORS); `npm run dev` calls the Anthropic API directly from the browser using
+  the copy in `src/utils/ocrPrompt.ts`.
+- **The prompt text is duplicated across those two files on purpose** — the
+  package is `"type": "module"` while the Netlify function is CommonJS, so
+  neither can cleanly import the other. `npm run check:ocr-prompt` fails if
+  they drift, and prints the first differing line.
+- The reply is constrained by a JSON schema (`output_config.format`), so the
+  unit field can only be one of the app's own `unitOptions` — a unit outside
+  that list would render as a blank dropdown in the review modal.
+- Rows that still fail validation (missing name, non-positive rate, unknown
+  unit) are dropped and counted; the review modal tells the user how many, so a
+  skipped product is visible rather than silent.
+- Model and token ceiling are single constants at the top of each file. Scan
+  accuracy is safety-relevant — a misread rate goes into a real tank — so this
+  runs on a stronger model than the rest of the app needs. Lower it there if
+  per-scan cost matters more than accuracy.
+
+Every scan lands in an editable review sheet before anything is applied to the
+calculator. Treat that sheet as the last line of defence and always check it
+against the printed rec.
+
 ## Deployment
 Configured for static deployment using the `dist` directory after building.

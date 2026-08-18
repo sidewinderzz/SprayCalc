@@ -25,6 +25,9 @@ export function ScanReviewModal({
   const [products, setProducts] = useState<ScannedProduct[]>([]);
   const [sprayVolume, setSprayVolume] = useState<number | undefined>(undefined);
   const [applySprayVolume, setApplySprayVolume] = useState(true);
+  // Rows the scan returned that failed validation. Surfaced rather than
+  // dropped silently — a missing product is as dangerous as an extra one.
+  const [discarded, setDiscarded] = useState(0);
 
   const [totalPages, setTotalPages] = useState<number>(1);
   const [selectedPage, setSelectedPage] = useState<number>(1);
@@ -63,6 +66,7 @@ export function ScanReviewModal({
   const run = async (page?: number) => {
     setStatus('loading');
     setErrorMsg('');
+    setDiscarded(0);
     try {
       let base64: string;
       let mime: string;
@@ -86,6 +90,7 @@ export function ScanReviewModal({
         setProducts(result.products);
         setSprayVolume(result.sprayVolume);
         setApplySprayVolume(result.sprayVolume !== undefined);
+        setDiscarded(result.discarded);
         setStatus('success');
       }
     } catch (e: any) {
@@ -274,6 +279,17 @@ export function ScanReviewModal({
               >
                 Try again
               </button>
+            </div>
+          )}
+
+          {status === 'success' && discarded > 0 && (
+            <div
+              className="mb-3 px-3 py-2 rounded-lg text-xs leading-relaxed"
+              style={{ backgroundColor: `${colors.secondary}25`, color: colors.secondaryDark }}
+            >
+              {discarded} row{discarded === 1 ? '' : 's'} could not be read reliably and{' '}
+              {discarded === 1 ? 'was' : 'were'} left out. Check the printed rec and add{' '}
+              {discarded === 1 ? 'it' : 'them'} by hand if needed.
             </div>
           )}
 
