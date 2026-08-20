@@ -232,7 +232,7 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
             onBlur={handleCustomCommit}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomCommit(); } }}
             autoFocus
-            className="w-24 px-2 py-1 border rounded-lg text-xs font-medium text-gray-800 focus:outline-none focus:ring-2"
+            className="w-24 px-2 py-1 border rounded-lg text-base font-medium text-gray-800 focus:outline-none focus:ring-2"
             style={{ borderColor: `${colors.primary}1f`, backgroundColor: `${colors.primary}06` }}
           />
           <span className="text-xs" style={{ color: `${colors.lightText}80` }}>gal</span>
@@ -335,7 +335,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                 scrollCenter(rateRef.current);
               }
             }}
-            className="flex-1 min-w-0 px-2.5 py-1.5 border rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2"
+            className="flex-1 min-w-0 px-2.5 py-1.5 border rounded-lg text-base font-semibold text-gray-800 focus:outline-none focus:ring-2"
             style={inputBaseStyle}
             placeholder={`Product ${index + 1}`}
           />
@@ -369,7 +369,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                     onEnterFromLastField();
                   }
                 }}
-                className="w-full px-2.5 py-1.5 border rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:ring-2"
+                className="w-full px-2.5 py-1.5 border rounded-lg text-base font-medium text-gray-800 focus:outline-none focus:ring-2"
                 style={inputBaseStyle}
                 min="0"
                 step="0.01"
