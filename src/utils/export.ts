@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
-import { MixData, Product } from '../types';
+import { MixData, MixSplit, Product } from '../types';
 import {
   buildFieldLoads,
   calculateFieldAmount,
@@ -13,6 +13,7 @@ import {
 } from './calculations';
 import { displayProductName } from './productName';
 import { buildMixLink } from './mixLink';
+import { buildCostSplit, costSplitText } from './costSplit';
 
 export interface ExportState {
   fillVolume: number;
@@ -25,6 +26,8 @@ export interface ExportState {
   products: Product[];
   splitMode: 'fullPlusPartial' | 'even';
   currentTime: Date;
+  /** Parties sharing this load, for the cost-split breakdown. */
+  splits?: MixSplit[];
 }
 
 // Generate summary text for clipboard / share
@@ -39,7 +42,8 @@ export function generateSummaryText(state: ExportState): string {
     fillTime,
     products,
     splitMode,
-    currentTime
+    currentTime,
+    splits
   } = state;
 
   let text = `AG SPRAY MIX CALCULATOR SUMMARY\n`;
@@ -101,6 +105,11 @@ export function generateSummaryText(state: ExportState): string {
         text += `  Suggested: ${purchaseInfo.containers[0].display}\n`;
       }
     });
+  }
+
+  const costSplit = buildCostSplit(products, splits, applicationRate);
+  if (costSplit) {
+    text += costSplitText(costSplit);
   }
 
   if (fieldSize && implementWidth && speed) {
@@ -179,6 +188,7 @@ export function exportStateToMixData(state: ExportState): MixData {
     speed: state.speed,
     fillTime: state.fillTime,
     splitMode: state.splitMode,
+    splits: state.splits,
   };
 }
 
@@ -481,6 +491,150 @@ function drawNoPartialNote(
   return y + h;
 }
 
+/**
+ * Shrink `text` until it fits `maxW`, down to `minSize`; ellipsize if even
+ * that is too wide. Returns the size to draw at, so the caller can set it.
+ * The cost-split table has a column per party, so four parties leave ~28mm
+ * for strings like "3 gal 116.0 fl oz" — without this they overprint the
+ * neighbouring column and the sheet becomes unreadable.
+ */
+function fitText(
+  doc: jsPDF,
+  text: string,
+  maxW: number,
+  maxSize: number,
+  minSize: number,
+): { text: string; size: number } {
+  for (let size = maxSize; size >= minSize; size -= 0.5) {
+    doc.setFontSize(size);
+    if (doc.getTextWidth(text) <= maxW) return { text, size };
+  }
+  doc.setFontSize(minSize);
+  let clipped = text;
+  while (clipped.length > 1 && doc.getTextWidth(`${clipped}…`) > maxW) {
+    clipped = clipped.slice(0, -1);
+  }
+  return { text: `${clipped}…`, size: minSize };
+}
+
+// ----- cost split: one column per party, plus who furnished each chemical ---
+// This is the sheet you settle up from after a shared load, so the numbers it
+// prints are per-party acre shares — not per-tank doses.
+function drawCostSplitTable(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  report: NonNullable<ReturnType<typeof buildCostSplit>>,
+): number {
+  const parties = report.parties;
+  const anySupplier = parties[0].lines.some(l => l.suppliedByName !== null);
+
+  // With many parties the product name and supplier columns give way first —
+  // the per-party numbers are the point of the table.
+  const supplierW = anySupplier ? Math.min(26, width * 0.15) : 0;
+  const nameW = Math.min(44, Math.max(width * 0.18, width * 0.3 - parties.length * 2));
+  const partyW = (width - nameW - supplierW) / parties.length;
+  const cellW = partyW - 3;
+
+  const partyX = (i: number) => x + nameW + i * partyW;
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  setTextRGB(doc, C.muted);
+  doc.setFontSize(6.5);
+  doc.text('PRODUCT', x + 2, y);
+  parties.forEach((party, i) => {
+    const fitted = fitText(doc, party.name.toUpperCase(), cellW, 6.5, 4.5);
+    doc.text(fitted.text, partyX(i) + partyW - 2, y, { align: 'right' });
+  });
+  if (anySupplier) {
+    doc.setFontSize(6.5);
+    doc.text('SUPPLIED BY', x + width - 2, y, { align: 'right' });
+  }
+
+  // Acreage sub-header — the divisor behind every number in the column.
+  doc.setFont('courier', 'normal');
+  parties.forEach((party, i) => {
+    const fitted = fitText(
+      doc,
+      `${formatNum(party.split.acres)} ac · ${(party.fraction * 100).toFixed(0)}%`,
+      cellW,
+      6.5,
+      4.5,
+    );
+    doc.text(fitted.text, partyX(i) + partyW - 2, y + 3, { align: 'right' });
+  });
+
+  setDrawRGB(doc, C.lineStrong);
+  doc.setLineWidth(0.4);
+  doc.line(x, y + 4.5, x + width, y + 4.5);
+  y += 8;
+
+  parties[0].lines.forEach((_, rowIdx) => {
+    const rowTop = y;
+    const firstLine = parties[0].lines[rowIdx];
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    setTextRGB(doc, C.ink);
+    const nameLines = doc.splitTextToSize(firstLine.name, nameW - 4) as string[];
+    nameLines.slice(0, 2).forEach((ln, i) => doc.text(ln, x + 2, rowTop + 3.5 + i * 3.5));
+
+    doc.setFont('courier', 'bold');
+    setTextRGB(doc, C.primaryDark);
+    parties.forEach((party, i) => {
+      const line = party.lines[rowIdx];
+      const fitted = fitText(doc, line.display, cellW, 8.5, 5.5);
+      doc.text(fitted.text, partyX(i) + partyW - 2, rowTop + 3.5, { align: 'right' });
+    });
+
+    if (anySupplier) {
+      doc.setFont('helvetica', 'normal');
+      setTextRGB(doc, C.ink2);
+      const supplier = firstLine.suppliedByName ?? 'each their own';
+      const fitted = fitText(doc, supplier, supplierW - 3, 7, 4.5);
+      doc.text(fitted.text, x + width - 2, rowTop + 3.5, { align: 'right' });
+    }
+
+    y = rowTop + Math.max(nameLines.slice(0, 2).length * 3.5 + 2.5, 6);
+
+    if (rowIdx < parties[0].lines.length - 1) {
+      setDrawRGB(doc, C.divider);
+      doc.setLineWidth(0.15);
+      doc.line(x, y - 0.4, x + width, y - 0.4);
+    }
+  });
+
+  if (report.settlements.length > 0) {
+    y += 3;
+    setFillRGB(doc, C.noteBg);
+    setDrawRGB(doc, C.lineStrong);
+    doc.setLineWidth(0.3);
+    const boxH = 6 + report.settlements.length * 4;
+    doc.roundedRect(x, y, width, boxH, 1, 1, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    setTextRGB(doc, C.muted);
+    doc.text('SETTLE UP', x + 4, y + 4);
+    doc.setFont('helvetica', 'normal');
+    setTextRGB(doc, C.ink);
+    report.settlements.forEach((s, i) => {
+      const fitted = fitText(
+        doc,
+        `${s.toName} owes ${s.fromName} ${s.display} of ${s.productName}`,
+        width - 8,
+        8,
+        6,
+      );
+      doc.text(fitted.text, x + 4, y + 8.5 + i * 4);
+    });
+    y += boxH;
+  }
+
+  return y;
+}
+
 function drawApplicationRecord(doc: jsPDF): void {
   const y = APP_RECORD_TOP;
   drawSeclabel(doc, MARGIN_X, y, 'Application record');
@@ -706,6 +860,35 @@ export async function exportPDF(state: ExportState): Promise<void> {
     }
   }
 
+  // Cost split, when the load is shared. It goes on page 1 if it fits above
+  // the pinned field-ops strip, otherwise on a continuation page — the strip
+  // and the signature block always stay on page 1.
+  const costSplit = buildCostSplit(state.products, state.splits, state.applicationRate);
+  if (costSplit) {
+    const hasOpsStrip = !!(state.fieldSize && state.implementWidth && state.speed);
+    const bottomLimit = hasOpsStrip ? OPS_TOP : APP_RECORD_TOP;
+    // Header + acreage row + one row per product + the settle-up box.
+    const estimatedHeight =
+      13 +
+      state.products.length * 6 +
+      (costSplit.settlements.length > 0 ? 9 + costSplit.settlements.length * 4 : 0);
+
+    if (y + estimatedHeight > bottomLimit - 4) {
+      doc.addPage();
+      y = MARGIN_TOP + 6;
+    }
+    drawSeclabel(
+      doc,
+      MARGIN_X,
+      y,
+      'Chemical split by party',
+      `${formatNum(costSplit.totalAcres)} ac total`,
+    );
+    y += 5;
+    y = drawCostSplitTable(doc, MARGIN_X, y, CONTENT_W, costSplit);
+  }
+
+  doc.setPage(1);
   drawFieldOpsStrip(doc, state);
 
   drawApplicationRecord(doc);

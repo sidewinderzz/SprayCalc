@@ -1,5 +1,5 @@
 import LZString from 'lz-string';
-import { MixData, Product } from '../types';
+import { MixData, MixSplit, Product, SUPPLIED_BY_EACH } from '../types';
 
 const PARAM_NAME = 'm';
 const SCHEMA_VERSION = 1;
@@ -12,6 +12,14 @@ interface SerializedProduct {
   u: string;
   o: string;
   j: number;
+  /** suppliedBy — omitted entirely for the common "each pays their own" case. */
+  b?: string;
+}
+
+interface SerializedSplit {
+  i: string;
+  n: string;
+  a: number;
 }
 
 interface SerializedMix {
@@ -26,9 +34,12 @@ interface SerializedMix {
   // Added in schema v1 (optional for back-compat with older v1 payloads)
   at?: 'tank' | 'field';
   sm?: 'fullPlusPartial' | 'even';
+  /** Cost-split parties. Omitted when the mix isn't shared. */
+  sp2?: SerializedSplit[];
 }
 
 function serialize(data: MixData): SerializedMix {
+  const splits = (data.splits || []).filter(s => s && s.acres > 0);
   return {
     v: SCHEMA_VERSION,
     fv: data.fillVolume || 0,
@@ -44,13 +55,31 @@ function serialize(data: MixData): SerializedMix {
       u: typeof p.unit === 'string' ? p.unit : 'fl oz/acre',
       o: typeof p.outputFormat === 'string' ? p.outputFormat : 'auto',
       j: typeof p.jugSize === 'number' ? p.jugSize : 128,
+      ...(p.suppliedBy && p.suppliedBy !== SUPPLIED_BY_EACH ? { b: p.suppliedBy } : {}),
     })),
     at: data.activeTab === 'field' ? 'field' : 'tank',
     sm: data.splitMode === 'even' ? 'even' : 'fullPlusPartial',
+    ...(splits.length > 0
+      ? {
+          sp2: splits.map(s => ({
+            i: s.id,
+            n: typeof s.name === 'string' ? s.name : '',
+            a: typeof s.acres === 'number' ? s.acres : 0,
+          })),
+        }
+      : {}),
   };
 }
 
 function deserialize(raw: SerializedMix): MixData {
+  const splits: MixSplit[] = (raw.sp2 || [])
+    .filter(s => !!s && typeof s.i === 'string')
+    .map(s => ({
+      id: s.i,
+      name: typeof s.n === 'string' ? s.n : '',
+      acres: typeof s.a === 'number' ? s.a : 0,
+    }));
+  const splitIds = new Set(splits.map(s => s.id));
   const products: Product[] = (raw.p || []).map((sp, idx) => ({
     id: typeof sp.i === 'number' ? sp.i : idx + 1,
     name: typeof sp.n === 'string' ? sp.n : '',
@@ -59,8 +88,12 @@ function deserialize(raw: SerializedMix): MixData {
     tankAmount: 0,
     outputFormat: typeof sp.o === 'string' ? sp.o : 'auto',
     jugSize: typeof sp.j === 'number' ? sp.j : 128,
+    // Drop a supplier whose party didn't survive the link — otherwise the
+    // product would show as furnished by a party that isn't in the mix.
+    suppliedBy: typeof sp.b === 'string' && splitIds.has(sp.b) ? sp.b : SUPPLIED_BY_EACH,
   }));
   return {
+    splits,
     fillVolume: typeof raw.fv === 'number' ? raw.fv : 0,
     applicationRate: typeof raw.ar === 'number' ? raw.ar : 0,
     fieldSize: typeof raw.fs === 'number' ? raw.fs : 0,

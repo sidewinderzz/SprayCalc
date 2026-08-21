@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, colors } from '../types';
+import { MixSplit, Product, colors } from '../types';
 import { formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { ExportState } from '../utils/export';
@@ -15,6 +15,7 @@ interface SummarySectionProps {
   speed: number;
   fillTime: number;
   splitMode: 'fullPlusPartial' | 'even';
+  splits: MixSplit[];
   currentTime: Date;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
@@ -31,6 +32,7 @@ export function SummarySection({
   speed,
   fillTime,
   splitMode,
+  splits,
   currentTime,
   copyFeedback,
   setCopyFeedback,
@@ -46,6 +48,7 @@ export function SummarySection({
     fillTime,
     products,
     splitMode,
+    splits,
     currentTime,
   });
 

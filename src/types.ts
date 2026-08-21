@@ -6,7 +6,28 @@ export interface Product {
   tankAmount: number;
   outputFormat: string;
   jugSize: number;
+  /**
+   * Who furnishes (and pays for) this product when one load is shared between
+   * several parties. `'each'` — the default — means every party covers the
+   * product for their own acres. A split id means that one party supplies the
+   * whole product and the others owe them for the acres it went on.
+   */
+  suppliedBy?: string;
 }
+
+/**
+ * One party sharing a tank load — a client's field, or your own. Acres are
+ * what the chemical is apportioned by, so a bait spray covering a farmer's
+ * 100 ac and your 50 ac splits two-thirds / one-third.
+ */
+export interface MixSplit {
+  id: string;
+  name: string;
+  acres: number;
+}
+
+/** Sentinel `Product.suppliedBy` value: each party covers their own acres. */
+export const SUPPLIED_BY_EACH = 'each';
 
 export interface SavedMix {
   name: string;
@@ -33,6 +54,8 @@ export interface MixData {
   fillTime: number;
   activeTab?: 'tank' | 'field';
   splitMode?: 'fullPlusPartial' | 'even';
+  /** Parties sharing this load. Empty or absent means a single-client mix. */
+  splits?: MixSplit[];
 }
 
 export interface MixPlanning {

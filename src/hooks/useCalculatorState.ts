@@ -1,7 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Product, MixData } from '../types';
+import { MixSplit, Product, MixData } from '../types';
 import { calculateAmount } from '../utils/calculations';
 import { migrateProductUnits } from '../utils/productName';
+import { makeSplitId } from '../utils/costSplit';
+
+// Only keep split rows that survived a round-trip through storage intact.
+function sanitizeSplits(raw: unknown): MixSplit[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+    .map(s => ({
+      id: typeof s.id === 'string' && s.id ? s.id : makeSplitId(),
+      name: typeof s.name === 'string' ? s.name : '',
+      acres: typeof s.acres === 'number' && isFinite(s.acres) && s.acres > 0 ? s.acres : 0,
+    }));
+}
 
 export function useCalculatorState() {
   const [products, setProducts] = useState<Product[]>([
@@ -47,6 +60,13 @@ export function useCalculatorState() {
   // How to split a field's mix across tanks when total volume > tank capacity
   const [splitMode, setSplitMode] = useState<'fullPlusPartial' | 'even'>('fullPlusPartial');
 
+  // Parties sharing this load (a client's field plus our own, say). Empty for
+  // an ordinary single-client mix — the Cost Split section stays collapsed.
+  const [splits, setSplits] = useState<MixSplit[]>([]);
+
+  // Cost Split section open/closed (default closed — most mixes aren't shared)
+  const [showCostSplit, setShowCostSplit] = useState(false);
+
   // Tracks whether initial load has finished so auto-save doesn't fire too early
   const hasLoaded = useRef(false);
 
@@ -75,12 +95,12 @@ export function useCalculatorState() {
     if (!hasLoaded.current) return;
     try {
       localStorage.setItem('agSprayCalcSettings', JSON.stringify({
-        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode
+        fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode, splits
       }));
     } catch (err) {
       console.error('Auto-save failed:', err);
     }
-  }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode]);
+  }, [fillVolume, applicationRate, products, fieldSize, implementWidth, speed, fillTime, activeTab, splitMode, splits]);
 
   // Load settings from localStorage (startup)
   const loadSettings = () => {
@@ -102,6 +122,11 @@ export function useCalculatorState() {
         if (settings.fillTime) setFillTime(settings.fillTime);
         if (settings.activeTab === 'tank' || settings.activeTab === 'field') setActiveTab(settings.activeTab);
         if (settings.splitMode === 'fullPlusPartial' || settings.splitMode === 'even') setSplitMode(settings.splitMode);
+        if (settings.splits) {
+          const restored = sanitizeSplits(settings.splits);
+          setSplits(restored);
+          if (restored.length > 0) setShowCostSplit(true);
+        }
 
         setTimeout(() => {
           if (settings.products) {
@@ -138,6 +163,8 @@ export function useCalculatorState() {
       setFillTime(0);
       setActiveTab('tank');
       setSplitMode('fullPlusPartial');
+      setSplits([]);
+      setShowCostSplit(false);
       setSettingsFeedback('Calculator cleared!');
       setTimeout(() => {
         hasLoaded.current = true;
@@ -268,6 +295,11 @@ export function useCalculatorState() {
       if (mixData.fillTime !== undefined) setFillTime(mixData.fillTime);
       setActiveTab(mixData.activeTab === 'field' ? 'field' : 'tank');
       setSplitMode(mixData.splitMode === 'even' ? 'even' : 'fullPlusPartial');
+      const restoredSplits = sanitizeSplits(mixData.splits);
+      setSplits(restoredSplits);
+      // A saved mix that carries a split is a shared job — open the section so
+      // the breakdown is on screen rather than hidden behind a collapsed header.
+      if (restoredSplits.length > 0) setShowCostSplit(true);
 
       setTimeout(() => {
         if (mixData.products) {
@@ -314,6 +346,10 @@ export function useCalculatorState() {
     setActiveTab,
     splitMode,
     setSplitMode,
+    splits,
+    setSplits,
+    showCostSplit,
+    setShowCostSplit,
     acresPerFill,
     hasLoaded,
     setProducts,

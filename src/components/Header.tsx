@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { SavedMix, MixData, MixHistoryEntry, colors } from '../types';
-import { formatRelativeTime } from '../utils/relativeTime';
+import React, { useRef, useEffect } from 'react';
+import { SavedMix, colors } from '../types';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { CloudSyncStatus } from './CloudSyncStatus';
 import type { DiagnosticsResult, SyncStatus } from '../utils/cloudSync';
@@ -12,23 +11,18 @@ interface HeaderProps {
   mixNameInput: string;
   setMixNameInput: (val: string) => void;
   saveMix: () => void;
-  deleteMix: (name: string) => void;
   openSaveMixDialog: () => void;
-  loadMix: (data: MixData) => void;
   clearSettings: () => void;
   showTips: boolean;
   setShowTips: (val: boolean) => void;
-  showMixesMenu: boolean;
-  setShowMixesMenu: (val: boolean) => void;
-  mixesMenuRef: React.RefObject<HTMLDivElement | null>;
+  /** Opens the Mixes sheet (saved + recent), which lives outside the header. */
+  onOpenMixes: () => void;
+  /** Badge count on the Mixes button: saved mixes plus logged history. */
+  mixesCount: number;
   showOverflowMenu: boolean;
   setShowOverflowMenu: (val: boolean) => void;
   overflowMenuRef: React.RefObject<HTMLDivElement | null>;
   mixNameInputRef: React.RefObject<HTMLInputElement | null>;
-  historyEntries: MixHistoryEntry[];
-  loadHistoryEntry: (data: MixData) => void;
-  deleteHistoryEntry: (id: string) => void;
-  clearHistory: () => void;
   onShowTour: () => void;
   activeTab: 'tank' | 'field';
   setActiveTab: (val: 'tank' | 'field') => void;
@@ -58,23 +52,16 @@ export function Header({
   mixNameInput,
   setMixNameInput,
   saveMix,
-  deleteMix,
   openSaveMixDialog,
-  loadMix,
   clearSettings,
   showTips,
   setShowTips,
-  showMixesMenu,
-  setShowMixesMenu,
-  mixesMenuRef,
+  onOpenMixes,
+  mixesCount,
   showOverflowMenu,
   setShowOverflowMenu,
   overflowMenuRef,
   mixNameInputRef,
-  historyEntries,
-  loadHistoryEntry,
-  deleteHistoryEntry,
-  clearHistory,
   onShowTour,
   activeTab,
   setActiveTab,
@@ -94,7 +81,6 @@ export function Header({
   onSaveApiKey,
   onClearApiKey,
 }: HeaderProps) {
-  const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
 
   // Track scroll position/direction so the header can hide-on-scroll-down,
@@ -110,11 +96,6 @@ export function Header({
   const isMenuOpen = showOverflowMenu || showSaveMixDialog;
   const shouldHide = isHidden && !isMenuOpen;
 
-  // Reset the "clear history" confirmation when the overflow menu closes
-  useEffect(() => {
-    if (!showOverflowMenu) setConfirmClearHistory(false);
-  }, [showOverflowMenu]);
-
   // Focus mix name input when dialog opens
   useEffect(() => {
     if (showSaveMixDialog && mixNameInputRef.current) {
@@ -122,18 +103,15 @@ export function Header({
     }
   }, [showSaveMixDialog, mixNameInputRef]);
 
-  // Escape closes any open header menu
+  // Escape closes the overflow menu
   useEffect(() => {
-    if (!showMixesMenu && !showOverflowMenu) return;
+    if (!showOverflowMenu) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showMixesMenu) setShowMixesMenu(false);
-        if (showOverflowMenu) setShowOverflowMenu(false);
-      }
+      if (e.key === 'Escape') setShowOverflowMenu(false);
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [showMixesMenu, showOverflowMenu, setShowMixesMenu, setShowOverflowMenu]);
+  }, [showOverflowMenu, setShowOverflowMenu]);
 
   return (
     <>
@@ -246,7 +224,41 @@ export function Header({
           </h1>
 
           <div className="flex items-center gap-2">
-            {/* Overflow menu (contains Mixes + settings) */}
+            {/* Mixes — saved + recent, in their own sheet rather than stacked
+                inside the settings menu where they used to run off-screen. */}
+            <button
+              onClick={onOpenMixes}
+              className="relative h-11 w-11 xs:h-9 xs:w-9 flex items-center justify-center rounded-lg"
+              style={{ color: colors.primaryDark }}
+              title="Mixes"
+              aria-label={`Mixes${mixesCount > 0 ? ` (${mixesCount})` : ''}`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              {mixesCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: colors.primary, color: 'white' }}
+                  aria-hidden="true"
+                >
+                  {mixesCount > 99 ? '99+' : mixesCount}
+                </span>
+              )}
+            </button>
+
+            {/* Overflow menu (account + settings) */}
             <div className="relative" ref={overflowMenuRef}>
               <button
                 onClick={() => {
@@ -380,132 +392,40 @@ export function Header({
                   </button>
                   <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
 
-                  {/* Saved Mixes Section */}
-                  <div className="px-4 pt-3 pb-2">
-                    <p
-                      className="text-xs font-semibold uppercase tracking-wider mb-2"
-                      style={{ color: colors.primaryLight }}
+                  {/* Saved + recent mixes now live in their own sheet. */}
+                  <button
+                    onClick={() => {
+                      setShowOverflowMenu(false);
+                      onOpenMixes();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    style={{ color: colors.primaryDark }}
+                    role="menuitem"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
                     >
-                      Saved Mixes
-                    </p>
-                    {savedMixes.length === 0 ? (
-                      <p className="text-sm py-2" style={{ color: colors.lightText + '80' }}>
-                        No saved mixes yet. Use "Save current mix…" above to save your first one.
-                      </p>
-                    ) : (
-                      <div className="space-y-1">
-                        {savedMixes.map((mix) => (
-                          <div
-                            key={mix.name}
-                            className="flex items-center gap-2 rounded-lg px-2 py-2"
-                            style={{ backgroundColor: colors.primary + '08' }}
-                          >
-                            <button
-                              onClick={() => { loadMix(mix.data); setShowOverflowMenu(false); }}
-                              className="flex-1 text-left text-sm font-medium truncate"
-                              style={{ color: colors.primaryDark }}
-                            >
-                              {mix.name}
-                            </button>
-                            <button
-                              onClick={() => deleteMix(mix.name)}
-                              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-100 hover:text-red-600"
-                              style={{ color: colors.primaryLight }}
-                              title={`Delete "${mix.name}"`}
-                              aria-label={`Delete saved mix ${mix.name}`}
-                            >
-                              <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <line x1="1" y1="1" x2="13" y2="13" />
-                                <line x1="13" y1="1" x2="1" y2="13" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
-
-                  {/* Recent Mixes Section */}
-                  <div className="px-4 pt-3 pb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <p
-                        className="text-xs font-semibold uppercase tracking-wider"
-                        style={{ color: colors.primaryLight }}
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    <span className="flex-1">Saved &amp; recent mixes</span>
+                    {mixesCount > 0 && (
+                      <span
+                        className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${colors.primary}18`, color: colors.primaryDark }}
                       >
-                        Recent Mixes
-                      </p>
-                      {historyEntries.length > 0 &&
-                        (confirmClearHistory ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => { clearHistory(); setConfirmClearHistory(false); }}
-                              className="text-xs font-semibold"
-                              style={{ color: '#b91c1c' }}
-                            >
-                              Confirm
-                            </button>
-                            <span className="text-xs" style={{ color: colors.lightText + '60' }}>·</span>
-                            <button
-                              onClick={() => setConfirmClearHistory(false)}
-                              className="text-xs"
-                              style={{ color: colors.lightText + '99' }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmClearHistory(true)}
-                            className="text-xs font-medium"
-                            style={{ color: colors.lightText + '99' }}
-                            title="Clear recent mixes history"
-                          >
-                            Clear history
-                          </button>
-                        ))}
-                    </div>
-                    {historyEntries.length === 0 ? (
-                      <p className="text-sm py-2" style={{ color: colors.lightText + '80' }}>
-                        No recent mixes yet. Saving, copying, or exporting a mix will log it here.
-                      </p>
-                    ) : (
-                      <div className="space-y-1">
-                        {historyEntries.map((entry) => (
-                          <div
-                            key={entry.id}
-                            className="flex items-center gap-2 rounded-lg px-2 py-2"
-                            style={{ backgroundColor: colors.primary + '08' }}
-                          >
-                            <button
-                              onClick={() => { loadHistoryEntry(entry.data); setShowOverflowMenu(false); }}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <div className="text-sm font-medium truncate" style={{ color: colors.primaryDark }}>
-                                {entry.summary}
-                              </div>
-                              <div className="text-xs mt-0.5 truncate" style={{ color: colors.lightText + '80' }}>
-                                {formatRelativeTime(entry.timestamp)}
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => deleteHistoryEntry(entry.id)}
-                              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-100 hover:text-red-600"
-                              style={{ color: colors.primaryLight }}
-                              title="Remove from history"
-                              aria-label="Remove from history"
-                            >
-                              <svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <line x1="1" y1="1" x2="13" y2="13" />
-                                <line x1="13" y1="1" x2="1" y2="13" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                        {mixesCount}
+                      </span>
                     )}
-                  </div>
+                  </button>
 
                   <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
 

@@ -12,6 +12,48 @@ A React-based agricultural spray mixing calculator that helps calculate product 
 - qrcode for QR code generation in PDF footer
 - lz-string for URL-safe mix payload compression
 
+## Mixes menu
+Saved mixes and the auto-logged recent-mix history used to be stacked inside
+the ⋮ overflow menu, which ran off the bottom of a phone screen once a handful
+of mixes existed. They now live in their own sheet (`src/components/MixesPanel.tsx`),
+opened from the book icon in the header (or "Saved & recent mixes" in the ⋮
+menu), with a tab each so the two lists stay separate:
+
+- **Saved** — named mixes, newest save first, each with a one-line summary
+  (tank / GPA / product count / acres / split). Footer button saves the
+  current mix.
+- **Recent** — the last 25 auto-logged mixes with relative timestamps, and a
+  confirm-then-clear action in the footer.
+
+A search box appears on either tab once it holds more than five rows, matching
+mix names, summaries, and product names. The ⋮ menu keeps only account/sync,
+save, tips, tour, the scan key, and clear-inputs.
+
+## Cost Split (sharing one load between clients)
+One tank often covers more than one party's ground, and the chemicals in it
+are not always bought by the same person — on a bait spray the farmer
+furnishes the insecticide while the operator furnishes the molasses. The Cost
+Split section (`src/components/CostSplitSection.tsx`, math in
+`src/utils/costSplit.ts`) apportions the load:
+
+- Each party is a `MixSplit` (`id`, `name`, `acres`) on `MixData.splits`.
+- Every product's amount is divided **by acres** — a party spraying 100 of
+  150 acres took two thirds of everything in the tank, whoever paid for it.
+- `Product.suppliedBy` records who furnished each chemical: `'each'` (the
+  default — everyone covers their own acres) or a split id. When one party
+  supplies a product, the others owe them their acre share, which is what the
+  **Settle up** block lists.
+- The breakdown reaches every report: the on-screen section, the clipboard /
+  share text, the fullscreen preview, and a "Chemical split by party" table in
+  the PDF (which moves to a continuation page when it doesn't fit above the
+  pinned field-ops strip).
+
+Splits round-trip through localStorage, saved mixes, cloud sync, and share
+links. A `suppliedBy` pointing at a party that didn't survive the trip falls
+back to `'each'` rather than dangling. Amounts in the split are shown bare —
+the jug/container hints belong to What to Buy and would not fit a four-party
+table.
+
 ## Mix Sharing
 The app generates self-contained share links (`?m=<compressed-payload>`)
 using lz-string. Opening such a link prefills the calculator (handled in

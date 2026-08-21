@@ -243,7 +243,11 @@ export function formatOutputParts(
   value: number,
   format: string,
   unit?: string,
-  jugSizeOz = 128
+  jugSizeOz = 128,
+  // Container hints ("5 × 2.5 gal jugs") help when planning what to pour, but
+  // they double the length of the string. Surfaces with narrow columns — the
+  // cost-split table — turn them off and show the bare quantity.
+  includeContainerHints = true
 ): { primary: string; jugBreakdown: string | null } {
   if (value === 0) {
     return { primary: (unit && isWeightUnit(unit)) ? '0 oz' : '0 fl oz', jugBreakdown: null };
@@ -253,7 +257,7 @@ export function formatOutputParts(
     return { primary: formatWeightOz(value), jugBreakdown: null };
   }
 
-  const hasBreakdown = jugSizeOz > 0 && value >= jugSizeOz;
+  const hasBreakdown = includeContainerHints && jugSizeOz > 0 && value >= jugSizeOz;
 
   switch (format) {
     case 'floz':
@@ -314,7 +318,7 @@ export function formatOutputParts(
           primary = `${gallonsAuto} gal ${ozRemainingAuto} fl oz`;
         }
 
-        if (is25GallonMultiple) {
+        if (is25GallonMultiple && includeContainerHints) {
           const jugs = Math.round(totalGallons / 2.5);
           primary += ` (${jugs} × 2.5 gal jugs)`;
         }

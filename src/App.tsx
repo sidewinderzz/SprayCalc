@@ -7,6 +7,7 @@ import { useMixHistory } from './hooks/useMixHistory';
 import { useApiKey } from './hooks/useApiKey';
 import { useCloudSyncStatus } from './hooks/useCloudSyncStatus';
 import { Header } from './components/Header';
+import { MixesPanel } from './components/MixesPanel';
 import { SettingsToast } from './components/SettingsToast';
 import { TipsSection } from './components/TipsSection';
 import { MixSettings } from './components/MixSettings';
@@ -18,6 +19,7 @@ import { SummarySection } from './components/SummarySection';
 import { FieldMixSummary } from './components/FieldMixSummary';
 import { PerMixBreakdown } from './components/PerMixBreakdown';
 import { WhatToBuy } from './components/WhatToBuy';
+import { CostSplitSection } from './components/CostSplitSection';
 import { FieldOperationsSection } from './components/FieldOperationsSection';
 import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
@@ -30,14 +32,13 @@ const AgSprayCalculator = () => {
   const state = useCalculatorState();
 
   // Header menu state
-  const [showMixesMenu, setShowMixesMenu] = React.useState(false);
+  const [showMixesPanel, setShowMixesPanel] = React.useState(false);
   const [showOverflowMenu, setShowOverflowMenu] = React.useState(false);
-  const mixesMenuRef = useRef<HTMLDivElement>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const mixNameInputRef = useRef<HTMLInputElement>(null);
 
   const closeHeaderMenus = () => {
-    setShowMixesMenu(false);
+    setShowMixesPanel(false);
     setShowOverflowMenu(false);
   };
 
@@ -128,29 +129,19 @@ const AgSprayCalculator = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close header menus when clicking outside their respective triggers/panels.
+  // Close the overflow menu when clicking outside it. (The Mixes sheet is a
+  // modal and closes itself on backdrop click.)
   useEffect(() => {
-    if (!showMixesMenu && !showOverflowMenu) return;
+    if (!showOverflowMenu) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (
-        showMixesMenu &&
-        mixesMenuRef.current &&
-        !mixesMenuRef.current.contains(target)
-      ) {
-        setShowMixesMenu(false);
-      }
-      if (
-        showOverflowMenu &&
-        overflowMenuRef.current &&
-        !overflowMenuRef.current.contains(target)
-      ) {
+      if (overflowMenuRef.current && !overflowMenuRef.current.contains(target)) {
         setShowOverflowMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showMixesMenu, showOverflowMenu]);
+  }, [showOverflowMenu]);
 
   // The tank loads the operator will actually mix. Field Mix mode plans these
   // from the acreage, so a job that doesn't fill a tank is a single partial
@@ -172,7 +163,8 @@ const AgSprayCalculator = () => {
     speed: state.speed,
     fillTime: state.fillTime,
     activeTab: state.activeTab,
-    splitMode: state.splitMode
+    splitMode: state.splitMode,
+    splits: state.splits
   });
 
   // Wraps the Save Mix flow so an intent-to-save (non-empty name) also
@@ -230,23 +222,16 @@ const AgSprayCalculator = () => {
           mixNameInput={mixStorage.mixNameInput}
           setMixNameInput={mixStorage.setMixNameInput}
           saveMix={handleSaveMix}
-          deleteMix={mixStorage.deleteMix}
           openSaveMixDialog={mixStorage.openSaveMixDialog}
-          loadMix={mixStorage.loadMix}
           clearSettings={state.clearSettings}
           showTips={state.showTips}
           setShowTips={state.setShowTips}
-          showMixesMenu={showMixesMenu}
-          setShowMixesMenu={setShowMixesMenu}
-          mixesMenuRef={mixesMenuRef}
+          onOpenMixes={() => setShowMixesPanel(true)}
+          mixesCount={mixStorage.savedMixes.length + mixHistory.historyEntries.length}
           showOverflowMenu={showOverflowMenu}
           setShowOverflowMenu={setShowOverflowMenu}
           overflowMenuRef={overflowMenuRef}
           mixNameInputRef={mixNameInputRef}
-          historyEntries={mixHistory.historyEntries}
-          loadHistoryEntry={mixStorage.loadMix}
-          deleteHistoryEntry={mixHistory.deleteHistoryEntry}
-          clearHistory={mixHistory.clearHistory}
           onShowTour={startTour}
           activeTab={state.activeTab}
           setActiveTab={state.setActiveTab}
@@ -326,6 +311,7 @@ const AgSprayCalculator = () => {
             speed={state.speed}
             fillTime={state.fillTime}
             splitMode="fullPlusPartial"
+            splits={state.splits}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
@@ -342,6 +328,7 @@ const AgSprayCalculator = () => {
             speed={state.speed}
             fillTime={state.fillTime}
             splitMode={state.splitMode}
+            splits={state.splits}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
@@ -385,10 +372,34 @@ const AgSprayCalculator = () => {
           setShowQuantities={state.setShowQuantities}
         />
 
+        <CostSplitSection
+          products={state.products}
+          splits={state.splits}
+          setSplits={state.setSplits}
+          onProductChange={state.handleProductChange}
+          applicationRate={state.applicationRate}
+          fieldSize={state.fieldSize}
+          setFieldSize={state.setFieldSize}
+          showCostSplit={state.showCostSplit}
+          setShowCostSplit={state.setShowCostSplit}
+        />
+
         <div className="mt-4 text-xs opacity-60" style={{color: colors.primaryDark}}>
           <p>Always verify calculations against product labels and follow all safety guidelines.</p>
         </div>
       </div>
+
+      <MixesPanel
+        open={showMixesPanel}
+        onClose={() => setShowMixesPanel(false)}
+        savedMixes={mixStorage.savedMixes}
+        historyEntries={mixHistory.historyEntries}
+        loadMix={mixStorage.loadMix}
+        deleteMix={mixStorage.deleteMix}
+        deleteHistoryEntry={mixHistory.deleteHistoryEntry}
+        clearHistory={mixHistory.clearHistory}
+        openSaveMixDialog={mixStorage.openSaveMixDialog}
+      />
 
       {/* Floating snackbar for settings feedback (Saved/Loaded/etc.) */}
       <SettingsToast message={state.settingsFeedback} />
