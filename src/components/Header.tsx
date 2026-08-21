@@ -228,6 +228,7 @@ export function Header({
                 inside the settings menu where they used to run off-screen. */}
             <button
               onClick={onOpenMixes}
+              data-tour-id="mixes-button"
               className="relative h-11 w-11 xs:h-9 xs:w-9 flex items-center justify-center rounded-lg"
               style={{ color: colors.primaryDark }}
               title="Mixes"

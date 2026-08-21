@@ -51,6 +51,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
               <p><strong>• Mix planning:</strong> See exactly how many full mixes + partial mixes you need</p>
               <p><strong>• Purchase optimization:</strong> Get container suggestions to minimize waste</p>
               <p><strong>• Field timing:</strong> Calculate spray time and completion estimates</p>
+              <p><strong>• Cost split:</strong> Divide one load between two or more farms by acreage, and track who furnished which chemical</p>
             </div>
           </div>
         </div>
@@ -69,7 +70,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
           <div>
             <h3 className="font-bold text-base mb-2" style={{ color: colors.primary }}>Pro Tips</h3>
             <div className="space-y-2 text-sm" style={{ color: colors.lightText }}>
-              <p><strong>• Save mixes:</strong> Click "Save Mix" to save a named mix for quick recall from the ⋮ menu</p>
+              <p><strong>• Save &amp; recall mixes:</strong> Tap the book icon in the header — Saved holds your named mixes, Recent logs every mix you copy, share, or export</p>
               <p><strong>• Copy summary:</strong> Click the clipboard icon to copy all info to share or print</p>
               <p><strong>• Fill volume strategy:</strong> For small fields, use exact spray amount. For large fields, use consistent fill volumes</p>
               <p><strong>• Rate units:</strong> Use "/ Acre" or "/ 100 gal" mode on each product card</p>
@@ -96,6 +97,43 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
             <p>• Suggestion: Use 100-gallon fills</p>
             <p>• Result: 6 full mixes + 1 partial (75 gal)</p>
           </div>
+        </div>
+      </div>
+
+      <div
+        className="mt-4 p-4 rounded-lg"
+        style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}25` }}
+      >
+        <h3 className="font-bold text-base mb-3" style={{ color: colors.primary }}>
+          Sharing One Load Between Clients
+        </h3>
+        <div className="text-sm space-y-2" style={{ color: colors.lightText }}>
+          <p>
+            When one tank covers more than one farm, open <strong>Cost Split</strong> and list
+            each party with their acres. Every product is divided by acreage, so you can see how
+            much of each chemical landed on whose ground.
+          </p>
+          <p>
+            Use the <strong>who supplies each chemical</strong> dropdown when the parties aren't
+            all buying their own. Leave it on "Each pays their own" for anything everybody
+            chips in for; pick a party when that one person furnished the whole jug.
+          </p>
+          <div
+            className="mt-3 p-3 rounded-lg"
+            style={{ backgroundColor: `${colors.primary}08`, border: `1px solid ${colors.primary}20` }}
+          >
+            <h4 className="font-semibold mb-2" style={{ color: colors.primaryDark }}>
+              Bait spray: his 100 acres, your 50
+            </h4>
+            <p>• Add both parties — the split total reads 150 ac</p>
+            <p>• Insecticide → <em>Supplied by</em> the farmer; molasses → <em>Supplied by</em> you</p>
+            <p>• Each party's card shows their acre share of both chemicals</p>
+            <p>• <strong>Settle Up</strong> tallies it: he owes you molasses for his 100 acres, you owe him insecticide for your 50</p>
+          </div>
+          <p className="pt-1">
+            The whole breakdown rides along on the copied summary, the preview, and the PDF, so
+            the person paying gets the same numbers you do.
+          </p>
         </div>
       </div>
 

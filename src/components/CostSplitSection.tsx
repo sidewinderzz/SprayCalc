@@ -62,6 +62,7 @@ export function CostSplitSection({
 
   return (
     <div
+      data-tour-id="cost-split"
       className="rounded-xl overflow-hidden border mb-6"
       style={{ borderColor: colors.primary + '25' }}
     >
