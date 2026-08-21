@@ -358,6 +358,15 @@ export const TOUR_STEPS: TourStep[] = [
     body: 'Tank Mix uses per-tank inputs — enter your tank volume and application rate to plan a single fill. Field Mix uses whole-field inputs — enter total acres, rate, and tank capacity to calculate total product needed and how many loads it takes.',
     placement: 'bottom',
   },
+  // Placed while the page is still scrolled to the top, so the sticky header
+  // is on screen — it hides itself once you scroll down.
+  {
+    id: 'mixes',
+    targetSelector: '[data-tour-id="mixes-button"]',
+    title: 'Your mixes live here',
+    body: 'Saved mixes and the ones you ran recently are kept in this sheet, on a tab each. Save a mix under a name to recall it in a tap; every mix you copy, share, or export is logged under Recent automatically.',
+    placement: 'bottom',
+  },
   {
     id: 'mix-info',
     targetSelector: '[data-tour-id="mix-information"]',
@@ -381,6 +390,13 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: '[data-tour-id="field-operations"]',
     title: 'Optional: field logistics',
     body: 'Expand Field Quantities and Field Operations to plan total product to buy, mix counts, and time estimates for the full field.',
+    placement: 'top',
+  },
+  {
+    id: 'cost-split',
+    targetSelector: '[data-tour-id="cost-split"]',
+    title: 'Mixing one load for two farms?',
+    body: "List each party and their acres and every product is divided by acreage, so you can see how much of each chemical went on whose ground. Mark who furnished a chemical — the farmer's insecticide, your molasses — and Settle Up works out who owes whom.",
     placement: 'top',
   },
   {

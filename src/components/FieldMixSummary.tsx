@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, colors } from '../types';
+import { MixSplit, Product, colors } from '../types';
 import { calculateMixPlanning } from '../utils/calculations';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
@@ -14,6 +14,7 @@ interface FieldMixSummaryProps {
   speed: number;
   fillTime: number;
   splitMode: 'fullPlusPartial' | 'even';
+  splits: MixSplit[];
   currentTime: Date;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
@@ -30,6 +31,7 @@ export function FieldMixSummary({
   speed,
   fillTime,
   splitMode,
+  splits,
   currentTime,
   copyFeedback,
   setCopyFeedback,
@@ -45,6 +47,7 @@ export function FieldMixSummary({
     fillTime,
     products,
     splitMode,
+    splits,
     currentTime,
   });
 

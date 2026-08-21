@@ -9,6 +9,7 @@ import {
   formatPurchaseAmount,
 } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
+import { buildCostSplit } from '../utils/costSplit';
 
 interface MixPreviewModalProps {
   state: ExportState;
@@ -72,7 +73,10 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
     products,
     splitMode,
     currentTime,
+    splits,
   } = state;
+
+  const costSplit = buildCostSplit(products, splits, applicationRate);
 
   // Close on Escape
   useEffect(() => {
@@ -234,6 +238,46 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
                   );
                 })}
               </Card>
+            </>
+          )}
+
+          {/* Cost split between parties sharing the load */}
+          {costSplit && (
+            <>
+              {costSplit.parties.map(party => (
+                <React.Fragment key={party.split.id}>
+                  <SectionHeader
+                    title={`${party.name} — ${party.split.acres} ac (${(party.fraction * 100).toFixed(0)}%)`}
+                  />
+                  <Card>
+                    {party.lines.map(line => (
+                      <Row
+                        key={line.productId}
+                        label={
+                          line.suppliedByName && !line.isSupplier
+                            ? `${line.name} (from ${line.suppliedByName})`
+                            : line.name
+                        }
+                        value={line.display}
+                      />
+                    ))}
+                  </Card>
+                </React.Fragment>
+              ))}
+              {costSplit.settlements.length > 0 && (
+                <>
+                  <SectionHeader title="Settle Up" />
+                  <Card>
+                    {costSplit.settlements.map((s, i) => (
+                      <Row
+                        key={i}
+                        label={`${s.toName} owes ${s.fromName} — ${s.productName}`}
+                        value={s.display}
+                      />
+                    ))}
+                  </Card>
+                </>
+              )}
             </>
           )}
 
