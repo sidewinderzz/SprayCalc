@@ -15,6 +15,7 @@ interface FieldMixSummaryProps {
   fillTime: number;
   splitMode: 'fullPlusPartial' | 'even';
   splits: MixSplit[];
+  activeTab: 'tank' | 'field';
   currentTime: Date;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
@@ -32,6 +33,7 @@ export function FieldMixSummary({
   fillTime,
   splitMode,
   splits,
+  activeTab,
   currentTime,
   copyFeedback,
   setCopyFeedback,
@@ -48,6 +50,7 @@ export function FieldMixSummary({
     products,
     splitMode,
     splits,
+    activeTab,
     currentTime,
   });
 

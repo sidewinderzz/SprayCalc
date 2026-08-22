@@ -187,9 +187,12 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
               />
               <Card>
                 {products.map((product, idx) => {
-                  const amt = isEven && evenTankVol
-                    ? calculateAmount(product.rate, product.unit, evenTankVol, applicationRate)
-                    : product.tankAmount;
+                  const amt = calculateAmount(
+                    product.rate,
+                    product.unit,
+                    isEven && evenTankVol ? evenTankVol : fillVolume,
+                    applicationRate,
+                  );
                   return (
                     <Row
                       key={idx}

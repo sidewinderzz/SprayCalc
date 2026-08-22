@@ -28,6 +28,14 @@ export interface ExportState {
   currentTime: Date;
   /** Parties sharing this load, for the cost-split breakdown. */
   splits?: MixSplit[];
+  /**
+   * Which view the mix was exported from. Tank Mix and Field Mix are two
+   * readings of the same numbers — one tank vs the whole field — so a share
+   * link that drops this reopens on the wrong one and the recipient reads a
+   * per-tank dose as if it were the field total. Carried so a link, and the
+   * PDF's QR code, reopen on the view the sender was actually looking at.
+   */
+  activeTab?: 'tank' | 'field';
 }
 
 // Generate summary text for clipboard / share
@@ -43,12 +51,17 @@ export function generateSummaryText(state: ExportState): string {
     products,
     splitMode,
     currentTime,
-    splits
+    splits,
+    activeTab
   } = state;
 
   let text = `AG SPRAY MIX CALCULATOR SUMMARY\n`;
   text += `=============================\n\n`;
   text += `MIX INFORMATION:\n`;
+  // Name the view. The same mix reads differently depending on whether the
+  // sender was planning one tank or a whole field, and the reader has no
+  // other way to tell which.
+  text += `View: ${activeTab === 'field' ? 'Field Mix (whole field)' : 'Tank Mix (one tank)'}\n`;
   text += `Fill Volume: ${fillVolume} gallons\n`;
   text += `Application Rate: ${applicationRate} GPA\n`;
   text += `Acres Per Fill: ${acresPerFill.toFixed(2)}\n\n`;
@@ -63,7 +76,11 @@ export function generateSummaryText(state: ExportState): string {
   if (loads.length === 0) {
     text += `PRODUCTS TO ADD PER MIX:\n`;
     products.forEach((product, idx) => {
-      text += `${displayProductName(product.name, idx)}: ${formatOutput(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
+      // Derive rather than read product.tankAmount: that field is state kept
+      // in sync by hand, and it is not carried on a share link, so an export
+      // that reads it can print a stale (or zero) dose.
+      const amt = calculateAmount(product.rate, product.unit, fillVolume, applicationRate);
+      text += `${displayProductName(product.name, idx)}: ${formatOutput(amt, product.outputFormat, product.unit, product.jugSize ?? 128)}\n`;
     });
   } else {
     loads.forEach(load => {
@@ -189,6 +206,7 @@ export function exportStateToMixData(state: ExportState): MixData {
     fillTime: state.fillTime,
     splitMode: state.splitMode,
     splits: state.splits,
+    activeTab: state.activeTab === 'field' ? 'field' : 'tank',
   };
 }
 
@@ -816,9 +834,10 @@ export async function exportPDF(state: ExportState): Promise<void> {
         drawSeclabel(doc, rightX, y, 'Partial mix', partialSmall);
         y += 5;
 
-        const leftEnd = drawMixTable(doc, leftX, y, leftW, state.products, true, (p) =>
-          formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
-        );
+        const leftEnd = drawMixTable(doc, leftX, y, leftW, state.products, true, (p) => {
+          const amt = calculateAmount(p.rate, p.unit, state.fillVolume, state.applicationRate);
+          return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
+        });
 
         let rightEnd: number;
         if (planning.hasPartialMix) {
@@ -853,9 +872,10 @@ export async function exportPDF(state: ExportState): Promise<void> {
       // Tank-only mode: no field, just per-mix amounts
       drawSeclabel(doc, MARGIN_X, y, 'Full mix', `${formatNum(state.fillVolume)} gal`);
       y += 5;
-      y = drawMixTable(doc, MARGIN_X, y, CONTENT_W, state.products, true, (p) =>
-        formatV3(p.tankAmount, p.outputFormat, p.unit, p.jugSize ?? 128),
-      );
+      y = drawMixTable(doc, MARGIN_X, y, CONTENT_W, state.products, true, (p) => {
+        const amt = calculateAmount(p.rate, p.unit, state.fillVolume, state.applicationRate);
+        return formatV3(amt, p.outputFormat, p.unit, p.jugSize ?? 128);
+      });
       y += 8;
     }
   }

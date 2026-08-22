@@ -127,7 +127,11 @@ const AgSprayCalculator = () => {
     if (sharedMix) {
       state.applyMixData(sharedMix);
       clearMixParamFromURL();
-      state.setSettingsFeedback('Mix loaded from link');
+      // Name the view. A Field Mix opened as a Tank Mix shows a per-tank dose
+      // where the sender meant a field total, and nothing on screen says so —
+      // so say which of the two readings this link is.
+      const sharedView = sharedMix.activeTab === 'field' ? 'Field Mix' : 'Tank Mix';
+      state.setSettingsFeedback(`${sharedView} loaded from link`);
       setTimeout(() => state.setSettingsFeedback(''), 2500);
       trackPageView('/?shared=1', 'Ag Spray Calculator — Shared Mix');
       trackEvent('view_shared_mix', {
@@ -336,8 +340,12 @@ const AgSprayCalculator = () => {
             implementWidth={state.implementWidth}
             speed={state.speed}
             fillTime={state.fillTime}
-            splitMode="fullPlusPartial"
+            // The user's split choice belongs to the mix, not to the tab it is
+            // being viewed on. Hardcoding it here rewrote "even loads" to
+            // "full + partial" on anything shared from the Tank Mix view.
+            splitMode={state.splitMode}
             splits={state.splits}
+            activeTab={state.activeTab}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
@@ -355,6 +363,7 @@ const AgSprayCalculator = () => {
             fillTime={state.fillTime}
             splitMode={state.splitMode}
             splits={state.splits}
+            activeTab={state.activeTab}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
