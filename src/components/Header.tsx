@@ -12,6 +12,8 @@ interface HeaderProps {
   setMixNameInput: (val: string) => void;
   saveMix: () => void;
   openSaveMixDialog: () => void;
+  /** Same share action as the Mix Summary toolbar, reachable from the menu. */
+  onShareMix: () => void;
   clearSettings: () => void;
   showTips: boolean;
   setShowTips: (val: boolean) => void;
@@ -59,6 +61,7 @@ export function Header({
   setMixNameInput,
   saveMix,
   openSaveMixDialog,
+  onShareMix,
   clearSettings,
   showTips,
   setShowTips,
@@ -397,6 +400,38 @@ export function Header({
                       <polyline points="7 3 7 8 15 8" />
                     </svg>
                     Save current mix…
+                  </button>
+
+                  {/* Same action as the share button in the Mix Summary
+                      toolbar — duplicated here on purpose, because the
+                      toolbar scrolls out of reach on a phone. */}
+                  <button
+                    onClick={() => {
+                      setShowOverflowMenu(false);
+                      onShareMix();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    style={{ color: colors.primaryDark }}
+                    role="menuitem"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="18" cy="5" r="3" />
+                      <circle cx="6" cy="12" r="3" />
+                      <circle cx="18" cy="19" r="3" />
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                    </svg>
+                    Share current mix…
                   </button>
                   <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
 

@@ -25,6 +25,8 @@ import { OnboardingTour, TOUR_STEPS } from './components/OnboardingTour';
 import { readMixFromCurrentURL, clearMixParamFromURL } from './utils/mixLink';
 import { trackEvent, trackPageView } from './utils/analytics';
 import { buildMixLoads, calculateAmount } from './utils/calculations';
+import type { ExportState } from './utils/export';
+import { shareMix } from './utils/shareMix';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
 const MIXES_SEEN_KEY = 'agSprayCalcMixesSeen';
@@ -180,6 +182,29 @@ const AgSprayCalculator = () => {
     state.activeTab === 'field' ? state.splitMode : 'fullPlusPartial'
   );
 
+  // Assembled once, here. It used to be built separately inside each summary
+  // component, and the copies drifted — that is how activeTab went missing
+  // from share links while saved mixes kept it.
+  const buildExportState = (): ExportState => ({
+    fillVolume: state.fillVolume,
+    applicationRate: state.applicationRate,
+    acresPerFill: state.acresPerFill,
+    fieldSize: state.fieldSize,
+    implementWidth: state.implementWidth,
+    speed: state.speed,
+    fillTime: state.fillTime,
+    products: state.products,
+    splitMode: state.splitMode,
+    splits: state.splits,
+    activeTab: state.activeTab,
+    currentTime: state.currentTime,
+  });
+
+  const handleShareFromMenu = () => {
+    handleMixSnapshot();
+    void shareMix(buildExportState(), state.setCopyFeedback);
+  };
+
   const getCurrentMixData = () => ({
     fillVolume: state.fillVolume,
     applicationRate: state.applicationRate,
@@ -249,6 +274,7 @@ const AgSprayCalculator = () => {
           setMixNameInput={mixStorage.setMixNameInput}
           saveMix={handleSaveMix}
           openSaveMixDialog={mixStorage.openSaveMixDialog}
+          onShareMix={handleShareFromMenu}
           clearSettings={state.clearSettings}
           showTips={state.showTips}
           setShowTips={state.setShowTips}
@@ -336,17 +362,7 @@ const AgSprayCalculator = () => {
             applicationRate={state.applicationRate}
             acresPerFill={state.acresPerFill}
             products={state.products}
-            fieldSize={state.fieldSize}
-            implementWidth={state.implementWidth}
-            speed={state.speed}
-            fillTime={state.fillTime}
-            // The user's split choice belongs to the mix, not to the tab it is
-            // being viewed on. Hardcoding it here rewrote "even loads" to
-            // "full + partial" on anything shared from the Tank Mix view.
-            splitMode={state.splitMode}
-            splits={state.splits}
-            activeTab={state.activeTab}
-            currentTime={state.currentTime}
+            buildExportState={buildExportState}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
             onMixSnapshot={handleMixSnapshot}
@@ -355,16 +371,9 @@ const AgSprayCalculator = () => {
           <FieldMixSummary
             fillVolume={state.fillVolume}
             applicationRate={state.applicationRate}
-            acresPerFill={state.acresPerFill}
-            products={state.products}
             fieldSize={state.fieldSize}
-            implementWidth={state.implementWidth}
-            speed={state.speed}
-            fillTime={state.fillTime}
             splitMode={state.splitMode}
-            splits={state.splits}
-            activeTab={state.activeTab}
-            currentTime={state.currentTime}
+            buildExportState={buildExportState}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
             onMixSnapshot={handleMixSnapshot}
