@@ -136,7 +136,7 @@ export function CostSplitSection({
                   value={split.name}
                   onChange={e => updateSplit(split.id, { name: e.target.value })}
                   placeholder={`Party ${idx + 1} (e.g. Smith Farms)`}
-                  className="flex-1 min-w-0 p-2.5 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2"
+                  className="flex-1 min-w-0 p-2.5 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
                   style={inputStyle}
                   aria-label={`Party ${idx + 1} name`}
                 />
@@ -150,7 +150,7 @@ export function CostSplitSection({
                       updateSplit(split.id, { acres: parseFloat(e.target.value) || 0 })
                     }
                     placeholder="0"
-                    className="w-full p-2.5 pr-9 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2"
+                    className="w-full p-2.5 pr-9 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
                     style={inputStyle}
                     aria-label={`${splitDisplayName(split, idx)} acres`}
                   />
@@ -256,7 +256,7 @@ export function CostSplitSection({
                       onChange={e =>
                         onProductChange(product.id, 'suppliedBy', e.target.value)
                       }
-                      className="flex-shrink-0 p-2 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2"
+                      className="flex-shrink-0 p-2 border rounded-lg text-base text-gray-800 focus:outline-none focus:ring-2"
                       style={{ ...inputStyle, maxWidth: '16rem' }}
                       aria-label={`Who supplies ${displayProductName(product.name, idx)}`}
                     >
