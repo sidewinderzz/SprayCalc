@@ -17,9 +17,9 @@ function amountLabel(
 // ─── Cost split ────────────────────────────────────────────────────────────
 // One tank can cover more than one party's ground — a farmer's field plus our
 // own, say — and the chemicals in it are not always paid for by the same
-// person. On a bait spray the farmer furnishes the insecticide while we
-// furnish the molasses, so afterwards somebody has to work out how much of
-// whose chemical went where.
+// person: one party can furnish one chemical and another party a second,
+// so afterwards somebody has to work out how much of whose chemical went
+// where.
 //
 // Everything here is apportioned by acres, which is the only thing that
 // actually splits a shared load: a party spraying 100 of 150 acres took two

@@ -31,8 +31,8 @@ save, tips, tour, the scan key, and clear-inputs.
 
 ## Cost Split (sharing one load between clients)
 One tank often covers more than one party's ground, and the chemicals in it
-are not always bought by the same person — on a bait spray the farmer
-furnishes the insecticide while the operator furnishes the molasses. The Cost
+are not always bought by the same person — one party can furnish one chemical
+in the tank while another party furnishes a second. The Cost
 Split section (`src/components/CostSplitSection.tsx`, math in
 `src/utils/costSplit.ts`) apportions the load:
 

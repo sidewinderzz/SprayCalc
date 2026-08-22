@@ -17,8 +17,14 @@ interface HeaderProps {
   setShowTips: (val: boolean) => void;
   /** Opens the Mixes sheet (saved + recent), which lives outside the header. */
   onOpenMixes: () => void;
-  /** Badge count on the Mixes button: saved mixes plus logged history. */
+  /** Saved mixes plus logged history — labels the button and the menu row. */
   mixesCount: number;
+  /**
+   * Whether to put the count on the button as a badge. True only until the
+   * sheet has been opened once: it is a "your mixes are in here" pointer, not
+   * an unread counter, and a badge that never clears just nags.
+   */
+  showMixesBadge: boolean;
   showOverflowMenu: boolean;
   setShowOverflowMenu: (val: boolean) => void;
   overflowMenuRef: React.RefObject<HTMLDivElement | null>;
@@ -58,6 +64,7 @@ export function Header({
   setShowTips,
   onOpenMixes,
   mixesCount,
+  showMixesBadge,
   showOverflowMenu,
   setShowOverflowMenu,
   overflowMenuRef,
@@ -248,7 +255,7 @@ export function Header({
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
-              {mixesCount > 0 && (
+              {showMixesBadge && (
                 <span
                   className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
                   style={{ backgroundColor: colors.primary, color: 'white' }}

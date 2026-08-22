@@ -123,12 +123,12 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
             style={{ backgroundColor: `${colors.primary}08`, border: `1px solid ${colors.primary}20` }}
           >
             <h4 className="font-semibold mb-2" style={{ color: colors.primaryDark }}>
-              Bait spray: his 100 acres, your 50
+              Example: 100 acres theirs, 50 acres yours
             </h4>
             <p>• Add both parties — the split total reads 150 ac</p>
-            <p>• Insecticide → <em>Supplied by</em> the farmer; molasses → <em>Supplied by</em> you</p>
-            <p>• Each party's card shows their acre share of both chemicals</p>
-            <p>• <strong>Settle Up</strong> tallies it: he owes you molasses for his 100 acres, you owe him insecticide for your 50</p>
+            <p>• Set each product's supplier: the ones they furnish, the ones you furnish, and "Each pays their own" for anything you both chip in for</p>
+            <p>• Each party's card shows their acre share of every product</p>
+            <p>• <strong>Settle Up</strong> tallies the difference: they owe you for your product on their 100 acres, you owe them for theirs on your 50</p>
           </div>
           <p className="pt-1">
             The whole breakdown rides along on the copied summary, the preview, and the PDF, so

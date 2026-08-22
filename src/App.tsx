@@ -27,6 +27,7 @@ import { trackEvent, trackPageView } from './utils/analytics';
 import { buildMixLoads, calculateAmount } from './utils/calculations';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
+const MIXES_SEEN_KEY = 'agSprayCalcMixesSeen';
 
 const AgSprayCalculator = () => {
   const state = useCalculatorState();
@@ -36,6 +37,27 @@ const AgSprayCalculator = () => {
   const [showOverflowMenu, setShowOverflowMenu] = React.useState(false);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const mixNameInputRef = useRef<HTMLInputElement>(null);
+
+  // The count badge on the Mixes button points out where saved mixes went the
+  // first time there is something in there. Once the sheet has been opened it
+  // has done its job — the count still shows inside the sheet and on the ⋮
+  // row, so keeping a badge lit forever would just be noise. Defaults to
+  // "seen" when localStorage is unavailable: no badge beats a stuck one.
+  const [mixesBadgeSeen, setMixesBadgeSeen] = React.useState(() => {
+    try {
+      return !!localStorage.getItem(MIXES_SEEN_KEY);
+    } catch (_) {
+      return true;
+    }
+  });
+
+  const openMixesPanel = () => {
+    setShowMixesPanel(true);
+    if (!mixesBadgeSeen) {
+      setMixesBadgeSeen(true);
+      try { localStorage.setItem(MIXES_SEEN_KEY, '1'); } catch (_) {}
+    }
+  };
 
   const closeHeaderMenus = () => {
     setShowMixesPanel(false);
@@ -226,8 +248,12 @@ const AgSprayCalculator = () => {
           clearSettings={state.clearSettings}
           showTips={state.showTips}
           setShowTips={state.setShowTips}
-          onOpenMixes={() => setShowMixesPanel(true)}
+          onOpenMixes={openMixesPanel}
           mixesCount={mixStorage.savedMixes.length + mixHistory.historyEntries.length}
+          showMixesBadge={
+            !mixesBadgeSeen &&
+            mixStorage.savedMixes.length + mixHistory.historyEntries.length > 0
+          }
           showOverflowMenu={showOverflowMenu}
           setShowOverflowMenu={setShowOverflowMenu}
           overflowMenuRef={overflowMenuRef}
