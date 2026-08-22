@@ -396,7 +396,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'cost-split',
     targetSelector: '[data-tour-id="cost-split"]',
     title: 'Mixing one load for two farms?',
-    body: "List each party and their acres and every product is divided by acreage, so you can see how much of each chemical went on whose ground. Mark who furnished a chemical — the farmer's insecticide, your molasses — and Settle Up works out who owes whom.",
+    body: 'List each party and their acres and every product is divided by acreage, so you can see how much of each chemical went on whose ground. When the parties are not all buying their own, mark who furnished each chemical and Settle Up works out who owes whom.',
     placement: 'top',
   },
   {

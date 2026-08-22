@@ -31,8 +31,8 @@ save, tips, tour, the scan key, and clear-inputs.
 
 ## Cost Split (sharing one load between clients)
 One tank often covers more than one party's ground, and the chemicals in it
-are not always bought by the same person — on a bait spray the farmer
-furnishes the insecticide while the operator furnishes the molasses. The Cost
+are not always bought by the same person — one party can furnish one chemical
+in the tank while another party furnishes a second. The Cost
 Split section (`src/components/CostSplitSection.tsx`, math in
 `src/utils/costSplit.ts`) apportions the load:
 
@@ -59,6 +59,31 @@ The app generates self-contained share links (`?m=<compressed-payload>`)
 using lz-string. Opening such a link prefills the calculator (handled in
 `src/App.tsx` via `readMixFromCurrentURL`). The PDF export embeds the same
 link as a QR + printed URL on every page so a mix can be re-opened later.
+
+**Tank Mix and Field Mix are two views of one mix, not two mixes.** They share
+every input — products, GPA, tank capacity (`fillVolume`), acreage — and differ
+only in which question the summary answers: what goes in this one tank, versus
+what the whole field needs and how many loads that is. So `activeTab` is part
+of the mix, and it has to travel with it. A link that loses it reopens on the
+wrong view and the recipient reads a per-tank dose as a field total, silently:
+a 100 ac field in a 500 gal tank at 10 GPA is exactly two loads, so a 60 gal
+field total shows up as 30 gal with nothing on screen to say why. `ExportState`
+therefore carries `activeTab`, `exportStateToMixData` writes it, and the toast
+on load names the view ("Field Mix loaded from link").
+
+Two rules keep the numbers honest across a share:
+
+- **Derive, don't store.** `Product.tankAmount` is state kept in sync by hand
+  and is *not* carried on a share link, so display and export code computes
+  amounts with `calculateAmount(rate, unit, volume, gpa)` instead of reading
+  it. Reading the stored field is how an export prints a stale or zero dose.
+- **Nothing about the mix may depend on the tab it is viewed on.** Passing a
+  literal (rather than the real `splitMode`) into a summary meant anything
+  shared from Tank Mix silently came back as "full + partial".
+
+The recipient's own saved settings never leak in: `applyMixData` overwrites
+every field, so a link opens the sender's tank size and rate, not the
+recipient's last-used ones.
 
 ## Project Structure
 ```

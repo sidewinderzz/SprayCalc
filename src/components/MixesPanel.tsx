@@ -241,7 +241,7 @@ export function MixesPanel({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={tab === 'saved' ? 'Search saved mixes…' : 'Search recent mixes…'}
-              className="w-full p-2.5 border rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2"
+              className="w-full p-2.5 border rounded-lg text-base text-gray-800 focus:outline-none focus:ring-2"
               style={{ borderColor: `${colors.primary}30`, backgroundColor: 'white' }}
               aria-label="Search mixes"
             />

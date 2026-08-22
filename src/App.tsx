@@ -27,6 +27,7 @@ import { trackEvent, trackPageView } from './utils/analytics';
 import { buildMixLoads, calculateAmount } from './utils/calculations';
 
 const TOUR_SEEN_KEY = 'agSprayCalcTourSeen';
+const MIXES_SEEN_KEY = 'agSprayCalcMixesSeen';
 
 const AgSprayCalculator = () => {
   const state = useCalculatorState();
@@ -36,6 +37,27 @@ const AgSprayCalculator = () => {
   const [showOverflowMenu, setShowOverflowMenu] = React.useState(false);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const mixNameInputRef = useRef<HTMLInputElement>(null);
+
+  // The count badge on the Mixes button points out where saved mixes went the
+  // first time there is something in there. Once the sheet has been opened it
+  // has done its job — the count still shows inside the sheet and on the ⋮
+  // row, so keeping a badge lit forever would just be noise. Defaults to
+  // "seen" when localStorage is unavailable: no badge beats a stuck one.
+  const [mixesBadgeSeen, setMixesBadgeSeen] = React.useState(() => {
+    try {
+      return !!localStorage.getItem(MIXES_SEEN_KEY);
+    } catch (_) {
+      return true;
+    }
+  });
+
+  const openMixesPanel = () => {
+    setShowMixesPanel(true);
+    if (!mixesBadgeSeen) {
+      setMixesBadgeSeen(true);
+      try { localStorage.setItem(MIXES_SEEN_KEY, '1'); } catch (_) {}
+    }
+  };
 
   const closeHeaderMenus = () => {
     setShowMixesPanel(false);
@@ -105,7 +127,11 @@ const AgSprayCalculator = () => {
     if (sharedMix) {
       state.applyMixData(sharedMix);
       clearMixParamFromURL();
-      state.setSettingsFeedback('Mix loaded from link');
+      // Name the view. A Field Mix opened as a Tank Mix shows a per-tank dose
+      // where the sender meant a field total, and nothing on screen says so —
+      // so say which of the two readings this link is.
+      const sharedView = sharedMix.activeTab === 'field' ? 'Field Mix' : 'Tank Mix';
+      state.setSettingsFeedback(`${sharedView} loaded from link`);
       setTimeout(() => state.setSettingsFeedback(''), 2500);
       trackPageView('/?shared=1', 'Ag Spray Calculator — Shared Mix');
       trackEvent('view_shared_mix', {
@@ -226,8 +252,12 @@ const AgSprayCalculator = () => {
           clearSettings={state.clearSettings}
           showTips={state.showTips}
           setShowTips={state.setShowTips}
-          onOpenMixes={() => setShowMixesPanel(true)}
+          onOpenMixes={openMixesPanel}
           mixesCount={mixStorage.savedMixes.length + mixHistory.historyEntries.length}
+          showMixesBadge={
+            !mixesBadgeSeen &&
+            mixStorage.savedMixes.length + mixHistory.historyEntries.length > 0
+          }
           showOverflowMenu={showOverflowMenu}
           setShowOverflowMenu={setShowOverflowMenu}
           overflowMenuRef={overflowMenuRef}
@@ -310,8 +340,12 @@ const AgSprayCalculator = () => {
             implementWidth={state.implementWidth}
             speed={state.speed}
             fillTime={state.fillTime}
-            splitMode="fullPlusPartial"
+            // The user's split choice belongs to the mix, not to the tab it is
+            // being viewed on. Hardcoding it here rewrote "even loads" to
+            // "full + partial" on anything shared from the Tank Mix view.
+            splitMode={state.splitMode}
             splits={state.splits}
+            activeTab={state.activeTab}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}
@@ -329,6 +363,7 @@ const AgSprayCalculator = () => {
             fillTime={state.fillTime}
             splitMode={state.splitMode}
             splits={state.splits}
+            activeTab={state.activeTab}
             currentTime={state.currentTime}
             copyFeedback={state.copyFeedback}
             setCopyFeedback={state.setCopyFeedback}

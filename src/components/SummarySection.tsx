@@ -1,6 +1,6 @@
 import React from 'react';
 import { MixSplit, Product, colors } from '../types';
-import { formatOutputParts } from '../utils/calculations';
+import { calculateAmount, formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
@@ -16,6 +16,7 @@ interface SummarySectionProps {
   fillTime: number;
   splitMode: 'fullPlusPartial' | 'even';
   splits: MixSplit[];
+  activeTab: 'tank' | 'field';
   currentTime: Date;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
@@ -33,6 +34,7 @@ export function SummarySection({
   fillTime,
   splitMode,
   splits,
+  activeTab,
   currentTime,
   copyFeedback,
   setCopyFeedback,
@@ -49,6 +51,7 @@ export function SummarySection({
     products,
     splitMode,
     splits,
+    activeTab,
     currentTime,
   });
 
@@ -78,7 +81,10 @@ export function SummarySection({
         <p className="mb-3">• Add the following to your mix:</p>
         <ul className="list-disc pl-6 space-y-1">
           {products.map((product, idx) => {
-            const parts = formatOutputParts(product.tankAmount, product.outputFormat, product.unit, product.jugSize ?? 128);
+            // Derived, not read from product.tankAmount — see the note in
+            // export.ts: that stored field can lag the inputs it came from.
+            const amount = calculateAmount(product.rate, product.unit, fillVolume, applicationRate);
+            const parts = formatOutputParts(amount, product.outputFormat, product.unit, product.jugSize ?? 128);
             return (
               <li key={product.id}>
                 <strong>{displayProductName(product.name, idx)}:</strong> <strong>{parts.primary}</strong>

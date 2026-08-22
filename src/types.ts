@@ -17,8 +17,8 @@ export interface Product {
 
 /**
  * One party sharing a tank load — a client's field, or your own. Acres are
- * what the chemical is apportioned by, so a bait spray covering a farmer's
- * 100 ac and your 50 ac splits two-thirds / one-third.
+ * what the chemical is apportioned by, so a load covering a client's 100 ac
+ * and your 50 ac splits two-thirds / one-third.
  */
 export interface MixSplit {
   id: string;

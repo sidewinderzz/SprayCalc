@@ -206,9 +206,18 @@ export function useCalculatorState() {
     setAcresPerFillInput(value);
   };
 
-  // Apply acres per fill change on blur
+  // Apply acres per fill change on blur.
+  //
+  // The box is kept in sync with fillVolume / applicationRate rounded to 2dp,
+  // so writing it back unconditionally re-derives the rate from a rounded
+  // number: 500 gal at 12 GPA displays 41.67 ac, which reads back as 11.99904
+  // GPA. Merely tabbing through the field nudged the rate, which is how a mix
+  // appears to change on its own between one look and the next. Only write
+  // back when the value actually differs from what we put there.
   const handleAcresPerFillBlur = () => {
     const newAcresPerFill = parseFloat(acresPerFillInput) || 0;
+    const displayedAcresPerFill = acresPerFill > 0 ? parseFloat(acresPerFill.toFixed(2)) : 0;
+    if (newAcresPerFill === displayedAcresPerFill) return;
     if (newAcresPerFill > 0 && fillVolume > 0) {
       const newApplicationRate = fillVolume / newAcresPerFill;
       setApplicationRate(newApplicationRate);
