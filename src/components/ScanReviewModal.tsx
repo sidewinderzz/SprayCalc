@@ -311,7 +311,7 @@ export function ScanReviewModal({
                       value={p.name}
                       onChange={e => updateProduct(idx, 'name', e.target.value)}
                       placeholder="Product name"
-                      className="w-full text-sm px-2 py-1.5 rounded border bg-white"
+                      className="w-full text-base px-2 py-1.5 rounded border bg-white"
                       style={{ borderColor: `${colors.primary}30`, color: colors.lightText }}
                     />
                     <div className="flex gap-1.5">
@@ -320,7 +320,7 @@ export function ScanReviewModal({
                         value={p.rate || ''}
                         onChange={e => updateProduct(idx, 'rate', parseFloat(e.target.value) || 0)}
                         placeholder="Rate"
-                        className="w-20 text-sm px-2 py-1.5 rounded border bg-white"
+                        className="w-20 text-base px-2 py-1.5 rounded border bg-white"
                         style={{ borderColor: `${colors.primary}30`, color: colors.lightText }}
                         min="0"
                         step="any"
