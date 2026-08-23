@@ -3,6 +3,26 @@ import type { User } from 'firebase/auth';
 import { getLoadedAuth, isFirebaseConfigured, loadFirebaseAuth } from '../utils/firebase';
 import { trackEvent } from '../utils/analytics';
 
+// "Sign-in failed" is true of every one of these and useful for none of them.
+// The domain case in particular is invisible from the app — sign-in works on
+// one hostname and not another, with nothing on screen to say why — so name
+// the host and the setting that has to list it.
+function describeSignInError(err: { code?: string } | null | undefined): string {
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+  switch (err?.code) {
+    case 'auth/unauthorized-domain':
+      return `Sign-in blocked: add ${host} to Firebase Authentication → Settings → Authorized domains`;
+    case 'auth/popup-blocked':
+      return 'Sign-in popup was blocked by the browser — allow popups and try again';
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is not enabled for this Firebase project';
+    case 'auth/network-request-failed':
+      return 'Sign-in failed — no connection';
+    default:
+      return 'Sign-in failed';
+  }
+}
+
 export function useAuth(onFeedback: (msg: string) => void) {
   const enabled = isFirebaseConfigured();
   const [user, setUser] = useState<User | null>(null);
@@ -24,9 +44,9 @@ export function useAuth(onFeedback: (msg: string) => void) {
     };
   }, []);
 
-  const flashFeedback = (msg: string) => {
+  const flashFeedback = (msg: string, ms = 2500) => {
     onFeedback(msg);
-    setTimeout(() => onFeedback(''), 2500);
+    setTimeout(() => onFeedback(''), ms);
   };
 
   const signInWithGoogle = async () => {
@@ -44,7 +64,7 @@ export function useAuth(onFeedback: (msg: string) => void) {
       // User closing the popup isn't an error worth surfacing.
       if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
         console.error('Sign-in failed:', err);
-        flashFeedback('Sign-in failed');
+        flashFeedback(describeSignInError(err), 7000);
       }
     } finally {
       setAuthBusy(false);

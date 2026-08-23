@@ -1,5 +1,5 @@
 import React from 'react';
-import { MixSplit, Product, colors } from '../types';
+import { Product, colors } from '../types';
 import { calculateAmount, formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { ExportState } from '../utils/export';
@@ -10,14 +10,8 @@ interface SummarySectionProps {
   applicationRate: number;
   acresPerFill: number;
   products: Product[];
-  fieldSize: number;
-  implementWidth: number;
-  speed: number;
-  fillTime: number;
-  splitMode: 'fullPlusPartial' | 'even';
-  splits: MixSplit[];
-  activeTab: 'tank' | 'field';
-  currentTime: Date;
+  /** The one place export state is assembled — see App. */
+  buildExportState: () => ExportState;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
   onMixSnapshot?: () => void;
@@ -28,33 +22,11 @@ export function SummarySection({
   applicationRate,
   acresPerFill,
   products,
-  fieldSize,
-  implementWidth,
-  speed,
-  fillTime,
-  splitMode,
-  splits,
-  activeTab,
-  currentTime,
+  buildExportState,
   copyFeedback,
   setCopyFeedback,
   onMixSnapshot,
 }: SummarySectionProps) {
-  const buildExportState = (): ExportState => ({
-    fillVolume,
-    applicationRate,
-    acresPerFill,
-    fieldSize,
-    implementWidth,
-    speed,
-    fillTime,
-    products,
-    splitMode,
-    splits,
-    activeTab,
-    currentTime,
-  });
-
   return (
     <div
       data-tour-id="summary"

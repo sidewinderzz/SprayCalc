@@ -1,5 +1,5 @@
 import React from 'react';
-import { MixSplit, Product, colors } from '../types';
+import { colors } from '../types';
 import { calculateMixPlanning } from '../utils/calculations';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
@@ -7,16 +7,10 @@ import { MixExportToolbar } from './MixExportToolbar';
 interface FieldMixSummaryProps {
   fillVolume: number;
   applicationRate: number;
-  acresPerFill: number;
-  products: Product[];
   fieldSize: number;
-  implementWidth: number;
-  speed: number;
-  fillTime: number;
   splitMode: 'fullPlusPartial' | 'even';
-  splits: MixSplit[];
-  activeTab: 'tank' | 'field';
-  currentTime: Date;
+  /** The one place export state is assembled — see App. */
+  buildExportState: () => ExportState;
   copyFeedback: string;
   setCopyFeedback: (val: string) => void;
   onMixSnapshot?: () => void;
@@ -25,35 +19,13 @@ interface FieldMixSummaryProps {
 export function FieldMixSummary({
   fillVolume,
   applicationRate,
-  acresPerFill,
-  products,
   fieldSize,
-  implementWidth,
-  speed,
-  fillTime,
   splitMode,
-  splits,
-  activeTab,
-  currentTime,
+  buildExportState,
   copyFeedback,
   setCopyFeedback,
   onMixSnapshot,
 }: FieldMixSummaryProps) {
-  const buildExportState = (): ExportState => ({
-    fillVolume,
-    applicationRate,
-    acresPerFill,
-    fieldSize,
-    implementWidth,
-    speed,
-    fillTime,
-    products,
-    splitMode,
-    splits,
-    activeTab,
-    currentTime,
-  });
-
   const planning = calculateMixPlanning(fieldSize, applicationRate, fillVolume);
   const totalGallons = fieldSize > 0 && applicationRate > 0 ? fieldSize * applicationRate : 0;
   const hasInputs = fieldSize > 0 && applicationRate > 0 && fillVolume > 0;

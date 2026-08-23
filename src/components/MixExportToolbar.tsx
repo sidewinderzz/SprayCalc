@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { colors } from '../types';
-import { generateSummaryText, exportPDF, buildSharePayload, ExportState } from '../utils/export';
+import { generateSummaryText, exportPDF, ExportState } from '../utils/export';
 import { trackEvent } from '../utils/analytics';
+import { shareMix } from '../utils/shareMix';
 import { MixPreviewModal } from './MixPreviewModal';
 
 interface MixExportToolbarProps {
@@ -35,46 +36,7 @@ export function MixExportToolbar({
     setTimeout(() => setCopyFeedback(''), 2000);
   };
 
-  const handleShareSummary = async () => {
-    const state = buildExportState();
-    const payload = buildSharePayload(state);
-    trackEvent('share_mix', {
-      product_count: state.products.length,
-      fill_volume: state.fillVolume,
-      application_rate: state.applicationRate,
-      method: typeof navigator.share === 'function' ? 'web_share' : 'clipboard',
-      too_large: payload.tooLarge,
-    });
-    const shortText = `${payload.text.split('\n').slice(0, 6).join('\n')}\n\nOpen this mix in SprayCalc:`;
-    const isAbort = (err: unknown): boolean =>
-      !!err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError';
-
-    if (navigator.share) {
-      if (!payload.tooLarge) {
-        try {
-          await navigator.share({ title: payload.title, text: shortText, url: payload.url });
-          return;
-        } catch (err) {
-          if (isAbort(err)) return;
-        }
-      }
-      try {
-        await navigator.share({ title: payload.title, text: payload.text });
-        return;
-      } catch (err) {
-        if (isAbort(err)) return;
-      }
-    }
-
-    const clipboardText = payload.tooLarge ? payload.text : `${shortText} ${payload.url}`;
-    try {
-      await navigator.clipboard.writeText(clipboardText);
-      setCopyFeedback(payload.tooLarge ? 'Copied!' : 'Link copied!');
-    } catch (_) {
-      setCopyFeedback('Copy failed');
-    }
-    setTimeout(() => setCopyFeedback(''), 2000);
-  };
+  const handleShareSummary = () => shareMix(buildExportState(), setCopyFeedback);
 
   const handleExportPDF = async () => {
     onMixSnapshot?.();
