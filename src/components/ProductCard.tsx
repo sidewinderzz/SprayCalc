@@ -14,6 +14,7 @@ import {
   isWeightUnit,
   mixLoadLabel,
 } from '../utils/calculations';
+import { cardTint } from '../utils/cardTint';
 
 // ─── Unit helpers ─────────────────────────────────────────────────────────────
 
@@ -305,17 +306,20 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
     }
   }));
 
+  // Progressive fill by position so a long mix stays scannable (see cardTint).
+  const tint = cardTint(index);
+
   const inputBaseStyle = {
-    borderColor: `${colors.primary}22`,
-    backgroundColor: `${colors.primary}06`
+    borderColor: tint.inputBorder,
+    backgroundColor: tint.inputBackground
   };
 
   return (
     <div
       className="rounded-xl flex flex-col"
       style={{
-        backgroundColor: 'white',
-        border: `1px solid ${colors.primary}22`,
+        backgroundColor: tint.background,
+        border: `1px solid ${tint.border}`,
         boxShadow: `0 1px 3px 0 rgba(0,0,0,0.04)`
       }}
     >
@@ -411,8 +415,8 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
       <div
         className="relative px-4 py-3 mt-auto rounded-b-xl"
         style={{
-          backgroundColor: `${colors.primary}0c`,
-          borderTop: `1px solid ${colors.primary}1f`
+          backgroundColor: tint.footerBackground,
+          borderTop: `1px solid ${tint.footerBorder}`
         }}
       >
         <button
