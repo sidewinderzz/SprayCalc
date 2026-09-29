@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ScannedProduct, unitOptions, colors } from '../types';
 import { extractProductsFromImage } from '../utils/ocr';
 import { getPdfPageCount, renderPdfPageToBase64 } from '../utils/pdfToImage';
+import { LogoLoader } from './Logo';
 
 interface ScanReviewModalProps {
   imageBase64: string;
@@ -244,17 +245,11 @@ export function ScanReviewModal({
 
           {/* Loading */}
           {status === 'loading' && (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <div
-                className="w-8 h-8 rounded-full border-2 animate-spin"
-                style={{
-                  borderColor: `${colors.primary}30`,
-                  borderTopColor: colors.primary,
-                }}
+            <div className="flex flex-col items-center justify-center py-10">
+              <LogoLoader
+                size={64}
+                label={isPdf && !pdfReady ? 'Loading PDF…' : 'Reading recommendation…'}
               />
-              <p className="text-sm" style={{ color: colors.lightText + '80' }}>
-                {isPdf && !pdfReady ? 'Loading PDF…' : 'Reading recommendation…'}
-              </p>
             </div>
           )}
 

@@ -3,6 +3,7 @@ import { SavedMix, colors } from '../types';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { CloudSyncStatus } from './CloudSyncStatus';
 import type { DiagnosticsResult, SyncStatus } from '../utils/cloudSync';
+import { LogoIcon } from './Logo';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -230,7 +231,13 @@ export function Header({
               transition: 'font-size 200ms ease',
             }}
           >
-            <span className="text-[24px]" style={{ color: '#1c291f' }}>Spray</span><span className="text-[24px]" style={{ color: colors.primary }}>Calc</span>
+            <span className="inline-flex items-center gap-2">
+              <LogoIcon size={isStuck ? 24 : 28} className="shrink-0" />
+              <span>
+                <span className="text-[24px]" style={{ color: '#1c291f' }}>Spray</span>
+                <span className="text-[24px]" style={{ color: colors.primary }}>Calc</span>
+              </span>
+            </span>
           </h1>
 
           <div className="flex items-center gap-2">
