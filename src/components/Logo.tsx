@@ -9,7 +9,7 @@ import { colors } from '../types';
  * mark and the animated loader share the exact same shapes as
  * public/icons/*.svg (those are generated from the same numbers).
  *
- * The loader's keyframes (.sc-loader, .sc-k1..3, .sc-drop, .sc-ring) are
+ * The loader's keyframes (.sc-loader, .sc-k1..3, .sc-drop) are
  * defined once in index.html, not here, so the pre-JavaScript boot splash
  * can use them too.
  */
@@ -35,9 +35,6 @@ function Glyphs({ fg, animated }: { fg: string; animated?: boolean }) {
         <path className={k(2)} d="M318 126L386 194M386 126L318 194" />
         <path className={k(3)} d="M112 332H208M112 376H208" />
       </g>
-      {animated && (
-        <circle className="sc-ring" cx={352} cy={354} r={80} fill="none" stroke={fg} strokeWidth={12} />
-      )}
       <g className={animated ? 'sc-drop' : undefined}>
         <path fill={fg} transform={DROP_TRANSFORM} d={DROP_D} />
       </g>
@@ -91,7 +88,7 @@ export function LogoMark({ size = 24, className }: { size?: number; className?: 
 
 /**
  * Loading animation: +, ×, = get "tapped" in turn like calculator keys,
- * then the drop bulges with a ripple — the answer. ~1.6 s loop.
+ * then the drop pops bigger than the keys — the answer. ~1.6 s loop.
  * Honors prefers-reduced-motion (static icon).
  */
 export function LogoLoader({ size = 64, label }: { size?: number; label?: string }) {
