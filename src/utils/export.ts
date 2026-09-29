@@ -244,6 +244,36 @@ function setFillRGB(doc: jsPDF, c: [number, number, number]) { doc.setFillColor(
 function setDrawRGB(doc: jsPDF, c: [number, number, number]) { doc.setDrawColor(c[0], c[1], c[2]); }
 function setTextRGB(doc: jsPDF, c: [number, number, number]) { doc.setTextColor(c[0], c[1], c[2]); }
 
+// Draws the SprayCalc mark (+ × = drop) as vectors, `size` mm square with its
+// top-left at (x, y). Same geometry as public/icons/mark.svg (viewBox 90 90 332 332).
+function drawLogoMark(doc: jsPDF, x: number, y: number, size: number) {
+  const u = size / 332;
+  const X = (v: number) => x + (v - 90) * u;
+  const Y = (v: number) => y + (v - 90) * u;
+  setDrawRGB(doc, C.primary);
+  setFillRGB(doc, C.primary);
+  doc.setLineWidth(30 * u);
+  doc.setLineCap('round');
+  const seg = (x1: number, y1: number, x2: number, y2: number) => doc.line(X(x1), Y(y1), X(x2), Y(y2));
+  seg(112, 160, 208, 160); seg(160, 112, 160, 208);          // plus
+  seg(318, 126, 386, 194); seg(386, 126, 318, 194);          // times
+  seg(112, 332, 208, 332); seg(112, 376, 208, 376);          // equals
+  // Drop: the 512-unit drop path scaled by .34 about (352, 354).
+  const s = 0.34 * u;
+  doc.lines(
+    [
+      [0, 0, 132 * s, 134 * s, 132 * s, 222 * s],
+      [0, 74 * s, -62 * s, 132 * s, -132 * s, 132 * s],
+      [-70 * s, 0, -132 * s, -58 * s, -132 * s, -132 * s],
+      [0, -88 * s, 132 * s, -222 * s, 132 * s, -222 * s],
+    ],
+    X(352), Y(354 - 177 * 0.34),
+    [1, 1], 'F', true,
+  );
+  doc.setLineCap('butt');
+  doc.setLineWidth(0.2);
+}
+
 function formatNum(n: number): string {
   if (n === 0) return '0';
   if (Math.abs(n) < 0.1) return n.toFixed(2);
@@ -339,16 +369,22 @@ function drawHeader(
 ): number {
   const baseY = MARGIN_TOP + 6;
 
+  // Brand mark (tile-less, green — no solid block to waste printer ink),
+  // then the "SprayCalc Mix Report" wordmark shifted right to clear it.
+  const MARK = 6.2;
+  drawLogoMark(doc, MARGIN_X, baseY - 5.1, MARK);
+  const textX = MARGIN_X + MARK + 2.2;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   setTextRGB(doc, C.ink);
-  doc.text('Spray', MARGIN_X, baseY);
+  doc.text('Spray', textX, baseY);
   const wSpray = doc.getTextWidth('Spray');
   setTextRGB(doc, C.primary);
-  doc.text('Calc', MARGIN_X + wSpray, baseY);
+  doc.text('Calc', textX + wSpray, baseY);
   const wCalc = doc.getTextWidth('Calc');
   setTextRGB(doc, C.ink);
-  doc.text(' Mix Report', MARGIN_X + wSpray + wCalc, baseY);
+  doc.text(' Mix Report', textX + wSpray + wCalc, baseY);
 
   // The setup line: tank / GPA / ac-per-fill / field / total — the V3 idea
   // is that these numbers live ONCE, here, not in a redundant band below.

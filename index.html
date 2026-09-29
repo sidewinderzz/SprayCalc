@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Ag Spray Calculator</title>
 
@@ -18,10 +18,53 @@
     <link rel="manifest" href="/manifest.json" />
 
     <!-- PWA Icons -->
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <!-- SprayCalc loader keyframes. Lives here (not in index.css) so the boot
+         splash below animates before the JS bundle loads; the React
+         <LogoLoader> in src/components/Logo.tsx reuses these classes.
+         Loop: + then x then = light up like tapped keys, the drop bulges
+         and flashes with a ripple (the answer), all hold, then dim. -->
+    <style>
+      .sc-loader .sc-k, .sc-loader .sc-drop, .sc-loader .sc-ring {
+        transform-box: fill-box; transform-origin: center;
+        animation-duration: 1.8s; animation-iteration-count: infinite;
+        animation-timing-function: ease-out;
+      }
+      .sc-loader .sc-k, .sc-loader .sc-drop { opacity: .4; }
+      .sc-loader .sc-ring { opacity: 0; }
+      .sc-loader .sc-k1 { animation-name: sc-k1; }
+      .sc-loader .sc-k2 { animation-name: sc-k2; }
+      .sc-loader .sc-k3 { animation-name: sc-k3; }
+      .sc-loader .sc-drop { animation-name: sc-drop; }
+      .sc-loader .sc-ring { animation-name: sc-ring; }
+      @keyframes sc-k1 { 0% { opacity: .4; transform: scale(1); } 4% { opacity: 1; transform: scale(1.12); } 10%, 72% { opacity: 1; transform: scale(1); } 84%, 100% { opacity: .4; } }
+      @keyframes sc-k2 { 0%, 11% { opacity: .4; transform: scale(1); } 15% { opacity: 1; transform: scale(1.12); } 21%, 72% { opacity: 1; transform: scale(1); } 84%, 100% { opacity: .4; } }
+      @keyframes sc-k3 { 0%, 22% { opacity: .4; transform: scale(1); } 26% { opacity: 1; transform: scale(1.12); } 32%, 72% { opacity: 1; transform: scale(1); } 84%, 100% { opacity: .4; } }
+      @keyframes sc-drop { 0%, 35% { opacity: .4; transform: scale(1); } 42% { opacity: 1; transform: scale(1.28); } 50% { transform: scale(.94); } 56% { transform: scale(1.04); } 60%, 72% { opacity: 1; transform: scale(1); } 84%, 100% { opacity: .4; } }
+      @keyframes sc-ring { 0%, 43% { opacity: 0; transform: scale(1); } 47% { opacity: .85; transform: scale(1); } 68%, 100% { opacity: 0; transform: scale(1.6); } }
+      @media (prefers-reduced-motion: reduce) {
+        .sc-loader .sc-k, .sc-loader .sc-drop, .sc-loader .sc-ring { animation: none; }
+        .sc-loader .sc-k, .sc-loader .sc-drop { opacity: 1; }
+      }
+      #boot-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #ffffff; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Boot splash: shown until React mounts and replaces #root. -->
+      <div id="boot-splash" role="status" aria-label="Loading SprayCalc">
+        <svg class="sc-loader" viewBox="0 0 512 512" width="96" height="96" aria-hidden="true">
+          <rect width="512" height="512" rx="80" fill="#498a5a"/>
+          <g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round">
+            <path class="sc-k sc-k1" d="M112 160H208M160 112V208"/>
+            <path class="sc-k sc-k2" d="M318 126L386 194M386 126L318 194"/>
+            <path class="sc-k sc-k3" d="M112 332H208M112 376H208"/>
+          </g>
+          <circle class="sc-ring" cx="352" cy="354" r="80" fill="none" stroke="#fff" stroke-width="12"/>
+          <g class="sc-drop"><path fill="#fff" transform="translate(352 354) scale(.34) translate(-256 -273)" d="M256 96C256 96 388 230 388 318C388 392 326 450 256 450C186 450 124 392 124 318C124 230 256 96 256 96Z"/></g>
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

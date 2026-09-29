@@ -1,11 +1,16 @@
-const CACHE_NAME = 'spraycalc-v5';
+const CACHE_NAME = 'spraycalc-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/icon.svg',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/icons/icon-maskable-192x192.png',
+  '/icons/icon-maskable-512x512.png',
+  '/icons/apple-touch-icon.png',
+  '/icons/favicon-32x32.png',
+  '/icons/mark.svg'
 ];
 
 // Install event - cache core assets
