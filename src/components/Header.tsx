@@ -3,7 +3,6 @@ import { SavedMix, colors } from '../types';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { CloudSyncStatus } from './CloudSyncStatus';
 import type { DiagnosticsResult, SyncStatus } from '../utils/cloudSync';
-import { LogoIcon } from './Logo';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -232,7 +231,17 @@ export function Header({
             }}
           >
             <span className="inline-flex items-center gap-2">
-              <LogoIcon size={isStuck ? 24 : 28} className="shrink-0" />
+              {/* A PNG <img>, not inline SVG: browsers' forced dark modes
+                  (Samsung Internet especially) recolor inline SVG into a
+                  one-tone blob but leave images alone. */}
+              <img
+                src="/icons/icon-192x192.png?v=2"
+                alt=""
+                width={isStuck ? 24 : 28}
+                height={isStuck ? 24 : 28}
+                className="shrink-0"
+                style={{ transition: 'width 200ms ease, height 200ms ease' }}
+              />
               <span>
                 <span className="text-[24px]" style={{ color: '#1c291f' }}>Spray</span>
                 <span className="text-[24px]" style={{ color: colors.primary }}>Calc</span>
