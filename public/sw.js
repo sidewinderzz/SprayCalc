@@ -1,16 +1,16 @@
-const CACHE_NAME = 'spraycalc-v6';
+const CACHE_NAME = 'spraycalc-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/icons/icon.svg',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/icon-maskable-192x192.png',
-  '/icons/icon-maskable-512x512.png',
-  '/icons/apple-touch-icon.png',
-  '/icons/favicon-32x32.png',
-  '/icons/mark.svg'
+  '/manifest.json?v=2',
+  '/icons/icon.svg?v=2',
+  '/icons/icon-192x192.png?v=2',
+  '/icons/icon-512x512.png?v=2',
+  '/icons/icon-maskable-192x192.png?v=2',
+  '/icons/icon-maskable-512x512.png?v=2',
+  '/icons/apple-touch-icon.png?v=2',
+  '/icons/favicon-32x32.png?v=2',
+  '/icons/mark.svg?v=2'
 ];
 
 // Install event - cache core assets
@@ -65,6 +65,21 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           return caches.match(event.request) || caches.match('/');
         })
+    );
+    return;
+  }
+
+  // Manifest: network first so installs always see current icons/name;
+  // fall back to the cached copy only when offline.
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
