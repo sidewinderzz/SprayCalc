@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Product, colors } from '../types';
+import { Product, colors, alpha } from '../types';
 import { MixLoad } from '../utils/calculations';
 import { ProductCard, ProductCardHandle } from './ProductCard';
 
@@ -19,16 +19,16 @@ function EnterHint() {
     <div
       className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg mb-3 text-xs"
       style={{
-        backgroundColor: `${colors.primary}12`,
+        backgroundColor: `${alpha(colors.primary, '12')}`,
         color: colors.primaryDark,
-        border: `1px solid ${colors.primary}25`
+        border: `1px solid ${alpha(colors.primary, '25')}`
       }}
     >
       <span>
         <strong>Tip:</strong> Tap{' '}
         <kbd
           className="px-1.5 py-0.5 rounded text-xs font-mono"
-          style={{ backgroundColor: `${colors.primary}20`, border: `1px solid ${colors.primary}30` }}
+          style={{ backgroundColor: `${alpha(colors.primary, '20')}`, border: `1px solid ${alpha(colors.primary, '30')}` }}
         >
           ↵
         </kbd>{' '}
@@ -101,8 +101,8 @@ export function ProductsSection({
       data-tour-id="products"
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`
       }}
     >
       <EnterHint />
@@ -141,8 +141,8 @@ export function ProductsSection({
         className="mt-4 w-full py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
         style={{
           color: colors.primaryDark,
-          border: `1.5px dashed ${colors.primary}70`,
-          backgroundColor: `${colors.primary}08`,
+          border: `1.5px dashed ${alpha(colors.primary, '70')}`,
+          backgroundColor: `${alpha(colors.primary, '08')}`,
         }}
       >
         + Add Product

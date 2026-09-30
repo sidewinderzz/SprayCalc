@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 /**
  * SprayCalc brand mark: plus, times, equals and a drop in a 2×2 grid
@@ -100,7 +100,7 @@ export function LogoLoader({ size = 64, label }: { size?: number; label?: string
         <Glyphs fg={v.fg} animated />
       </svg>
       {label ? (
-        <p className="text-sm" style={{ color: colors.lightText + '80' }}>
+        <p className="text-sm" style={{ color: alpha(colors.lightText, '80') }}>
           {label}
         </p>
       ) : (

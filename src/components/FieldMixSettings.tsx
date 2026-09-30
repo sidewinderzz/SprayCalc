@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 import { calculateMixPlanning } from '../utils/calculations';
 
 interface FieldMixSettingsProps {
@@ -24,8 +24,8 @@ export function FieldMixSettings({
   onSplitModeChange,
 }: FieldMixSettingsProps) {
   const inputStyle = {
-    borderColor: `${colors.primary}30`,
-    backgroundColor: 'white',
+    borderColor: `${alpha(colors.primary, '30')}`,
+    backgroundColor: colors.surface,
   };
 
   const totalGallons = fieldSize > 0 && applicationRate > 0 ? fieldSize * applicationRate : 0;
@@ -54,8 +54,8 @@ export function FieldMixSettings({
     <div
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`,
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`,
       }}
     >
       <h2
@@ -75,7 +75,7 @@ export function FieldMixSettings({
             inputMode="decimal"
             value={fieldSize || ''}
             onChange={(e) => onFieldSizeChange(e.target.value)}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
             style={inputStyle}
             min="0"
             placeholder="0"
@@ -91,7 +91,7 @@ export function FieldMixSettings({
             inputMode="decimal"
             value={applicationRate || ''}
             onChange={(e) => onApplicationRateChange(e.target.value)}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
             style={inputStyle}
             min="0"
             placeholder="0"
@@ -107,7 +107,7 @@ export function FieldMixSettings({
             inputMode="decimal"
             value={fillVolume || ''}
             onChange={(e) => onFillVolumeChange(e.target.value)}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
             style={inputStyle}
             min="0"
             placeholder="0"
@@ -127,7 +127,7 @@ export function FieldMixSettings({
           role="radiogroup"
           aria-label="Tank split mode"
           className="inline-flex items-stretch rounded-lg overflow-hidden"
-          style={{ border: `1px solid ${colors.primary}40`, backgroundColor: 'white' }}
+          style={{ border: `1px solid ${alpha(colors.primary, '40')}`, backgroundColor: colors.surface }}
         >
           {([
             { value: 'fullPlusPartial' as const, label: 'Full + partial', sub: 'fill tanks; last is leftover' },
@@ -158,7 +158,7 @@ export function FieldMixSettings({
       {/* Live summary */}
       <div
         className="mt-4 p-3 rounded-lg flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
-        style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}20`, color: colors.lightText }}
+        style={{ backgroundColor: colors.surface, border: `1px solid ${alpha(colors.primary, '20')}`, color: colors.lightText }}
       >
         <span>
           Total mix: <strong style={{ color: colors.primaryDark }}>{totalGallons.toFixed(1)} gal</strong>

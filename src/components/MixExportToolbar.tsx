@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 import { generateSummaryText, exportPDF, ExportState } from '../utils/export';
 import { trackEvent } from '../utils/analytics';
 import { shareMix } from '../utils/shareMix';
@@ -65,7 +65,7 @@ export function MixExportToolbar({
   const ghostButtonStyle = {
     backgroundColor: 'transparent',
     color: colors.primaryDark,
-    border: `1px solid ${colors.primary}50`,
+    border: `1px solid ${alpha(colors.primary, '50')}`,
   };
 
   return (

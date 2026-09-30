@@ -66,15 +66,33 @@ export interface MixPlanning {
   hasPartialMix: boolean;
 }
 
+// Brand colors resolve to CSS variables (defined in src/index.css for light
+// and dark), so every inline style follows the active theme automatically.
+// Values are "R G B" channel triplets so they can take an alpha: use
+// alpha(colors.primary, '20') instead of appending a hex alpha to the color.
 export const colors = {
-  primary: '#498a5a',
-  secondary: '#d1c343',
-  primaryLight: '#76a886',
-  primaryDark: '#2d6840',
-  secondaryLight: '#e4d97b',
-  secondaryDark: '#b2a529',
-  lightText: '#1c291f'
+  primary: 'rgb(var(--c-primary))',
+  secondary: 'rgb(var(--c-secondary))',
+  primaryLight: 'rgb(var(--c-primary-light))',
+  primaryDark: 'rgb(var(--c-primary-dark))',
+  secondaryLight: 'rgb(var(--c-secondary-light))',
+  secondaryDark: 'rgb(var(--c-secondary-dark))',
+  lightText: 'rgb(var(--c-ink))',
+  surface: 'rgb(var(--c-surface))',
+  surfaceMuted: 'rgb(var(--c-surface-2))',
+  muted: 'rgb(var(--c-muted))',
+  subtle: 'rgb(var(--c-subtle))',
+  danger: 'rgb(var(--c-danger))',
+  dangerBg: 'rgb(var(--c-danger-bg))',
+  onPrimary: 'rgb(var(--c-on-primary))',
 };
+
+/** A theme color at a given opacity. `hexAlpha` is the old two-digit hex
+ *  suffix ('20' ≈ 12.5%), kept so existing tints read the same. */
+export function alpha(color: string, hexAlpha: string): string {
+  const a = Math.round((parseInt(hexAlpha, 16) / 255) * 1000) / 1000;
+  return color.replace(/\)$/, ` / ${a})`);
+}
 
 export const outputFormats = [
   {value: 'auto', label: 'Auto (Default)'},

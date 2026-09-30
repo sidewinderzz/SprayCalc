@@ -2,15 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   Theme tokens. Colors are "R G B" triplets so they work with alpha:
+   rgb(var(--c-primary) / 0.2). src/types.ts `colors` points at these, so
+   inline styles follow the theme. <html data-theme="light|dark"> is set
+   before first paint by the script in index.html (System/Light/Dark).
+--------------------------------------------------------------------------- */
+:root {
+  --c-primary: 73 138 90;          /* #498a5a brand green */
+  --c-primary-dark: 45 104 64;     /* text/icons in green */
+  --c-primary-light: 118 168 134;
+  --c-secondary: 209 195 67;       /* olive yellow */
+  --c-secondary-dark: 178 165 41;
+  --c-secondary-light: 228 217 123;
+  --c-yellow: 181 174 63;          /* product card tint, later cards */
+  --c-ink: 28 41 31;               /* main text */
+  --c-surface: 255 255 255;        /* cards, sheets, inputs */
+  --c-surface-2: 249 250 251;
+  --c-muted: 107 114 128;
+  --c-subtle: 156 163 175;
+  --c-danger: 185 28 28;
+  --c-danger-bg: 254 226 226;
+  --c-on-primary: 255 255 255;     /* text on green buttons */
+  --c-toast: 45 104 64;
+  --c-header-stuck: rgba(255, 255, 255, 0.78);
+  --bg-grad-a: #ffffff;
+  --bg-grad-b: #ecf5ee;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --c-primary: 86 153 106;         /* a touch brighter so it reads on dark */
+  --c-primary-dark: 150 204 164;   /* green text becomes light green */
+  --c-primary-light: 104 150 118;
+  --c-secondary: 196 184 72;
+  --c-secondary-dark: 214 202 96;
+  --c-secondary-light: 120 112 44;
+  --c-yellow: 170 162 64;
+  --c-ink: 226 234 228;
+  --c-surface: 27 34 29;
+  --c-surface-2: 34 42 36;
+  --c-muted: 160 168 162;
+  --c-subtle: 118 126 120;
+  --c-danger: 248 113 113;
+  --c-danger-bg: 72 28 28;
+  --c-on-primary: 255 255 255;
+  --c-toast: 56 110 72;
+  --c-header-stuck: rgba(18, 23, 20, 0.8);
+  --bg-grad-a: #121714;
+  --bg-grad-b: #17221b;
+  color-scheme: dark;
+}
+
 html {
   /* Keep focused inputs from being hidden under the sticky header. */
   scroll-padding-top: calc(88px + env(safe-area-inset-top));
 }
 
 body {
-  background: linear-gradient(160deg, #ffffff 0%, #ecf5ee 100%);
+  background: linear-gradient(160deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
   background-attachment: fixed;
-  color: #1c291f;
+  background-color: var(--bg-grad-a);
+  color: rgb(var(--c-ink));
   min-height: 100vh;
 }
 
@@ -27,6 +80,6 @@ body {
    translucent header stays legible over colored cards. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .header-shell.header-shell--stuck {
-    background-color: #ffffff !important;
+    background-color: rgb(var(--c-surface)) !important;
   }
 }

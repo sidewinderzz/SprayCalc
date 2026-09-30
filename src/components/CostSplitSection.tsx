@@ -1,5 +1,5 @@
 import React from 'react';
-import { MixSplit, Product, colors, SUPPLIED_BY_EACH } from '../types';
+import { MixSplit, Product, colors, SUPPLIED_BY_EACH, alpha } from '../types';
 import {
   buildCostSplit,
   makeSplitId,
@@ -56,20 +56,20 @@ export function CostSplitSection({
   };
 
   const inputStyle = {
-    borderColor: `${colors.primary}30`,
-    backgroundColor: 'white',
+    borderColor: `${alpha(colors.primary, '30')}`,
+    backgroundColor: colors.surface,
   };
 
   return (
     <div
       data-tour-id="cost-split"
       className="rounded-xl overflow-hidden border mb-6"
-      style={{ borderColor: colors.primary + '25' }}
+      style={{ borderColor: alpha(colors.primary, '25') }}
     >
       <button
         onClick={() => setShowCostSplit(!showCostSplit)}
         className="w-full flex items-center justify-between px-4 py-3"
-        style={{ backgroundColor: colors.primary + '08' }}
+        style={{ backgroundColor: alpha(colors.primary, '08') }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <span
@@ -80,19 +80,19 @@ export function CostSplitSection({
           </span>
           <span
             className="hidden sm:flex items-center gap-2 text-xs"
-            style={{ color: colors.primaryDark + 'aa' }}
+            style={{ color: alpha(colors.primaryDark, 'aa') }}
           >
             {report ? (
               <>
                 <span
                   className="px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: colors.primary + '12' }}
+                  style={{ backgroundColor: alpha(colors.primary, '12') }}
                 >
                   {report.parties.length} parties
                 </span>
                 <span
                   className="px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: colors.primary + '12' }}
+                  style={{ backgroundColor: alpha(colors.primary, '12') }}
                 >
                   {report.totalAcres.toFixed(1)} ac
                 </span>
@@ -121,7 +121,7 @@ export function CostSplitSection({
 
       {showCostSplit && (
         <div className="p-4">
-          <p className="text-sm mb-4" style={{ color: `${colors.lightText}b0` }}>
+          <p className="text-sm mb-4" style={{ color: `${alpha(colors.lightText, 'b0')}` }}>
             Mixing one load for more than one field? List each party and their acres.
             Every product is divided by acreage, and you can mark who furnished each
             chemical so the settle-up is clear.
@@ -136,7 +136,7 @@ export function CostSplitSection({
                   value={split.name}
                   onChange={e => updateSplit(split.id, { name: e.target.value })}
                   placeholder={`Party ${idx + 1} (e.g. Smith Farms)`}
-                  className="flex-1 min-w-0 p-2.5 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                  className="flex-1 min-w-0 p-2.5 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                   style={inputStyle}
                   aria-label={`Party ${idx + 1} name`}
                 />
@@ -150,20 +150,20 @@ export function CostSplitSection({
                       updateSplit(split.id, { acres: parseFloat(e.target.value) || 0 })
                     }
                     placeholder="0"
-                    className="w-full p-2.5 pr-9 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                    className="w-full p-2.5 pr-9 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                     style={inputStyle}
                     aria-label={`${splitDisplayName(split, idx)} acres`}
                   />
                   <span
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
-                    style={{ color: `${colors.lightText}70` }}
+                    style={{ color: `${alpha(colors.lightText, '70')}` }}
                   >
                     ac
                   </span>
                 </div>
                 <button
                   onClick={() => removeSplit(split.id)}
-                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md hover:bg-red-50 hover:text-red-600"
+                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md hover:bg-danger-bg hover:text-danger"
                   style={{ color: colors.primaryLight }}
                   title={`Remove ${splitDisplayName(split, idx)}`}
                   aria-label={`Remove ${splitDisplayName(split, idx)}`}
@@ -190,9 +190,9 @@ export function CostSplitSection({
               onClick={addSplit}
               className="px-3 py-2 rounded-lg text-sm font-medium"
               style={{
-                backgroundColor: `${colors.primary}12`,
+                backgroundColor: `${alpha(colors.primary, '12')}`,
                 color: colors.primaryDark,
-                border: `1px solid ${colors.primary}30`,
+                border: `1px solid ${alpha(colors.primary, '30')}`,
               }}
             >
               + Add party
@@ -211,8 +211,8 @@ export function CostSplitSection({
             <div
               className="mt-3 p-3 rounded-lg text-sm flex flex-wrap items-center gap-x-3 gap-y-2"
               style={{
-                backgroundColor: `${colors.secondary}20`,
-                border: `1px solid ${colors.secondary}60`,
+                backgroundColor: `${alpha(colors.secondary, '20')}`,
+                border: `1px solid ${alpha(colors.secondary, '60')}`,
                 color: colors.lightText,
               }}
             >
@@ -256,7 +256,7 @@ export function CostSplitSection({
                       onChange={e =>
                         onProductChange(product.id, 'suppliedBy', e.target.value)
                       }
-                      className="flex-shrink-0 p-2 border rounded-lg text-base text-gray-800 focus:outline-none focus:ring-2"
+                      className="flex-shrink-0 p-2 border rounded-lg text-base text-ink focus:outline-none focus:ring-2"
                       style={{ ...inputStyle, maxWidth: '16rem' }}
                       aria-label={`Who supplies ${displayProductName(product.name, idx)}`}
                     >
@@ -280,12 +280,12 @@ export function CostSplitSection({
                 {report.parties.map(party => (
                   <div
                     key={party.split.id}
-                    className="rounded-lg overflow-hidden border bg-white"
-                    style={{ borderColor: colors.primary + '25' }}
+                    className="rounded-lg overflow-hidden border bg-surface"
+                    style={{ borderColor: alpha(colors.primary, '25') }}
                   >
                     <div
                       className="px-3 py-2"
-                      style={{ backgroundColor: colors.primary + '0d' }}
+                      style={{ backgroundColor: alpha(colors.primary, '0d') }}
                     >
                       <p
                         className="text-sm font-bold truncate"
@@ -295,7 +295,7 @@ export function CostSplitSection({
                       </p>
                       <p
                         className="text-xs mt-0.5"
-                        style={{ color: `${colors.lightText}cc` }}
+                        style={{ color: `${alpha(colors.lightText, 'cc')}` }}
                       >
                         {party.split.acres} ac · {(party.fraction * 100).toFixed(0)}% of
                         load · {party.gallons.toFixed(1)} gal
@@ -312,7 +312,7 @@ export function CostSplitSection({
                             {line.suppliedByName && (
                               <span
                                 className="block text-xs"
-                                style={{ color: `${colors.lightText}90` }}
+                                style={{ color: `${alpha(colors.lightText, '90')}` }}
                               >
                                 {line.isSupplier
                                   ? `supplies all ${line.furnishedDisplay}`
@@ -337,8 +337,8 @@ export function CostSplitSection({
                 <div
                   className="mt-4 p-3 rounded-lg"
                   style={{
-                    backgroundColor: `${colors.secondary}18`,
-                    border: `1px solid ${colors.secondary}55`,
+                    backgroundColor: `${alpha(colors.secondary, '18')}`,
+                    border: `1px solid ${alpha(colors.secondary, '55')}`,
                   }}
                 >
                   <p
@@ -361,7 +361,7 @@ export function CostSplitSection({
             </>
           ) : (
             splits.length > 0 && (
-              <p className="mt-4 text-sm" style={{ color: `${colors.lightText}90` }}>
+              <p className="mt-4 text-sm" style={{ color: `${alpha(colors.lightText, '90')}` }}>
                 Enter acres for at least two parties (and an application rate) to see the
                 breakdown.
               </p>

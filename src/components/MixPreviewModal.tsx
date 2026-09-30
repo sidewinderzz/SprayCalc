@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 import { ExportState } from '../utils/export';
 import {
   calculateMixPlanning,
@@ -38,8 +38,8 @@ function formatETA(date: Date): string {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-baseline py-1.5 border-b last:border-0" style={{ borderColor: `${colors.primary}20` }}>
-      <span className="text-sm" style={{ color: '#6b7280' }}>{label}</span>
+    <div className="flex justify-between items-baseline py-1.5 border-b last:border-0" style={{ borderColor: `${alpha(colors.primary, '20')}` }}>
+      <span className="text-sm" style={{ color: colors.muted }}>{label}</span>
       <span className="text-sm font-semibold ml-4 text-right" style={{ color: colors.lightText }}>{value}</span>
     </div>
   );
@@ -55,7 +55,7 @@ function SectionHeader({ title }: { title: string }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl px-4 py-1" style={{ backgroundColor: '#f9fafb', border: `1px solid ${colors.primary}25` }}>
+    <div className="rounded-xl px-4 py-1" style={{ backgroundColor: colors.surfaceMuted, border: `1px solid ${alpha(colors.primary, '25')}` }}>
       {children}
     </div>
   );
@@ -129,23 +129,23 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
       {/* Sheet */}
       <div
         className="relative flex flex-col w-full max-w-lg mx-auto mt-auto rounded-t-2xl"
-        style={{ backgroundColor: '#ffffff', maxHeight: '92vh' }}
+        style={{ backgroundColor: colors.surface, maxHeight: '92vh' }}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#d1d5db' }} />
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: alpha(colors.lightText, '30') }} />
         </div>
 
         {/* Fixed header */}
         <div className="flex items-center justify-between px-4 pb-3 pt-1">
           <div>
             <span className="text-lg font-bold" style={{ color: colors.primaryDark }}>SprayCalc</span>
-            <span className="ml-2 text-xs" style={{ color: '#9ca3af' }}>Mix Preview</span>
+            <span className="ml-2 text-xs" style={{ color: colors.subtle }}>Mix Preview</span>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}
+            style={{ backgroundColor: alpha(colors.lightText, '10'), color: colors.muted }}
             aria-label="Close preview"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -154,7 +154,7 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
           </button>
         </div>
 
-        <div style={{ borderBottom: `1px solid ${colors.primary}20` }} />
+        <div style={{ borderBottom: `1px solid ${alpha(colors.primary, '20')}` }} />
 
         {/* Scrollable content */}
         <div className="overflow-y-auto flex-1 px-4 pb-8">
@@ -300,7 +300,7 @@ export function MixPreviewModal({ state, onClose }: MixPreviewModalProps) {
             </>
           )}
 
-          <p className="text-center text-xs mt-5 px-4" style={{ color: '#9ca3af' }}>
+          <p className="text-center text-xs mt-5 px-4" style={{ color: colors.subtle }}>
             SprayCalc — Always read and follow label directions.
           </p>
         </div>

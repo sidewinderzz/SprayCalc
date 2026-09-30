@@ -6,7 +6,7 @@ import React, {
   useState,
   useEffect
 } from 'react';
-import { Product, colors, outputFormats } from '../types';
+import { Product, colors, outputFormats, alpha } from '../types';
 import {
   MixLoad,
   calculateAmount,
@@ -56,7 +56,7 @@ function UnitModeToggle({ unit, onChange }: UnitModeToggleProps) {
   return (
     <div
       className="flex rounded-lg overflow-hidden flex-shrink-0 text-xs font-semibold"
-      style={{ backgroundColor: `${colors.primary}10` }}
+      style={{ backgroundColor: `${alpha(colors.primary, '10')}` }}
     >
       {(['acre', '100gal'] as const).map((m) => (
         <button
@@ -105,7 +105,7 @@ function UnitPillSelector({ unit, onChange }: UnitPillSelectorProps) {
             pill === p
               ? { backgroundColor: colors.primary, color: '#fff' }
               : {
-                  backgroundColor: `${colors.primary}10`,
+                  backgroundColor: `${alpha(colors.primary, '10')}`,
                   color: colors.primaryDark
                 }
           }
@@ -173,7 +173,7 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
   const pillStyle = (active: boolean) =>
     active
       ? { backgroundColor: colors.primary, color: '#fff' }
-      : { backgroundColor: `${colors.primary}10`, color: colors.primaryDark };
+      : { backgroundColor: `${alpha(colors.primary, '10')}`, color: colors.primaryDark };
 
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -233,10 +233,10 @@ function JugSizePillSelector({ jugSize, onChange }: JugSizePillSelectorProps) {
             onBlur={handleCustomCommit}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomCommit(); } }}
             autoFocus
-            className="w-24 px-2 py-1 border rounded-lg text-base font-medium text-gray-800 focus:outline-none focus:ring-2"
-            style={{ borderColor: `${colors.primary}1f`, backgroundColor: `${colors.primary}06` }}
+            className="w-24 px-2 py-1 border rounded-lg text-base font-medium text-ink focus:outline-none focus:ring-2"
+            style={{ borderColor: `${alpha(colors.primary, '1f')}`, backgroundColor: `${alpha(colors.primary, '06')}` }}
           />
-          <span className="text-xs" style={{ color: `${colors.lightText}80` }}>gal</span>
+          <span className="text-xs" style={{ color: `${alpha(colors.lightText, '80')}` }}>gal</span>
         </div>
       )}
     </div>
@@ -339,13 +339,13 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                 scrollCenter(rateRef.current);
               }
             }}
-            className="flex-1 min-w-0 px-2.5 py-1.5 border rounded-lg text-base font-semibold text-gray-800 focus:outline-none focus:ring-2"
+            className="flex-1 min-w-0 px-2.5 py-1.5 border rounded-lg text-base font-semibold text-ink focus:outline-none focus:ring-2"
             style={inputBaseStyle}
             placeholder={`Product ${index + 1}`}
           />
           <button
             onClick={() => onRemoveProduct(product.id)}
-            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors"
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-subtle hover:text-danger hover:bg-danger-bg focus:outline-none focus:ring-2 focus:ring-danger/30 transition-colors"
             title="Remove Product"
             aria-label="Remove Product"
           >
@@ -373,7 +373,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                     onEnterFromLastField();
                   }
                 }}
-                className="w-full px-2.5 py-1.5 border rounded-lg text-base font-medium text-gray-800 focus:outline-none focus:ring-2"
+                className="w-full px-2.5 py-1.5 border rounded-lg text-base font-medium text-ink focus:outline-none focus:ring-2"
                 style={inputBaseStyle}
                 min="0"
                 step="0.01"
@@ -398,7 +398,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
             <div className="flex flex-col gap-1 pt-1">
               <div
                 className="text-xs font-medium"
-                style={{ color: `${colors.lightText}80` }}
+                style={{ color: `${alpha(colors.lightText, '80')}` }}
               >
                 Jug Size
               </div>
@@ -431,7 +431,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
               <div key={i} className="flex flex-col min-w-0">
                 <span
                   className="text-[10px] uppercase tracking-wider font-semibold"
-                  style={{ color: `${colors.primaryDark}99` }}
+                  style={{ color: `${alpha(colors.primaryDark, '99')}` }}
                 >
                   {isSingleLoad && !load.isPartial
                     ? 'Amount for Tank'
@@ -457,7 +457,7 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
                 {parts.jugBreakdown && (
                   <span
                     className="text-xs leading-tight font-normal mt-1"
-                    style={{ color: `${colors.primaryDark}aa` }}
+                    style={{ color: `${alpha(colors.primaryDark, 'aa')}` }}
                   >
                     {parts.jugBreakdown}
                   </span>
@@ -480,18 +480,18 @@ export const ProductCard = forwardRef<ProductCardHandle, ProductCardProps>(({
           <div
             className="absolute left-2 right-2 z-10 mt-1 border rounded-lg shadow-lg overflow-hidden"
             style={{
-              backgroundColor: 'white',
-              borderColor: `${colors.primary}40`
+              backgroundColor: colors.surface,
+              borderColor: `${alpha(colors.primary, '40')}`
             }}
             role="listbox"
           >
             {outputFormats.map(format => (
               <div
                 key={format.value}
-                className="px-3 py-2.5 cursor-pointer text-sm hover:bg-gray-50 active:bg-gray-100"
+                className="px-3 py-2.5 cursor-pointer text-sm hover:bg-surface-2 active:bg-ink/5"
                 style={{
                   backgroundColor: product.outputFormat === format.value
-                    ? `${colors.primary}18`
+                    ? `${alpha(colors.primary, '18')}`
                     : 'transparent',
                   fontWeight: product.outputFormat === format.value ? '600' : 'normal',
                   color: colors.lightText

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 interface ScanButtonProps {
   onImageSelected: (base64: string, mimeType: string) => void;
@@ -90,11 +90,11 @@ export function ScanButton({ onImageSelected }: ScanButtonProps) {
       />
       <button
         onClick={() => inputRef.current?.click()}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-black/5"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-ink/5"
         style={{
           color: colors.primaryDark,
-          border: `1px solid ${colors.primary}40`,
-          backgroundColor: `${colors.primary}08`,
+          border: `1px solid ${alpha(colors.primary, '40')}`,
+          backgroundColor: `${alpha(colors.primary, '08')}`,
         }}
         title="Scan a spray recommendation (photo or PDF) to auto-fill products"
         aria-label="Scan spray recommendation"

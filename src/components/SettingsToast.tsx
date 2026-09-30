@@ -35,7 +35,7 @@ export function SettingsToast({ message }: SettingsToastProps) {
       <div
         className="px-4 py-2.5 text-sm rounded-full font-medium shadow-lg whitespace-nowrap"
         style={{
-          backgroundColor: colors.primaryDark,
+          backgroundColor: 'rgb(var(--c-toast))',
           color: 'white',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(8px)',

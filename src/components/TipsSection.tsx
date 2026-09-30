@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 interface TipsSectionProps {
   show: boolean;
@@ -13,8 +13,8 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
     <div
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}07`,
-        border: `1.5px solid ${colors.primary}40`
+        backgroundColor: `${alpha(colors.primary, '07')}`,
+        border: `1.5px solid ${alpha(colors.primary, '40')}`
       }}
     >
       <div className="flex justify-between items-start mb-4">
@@ -23,7 +23,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
         </h2>
         <button
           onClick={onClose}
-          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-red-50 hover:text-red-500"
+          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-danger-bg hover:text-danger"
           style={{ color: colors.primaryLight }}
           title="Close tips"
         >
@@ -81,7 +81,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
 
       <div
         className="mt-6 p-4 rounded-lg"
-        style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}25` }}
+        style={{ backgroundColor: colors.surface, border: `1px solid ${alpha(colors.primary, '25')}` }}
       >
         <h3 className="font-bold text-base mb-3" style={{ color: colors.primary }}>Example Scenarios</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ color: colors.lightText }}>
@@ -102,7 +102,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
 
       <div
         className="mt-4 p-4 rounded-lg"
-        style={{ backgroundColor: 'white', border: `1px solid ${colors.primary}25` }}
+        style={{ backgroundColor: colors.surface, border: `1px solid ${alpha(colors.primary, '25')}` }}
       >
         <h3 className="font-bold text-base mb-3" style={{ color: colors.primary }}>
           Sharing One Load Between Clients
@@ -120,7 +120,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
           </p>
           <div
             className="mt-3 p-3 rounded-lg"
-            style={{ backgroundColor: `${colors.primary}08`, border: `1px solid ${colors.primary}20` }}
+            style={{ backgroundColor: `${alpha(colors.primary, '08')}`, border: `1px solid ${alpha(colors.primary, '20')}` }}
           >
             <h4 className="font-semibold mb-2" style={{ color: colors.primaryDark }}>
               Example: 100 acres theirs, 50 acres yours
@@ -139,7 +139,7 @@ export function TipsSection({ show, onClose }: TipsSectionProps) {
 
       <div
         className="mt-4 p-3 rounded-lg text-center text-sm"
-        style={{ backgroundColor: `${colors.primary}10`, color: colors.primaryDark }}
+        style={{ backgroundColor: `${alpha(colors.primary, '10')}`, color: colors.primaryDark }}
       >
         <p><strong>Remember:</strong> Always verify calculations against product labels and follow all safety guidelines. This calculator is a planning tool — use your professional judgment!</p>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 import { calculateMixPlanning } from '../utils/calculations';
 import { ExportState } from '../utils/export';
 import { MixExportToolbar } from './MixExportToolbar';
@@ -49,8 +49,8 @@ export function FieldMixSummary({
       data-tour-id="summary"
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`,
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`,
       }}
     >
       <div className="flex justify-between items-center mb-3 gap-2 flex-wrap">

@@ -10,6 +10,21 @@
     <!-- PWA Meta Tags -->
     <meta name="description" content="Agricultural spray mixing calculator for precise chemical application" />
     <meta name="theme-color" content="#498a5a" />
+    <!-- The app ships its own light + dark themes. Declaring both tells
+         browsers (Samsung Internet especially) not to force-darken it. -->
+    <meta name="color-scheme" content="light dark" />
+    <!-- Resolve the theme before first paint (same logic as src/theme.ts)
+         so a dark-mode phone never flashes white on launch. -->
+    <script>
+      (function () {
+        var pref = 'system';
+        try { pref = localStorage.getItem('sc-theme') || 'system'; } catch (e) {}
+        var dark = pref === 'dark' || (pref === 'system' && window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#121714');
+      })();
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="SprayCalc" />
@@ -43,7 +58,8 @@
         .sc-loader .sc-k, .sc-loader .sc-drop { animation: none; }
         .sc-loader .sc-k, .sc-loader .sc-drop { opacity: 1; }
       }
-      #boot-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #ffffff; }
+      #boot-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-grad-a, #ffffff); }
+      :root[data-theme='dark'] #boot-splash { background: #121714; }
     </style>
   </head>
   <body>

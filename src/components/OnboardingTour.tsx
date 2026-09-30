@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 export interface TourStep {
   id: string;
@@ -253,13 +253,13 @@ export function OnboardingTour({ open, steps, onClose, onComplete }: OnboardingT
           top: tooltipPos.top,
           left: tooltipPos.left,
           width: `min(${TOOLTIP_WIDTH}px, calc(100vw - ${VIEWPORT_MARGIN * 2}px))`,
-          backgroundColor: 'white',
+          backgroundColor: colors.surface,
           borderRadius: 14,
           boxShadow: '0 12px 40px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.1)',
           padding: 18,
           transition: 'top 280ms cubic-bezier(.4,.0,.2,1), left 280ms cubic-bezier(.4,.0,.2,1), opacity 200ms ease',
           opacity: 1,
-          border: `1px solid ${colors.primary}30`,
+          border: `1px solid ${alpha(colors.primary, '30')}`,
           color: colors.lightText,
         }}
       >
@@ -275,7 +275,7 @@ export function OnboardingTour({ open, steps, onClose, onComplete }: OnboardingT
           <button
             ref={closeBtnRef}
             onClick={onClose}
-            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5"
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md hover:bg-ink/5"
             style={{ color: colors.primaryDark }}
             aria-label="Skip tour"
             title="Skip tour"
@@ -305,7 +305,7 @@ export function OnboardingTour({ open, steps, onClose, onComplete }: OnboardingT
                 width: i === stepIdx ? 18 : 6,
                 height: 6,
                 borderRadius: 9999,
-                backgroundColor: i === stepIdx ? colors.primary : colors.primary + '35',
+                backgroundColor: i === stepIdx ? colors.primary : alpha(colors.primary, '35'),
                 transition: 'width 200ms ease, background-color 200ms ease',
               }}
             />
@@ -316,7 +316,7 @@ export function OnboardingTour({ open, steps, onClose, onComplete }: OnboardingT
           <button
             onClick={onClose}
             className="text-sm font-medium px-2 py-2"
-            style={{ color: colors.lightText + 'aa' }}
+            style={{ color: alpha(colors.lightText, 'aa') }}
           >
             Skip
           </button>
@@ -325,7 +325,7 @@ export function OnboardingTour({ open, steps, onClose, onComplete }: OnboardingT
               <button
                 onClick={back}
                 className="px-3 py-2 rounded-lg text-sm font-medium border"
-                style={{ borderColor: colors.primary + '50', color: colors.primaryDark }}
+                style={{ borderColor: alpha(colors.primary, '50'), color: colors.primaryDark }}
               >
                 Back
               </button>

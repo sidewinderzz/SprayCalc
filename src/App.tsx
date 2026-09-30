@@ -260,7 +260,7 @@ const AgSprayCalculator = () => {
       <div
         className="rounded-2xl sm:rounded-2xl rounded-t-none mx-auto p-4 sm:p-6"
         style={{
-          backgroundColor: 'white',
+          backgroundColor: colors.surface,
           color: colors.lightText,
           maxWidth: "min(100%, 1000px)",
           boxShadow: '0 4px 24px 0 rgba(73,138,90,0.08), 0 1px 4px 0 rgba(0,0,0,0.06)'

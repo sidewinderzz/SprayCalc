@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 interface MixSettingsProps {
   fillVolume: number;
@@ -23,8 +23,8 @@ export function MixSettings({
   onAcresPerFillBlur
 }: MixSettingsProps) {
   const inputStyle = {
-    borderColor: `${colors.primary}30`,
-    backgroundColor: 'white'
+    borderColor: `${alpha(colors.primary, '30')}`,
+    backgroundColor: colors.surface
   };
 
   return (
@@ -32,8 +32,8 @@ export function MixSettings({
       data-tour-id="mix-information"
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`
       }}
     >
       <h2 className="font-bold mb-3 text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
@@ -49,7 +49,7 @@ export function MixSettings({
             inputMode="decimal"
             value={fillVolume || ''}
             onChange={(e) => onFillVolumeChange(e.target.value)}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
             style={inputStyle}
             min="0"
             placeholder="0"
@@ -64,7 +64,7 @@ export function MixSettings({
             inputMode="decimal"
             value={applicationRate || ''}
             onChange={(e) => onApplicationRateChange(e.target.value)}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
             style={inputStyle}
             min="0"
             placeholder="0"
@@ -80,8 +80,8 @@ export function MixSettings({
             value={acresPerFillInput}
             onChange={(e) => onAcresPerFillInputChange(e.target.value)}
             onBlur={onAcresPerFillBlur}
-            className="w-full p-3 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
-            style={{ ...inputStyle, color: acresPerFillInput ? undefined : '#9ca3af' }}
+            className="w-full p-3 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
+            style={{ ...inputStyle, color: acresPerFillInput ? undefined : colors.subtle }}
             min="0"
             step="0.1"
             placeholder="Auto-calculated"

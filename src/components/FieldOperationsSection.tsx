@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '../types';
+import { colors, alpha } from '../types';
 
 interface FieldOperationsSectionProps {
   fillVolume: number;
@@ -105,8 +105,8 @@ function renderEstimates(
   estimates: FieldOpsEstimates | null
 ): React.ReactNode {
   const emptyStateStyle = {
-    backgroundColor: `${colors.primary}10`,
-    border: `1px solid ${colors.primary}25`,
+    backgroundColor: `${alpha(colors.primary, '10')}`,
+    border: `1px solid ${alpha(colors.primary, '25')}`,
     color: colors.lightText
   };
 
@@ -167,8 +167,8 @@ export function FieldOperationsSection({
   hideFieldSizeInput = false
 }: FieldOperationsSectionProps) {
   const inputStyle = {
-    borderColor: `${colors.primary}30`,
-    backgroundColor: 'white'
+    borderColor: `${alpha(colors.primary, '30')}`,
+    backgroundColor: colors.surface
   };
   const labelStyle = {
     color: colors.lightText,
@@ -180,22 +180,22 @@ export function FieldOperationsSection({
     fieldSize, implementWidth, speed, fillTime, currentTime
   );
 
-  const chipStyle = { backgroundColor: colors.primary + '12' };
+  const chipStyle = { backgroundColor: alpha(colors.primary, '12') };
 
   return (
-    <div data-tour-id="field-operations" className="rounded-xl overflow-hidden border mb-6" style={{ borderColor: colors.primary + '25' }}>
+    <div data-tour-id="field-operations" className="rounded-xl overflow-hidden border mb-6" style={{ borderColor: alpha(colors.primary, '25') }}>
       {/* Toggle header */}
       <button
         onClick={() => setShowFieldOps(!showFieldOps)}
         className="w-full flex items-center justify-between px-4 py-3"
-        style={{ backgroundColor: colors.primary + '08' }}
+        style={{ backgroundColor: alpha(colors.primary, '08') }}
       >
         <div className="flex items-center gap-3">
           <span className="font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
             Field Operations
           </span>
           {/* Compact stats chips */}
-          <span className="hidden sm:flex items-center gap-2 text-xs" style={{ color: colors.primaryDark + 'aa' }}>
+          <span className="hidden sm:flex items-center gap-2 text-xs" style={{ color: alpha(colors.primaryDark, 'aa') }}>
             {fieldSize > 0 && (
               <span className="px-2 py-0.5 rounded-full" style={chipStyle}>{fieldSize} ac</span>
             )}
@@ -238,7 +238,7 @@ export function FieldOperationsSection({
                   inputMode="decimal"
                   value={fieldSize || ''}
                   onChange={(e) => setFieldSize(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                  className="w-full px-3 py-2 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                   style={inputStyle}
                   min="0"
                   placeholder="0"
@@ -254,7 +254,7 @@ export function FieldOperationsSection({
                 inputMode="decimal"
                 value={implementWidth || ''}
                 onChange={(e) => setImplementWidth(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                className="w-full px-3 py-2 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                 style={inputStyle}
                 min="0"
                 placeholder="0"
@@ -269,7 +269,7 @@ export function FieldOperationsSection({
                 inputMode="decimal"
                 value={speed || ''}
                 onChange={(e) => setSpeed(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                className="w-full px-3 py-2 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                 style={inputStyle}
                 min="0"
                 placeholder="0"
@@ -284,7 +284,7 @@ export function FieldOperationsSection({
                 inputMode="decimal"
                 value={fillTime || ''}
                 onChange={(e) => setFillTime(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2"
+                className="w-full px-3 py-2 border rounded-lg text-ink text-base focus:outline-none focus:ring-2"
                 style={inputStyle}
                 min="0"
                 placeholder="0"
@@ -293,7 +293,7 @@ export function FieldOperationsSection({
           </div>
 
           {/* Divider */}
-          <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+          <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
 
           {/* Estimates subsection */}
           <div>

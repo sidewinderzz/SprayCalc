@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, colors } from '../types';
+import { Product, colors, alpha } from '../types';
 import { buildFieldLoads, calculateAmount, formatOutput, mixLoadLabel } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 
@@ -33,8 +33,8 @@ export function PerMixBreakdown({
     <div
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`,
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`,
       }}
     >
       <h2
@@ -46,12 +46,12 @@ export function PerMixBreakdown({
       <div className={`grid gap-3 ${gridCols}`}>
         {groups.map((group, i) => {
           const accent = group.isPartial ? colors.secondary : colors.primary;
-          const headerBg = group.isPartial ? `${colors.secondary}14` : `${colors.primary}08`;
+          const headerBg = group.isPartial ? `${alpha(colors.secondary, '14')}` : `${alpha(colors.primary, '08')}`;
           return (
             <div
               key={i}
-              className="rounded-lg overflow-hidden border bg-white"
-              style={{ borderColor: `${colors.primary}25` }}
+              className="rounded-lg overflow-hidden border bg-surface"
+              style={{ borderColor: `${alpha(colors.primary, '25')}` }}
             >
               <div
                 className="px-3 py-2 flex gap-2 items-stretch"
@@ -62,7 +62,7 @@ export function PerMixBreakdown({
                   <p className="font-bold text-sm" style={{ color: colors.primaryDark }}>
                     {mixLoadLabel(group)}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: `${colors.lightText}cc` }}>
+                  <p className="text-xs mt-0.5" style={{ color: `${alpha(colors.lightText, 'cc')}` }}>
                     {group.volume.toFixed(1)} gal · {group.acres.toFixed(2)} acres
                     {group.count > 1 ? ' each' : ''}
                   </p>

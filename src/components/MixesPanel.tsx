@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SavedMix, MixData, MixHistoryEntry, colors } from '../types';
+import { SavedMix, MixData, MixHistoryEntry, colors, alpha } from '../types';
 import { formatRelativeTime } from '../utils/relativeTime';
 
 // The saved mixes and the auto-logged history used to share one scrolling
@@ -41,7 +41,7 @@ function DeleteButton({ title, onClick }: { title: string; onClick: () => void }
   return (
     <button
       onClick={onClick}
-      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md hover:bg-red-50 hover:text-red-600 transition-colors"
+      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md hover:bg-danger-bg hover:text-danger transition-colors"
       style={{ color: colors.primaryLight }}
       title={title}
       aria-label={title}
@@ -66,7 +66,7 @@ function EmptyState({ children }: { children: React.ReactNode }) {
   return (
     <p
       className="text-sm text-center py-10 px-6 leading-relaxed"
-      style={{ color: `${colors.lightText}90` }}
+      style={{ color: `${alpha(colors.lightText, '90')}` }}
     >
       {children}
     </p>
@@ -163,7 +163,7 @@ export function MixesPanel({
         aria-label="Mixes"
         className="relative flex flex-col w-full sm:max-w-md mx-auto mt-auto sm:my-auto rounded-t-2xl sm:rounded-2xl overflow-hidden"
         style={{
-          backgroundColor: 'white',
+          backgroundColor: colors.surface,
           maxHeight: '88vh',
           boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
         }}
@@ -176,7 +176,7 @@ export function MixesPanel({
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}
+            style={{ backgroundColor: alpha(colors.lightText, '10'), color: colors.muted }}
             aria-label="Close mixes"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -191,7 +191,7 @@ export function MixesPanel({
           role="tablist"
           aria-label="Mix lists"
           className="flex items-stretch px-4"
-          style={{ borderBottom: `1px solid ${colors.primary}25` }}
+          style={{ borderBottom: `1px solid ${alpha(colors.primary, '25')}` }}
         >
           {tabs.map(t => {
             const isActive = tab === t.id;
@@ -202,14 +202,14 @@ export function MixesPanel({
                 aria-selected={isActive}
                 onClick={() => setTab(t.id)}
                 className="relative bg-transparent border-0 pr-5 py-2 text-sm font-semibold"
-                style={{ color: isActive ? colors.primaryDark : '#7c867c' }}
+                style={{ color: isActive ? colors.primaryDark : colors.muted }}
               >
                 {t.label}
                 <span
                   className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold"
                   style={{
-                    backgroundColor: isActive ? `${colors.primary}18` : '#f3f4f6',
-                    color: isActive ? colors.primaryDark : '#9ca3af',
+                    backgroundColor: isActive ? `${alpha(colors.primary, '18')}` : alpha(colors.lightText, '10'),
+                    color: isActive ? colors.primaryDark : colors.subtle,
                   }}
                 >
                   {t.count}
@@ -241,8 +241,8 @@ export function MixesPanel({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={tab === 'saved' ? 'Search saved mixes…' : 'Search recent mixes…'}
-              className="w-full p-2.5 border rounded-lg text-base text-gray-800 focus:outline-none focus:ring-2"
-              style={{ borderColor: `${colors.primary}30`, backgroundColor: 'white' }}
+              className="w-full p-2.5 border rounded-lg text-base text-ink focus:outline-none focus:ring-2"
+              style={{ borderColor: `${alpha(colors.primary, '30')}`, backgroundColor: colors.surface }}
               aria-label="Search mixes"
             />
           </div>
@@ -265,8 +265,8 @@ export function MixesPanel({
                     key={mix.name}
                     className="flex items-center gap-2 rounded-lg px-3 py-2.5"
                     style={{
-                      backgroundColor: `${colors.primary}08`,
-                      border: `1px solid ${colors.primary}18`,
+                      backgroundColor: `${alpha(colors.primary, '08')}`,
+                      border: `1px solid ${alpha(colors.primary, '18')}`,
                     }}
                   >
                     <button
@@ -284,7 +284,7 @@ export function MixesPanel({
                       </div>
                       <div
                         className="text-xs mt-0.5 truncate"
-                        style={{ color: `${colors.lightText}90` }}
+                        style={{ color: `${alpha(colors.lightText, '90')}` }}
                       >
                         {summarizeSavedMix(mix.data)}
                         {mix.updatedAt ? ` · ${formatRelativeTime(mix.updatedAt)}` : ''}
@@ -312,8 +312,8 @@ export function MixesPanel({
                   key={entry.id}
                   className="flex items-center gap-2 rounded-lg px-3 py-2.5"
                   style={{
-                    backgroundColor: `${colors.primary}08`,
-                    border: `1px solid ${colors.primary}18`,
+                    backgroundColor: `${alpha(colors.primary, '08')}`,
+                    border: `1px solid ${alpha(colors.primary, '18')}`,
                   }}
                 >
                   <button
@@ -331,7 +331,7 @@ export function MixesPanel({
                     </div>
                     <div
                       className="text-xs mt-0.5 truncate"
-                      style={{ color: `${colors.lightText}90` }}
+                      style={{ color: `${alpha(colors.lightText, '90')}` }}
                     >
                       {formatRelativeTime(entry.timestamp)}
                     </div>
@@ -349,7 +349,7 @@ export function MixesPanel({
         {/* Footer action, specific to the visible tab */}
         <div
           className="px-4 py-3 flex items-center justify-between gap-3"
-          style={{ borderTop: `1px solid ${colors.primary}20` }}
+          style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }}
         >
           {tab === 'saved' ? (
             <button
@@ -363,7 +363,7 @@ export function MixesPanel({
               Save current mix…
             </button>
           ) : historyEntries.length === 0 ? (
-            <span className="text-xs" style={{ color: `${colors.lightText}70` }}>
+            <span className="text-xs" style={{ color: `${alpha(colors.lightText, '70')}` }}>
               The last 25 mixes are kept on this device.
             </span>
           ) : confirmClearHistory ? (
@@ -374,27 +374,27 @@ export function MixesPanel({
                   setConfirmClearHistory(false);
                 }}
                 className="text-sm font-semibold"
-                style={{ color: '#b91c1c' }}
+                style={{ color: colors.danger }}
               >
                 Clear all history
               </button>
               <button
                 onClick={() => setConfirmClearHistory(false)}
                 className="text-sm"
-                style={{ color: `${colors.lightText}99` }}
+                style={{ color: `${alpha(colors.lightText, '99')}` }}
               >
                 Cancel
               </button>
             </div>
           ) : (
             <>
-              <span className="text-xs" style={{ color: `${colors.lightText}70` }}>
+              <span className="text-xs" style={{ color: `${alpha(colors.lightText, '70')}` }}>
                 The last 25 mixes are kept on this device.
               </span>
               <button
                 onClick={() => setConfirmClearHistory(true)}
                 className="flex-shrink-0 text-sm font-medium"
-                style={{ color: `${colors.lightText}99` }}
+                style={{ color: `${alpha(colors.lightText, '99')}` }}
               >
                 Clear history
               </button>

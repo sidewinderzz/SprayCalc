@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
-import { SavedMix, colors } from '../types';
+import { SavedMix, colors, alpha } from '../types';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { CloudSyncStatus } from './CloudSyncStatus';
 import type { DiagnosticsResult, SyncStatus } from '../utils/cloudSync';
+import { useThemePref, ThemePref } from '../theme';
 
 interface HeaderProps {
   savedMixes: SavedMix[];
@@ -100,6 +101,7 @@ export function Header({
     hideAfter: 80,
   });
   const isStuck = !isNearTop;
+  const [themePref, setThemePref] = useThemePref();
 
   // While any header dropdown or the save-mix dialog is open, freeze the
   // header in its visible position so menus stay anchored to their button.
@@ -135,11 +137,11 @@ export function Header({
           }}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm"
+            className="bg-surface rounded-xl shadow-2xl p-6 w-full max-w-sm"
             style={{ border: `2px solid ${colors.primary}` }}
           >
             <h3 className="text-lg font-bold mb-1" style={{ color: colors.primaryDark }}>Save Mix</h3>
-            <p className="text-sm mb-4" style={{ color: colors.lightText + '99' }}>
+            <p className="text-sm mb-4" style={{ color: alpha(colors.lightText, '99') }}>
               Enter a name to save the current mix settings for quick recall.
             </p>
             <input
@@ -152,13 +154,13 @@ export function Header({
                 if (e.key === 'Escape') setShowSaveMixDialog(false);
               }}
               placeholder="e.g. Corn Herbicide Mix"
-              className="w-full p-3 border-2 rounded-lg text-black mb-4 text-base"
-              style={{ borderColor: colors.primary + '60' }}
+              className="w-full p-3 border-2 rounded-lg text-ink mb-4 text-base"
+              style={{ borderColor: alpha(colors.primary, '60') }}
             />
             {savedMixes.find((m) => m.name === mixNameInput.trim()) && (
               <p
                 className="text-xs mb-3 px-2 py-1 rounded"
-                style={{ backgroundColor: colors.secondary + '30', color: colors.secondaryDark }}
+                style={{ backgroundColor: alpha(colors.secondary, '30'), color: colors.secondaryDark }}
               >
                 A mix with this name already exists — it will be overwritten.
               </p>
@@ -167,7 +169,7 @@ export function Header({
               <button
                 onClick={() => setShowSaveMixDialog(false)}
                 className="flex-1 py-3 rounded-lg font-medium border"
-                style={{ borderColor: colors.primary + '50', color: colors.primaryDark }}
+                style={{ borderColor: alpha(colors.primary, '50'), color: colors.primaryDark }}
               >
                 Cancel
               </button>
@@ -206,11 +208,11 @@ export function Header({
             isStuck ? '0.625rem' : '1rem'
           })`,
           paddingBottom: isStuck ? '0.5rem' : '0.75rem',
-          backgroundColor: isStuck ? 'rgba(255,255,255,0.78)' : '#ffffff',
+          backgroundColor: isStuck ? 'var(--c-header-stuck)' : colors.surface,
           backdropFilter: isStuck ? 'saturate(180%) blur(12px)' : 'none',
           WebkitBackdropFilter: isStuck ? 'saturate(180%) blur(12px)' : 'none',
           boxShadow: isStuck
-            ? '0 1px 0 rgba(73,138,90,0.10), 0 4px 14px rgba(73,138,90,0.06)'
+            ? `0 1px 0 ${alpha(colors.primary, '1a')}, 0 4px 14px ${alpha(colors.primary, '0f')}`
             : 'none',
           transform: shouldHide ? 'translateY(-100%)' : 'translateY(0)',
           transition:
@@ -243,7 +245,7 @@ export function Header({
                 style={{ transition: 'width 200ms ease, height 200ms ease' }}
               />
               <span>
-                <span className="text-[24px]" style={{ color: '#1c291f' }}>Spray</span>
+                <span className="text-[24px]" style={{ color: colors.lightText }}>Spray</span>
                 <span className="text-[24px]" style={{ color: colors.primary }}>Calc</span>
               </span>
             </span>
@@ -293,7 +295,7 @@ export function Header({
                 }}
                 className="h-11 w-11 xs:h-9 xs:w-9 flex items-center justify-center rounded-lg"
                 style={{
-                  backgroundColor: showOverflowMenu ? colors.primary + '20' : 'transparent',
+                  backgroundColor: showOverflowMenu ? alpha(colors.primary, '20') : 'transparent',
                   color: colors.primaryDark,
                 }}
                 title="More options"
@@ -312,8 +314,8 @@ export function Header({
                 <div
                   className="absolute right-0 mt-2 rounded-xl shadow-xl border z-40"
                   style={{
-                    backgroundColor: 'white',
-                    borderColor: colors.primary + '30',
+                    backgroundColor: colors.surface,
+                    borderColor: alpha(colors.primary, '30'),
                     width: 'min(320px, calc(100vw - 16px))',
                     maxHeight: 'calc(100vh - 120px)',
                     overflowY: 'auto',
@@ -344,14 +346,14 @@ export function Header({
                             <p className="text-sm font-medium truncate" style={{ color: colors.primaryDark }}>
                               {authUser.displayName || authUser.email}
                             </p>
-                            <p className="text-xs truncate" style={{ color: colors.lightText + '80' }}>
+                            <p className="text-xs truncate" style={{ color: alpha(colors.lightText, '80') }}>
                               {authUser.email && authUser.displayName ? authUser.email : 'Signed in'}
                             </p>
                           </div>
                           <button
                             onClick={onSignOut}
                             className="flex-shrink-0 text-xs font-semibold"
-                            style={{ color: colors.lightText + '99' }}
+                            style={{ color: alpha(colors.lightText, '99') }}
                           >
                             Sign out
                           </button>
@@ -362,7 +364,7 @@ export function Header({
                             setShowOverflowMenu(false);
                             onSignIn();
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-ink/5"
                           style={{ color: colors.primaryDark }}
                           role="menuitem"
                         >
@@ -374,7 +376,7 @@ export function Header({
                           </svg>
                           <span>
                             Sign in with Google
-                            <span className="block text-xs font-normal" style={{ color: colors.lightText + '80' }}>
+                            <span className="block text-xs font-normal" style={{ color: alpha(colors.lightText, '80') }}>
                               Sync saved mixes across devices
                             </span>
                           </span>
@@ -386,7 +388,7 @@ export function Header({
                         onRunDiagnostics={onRunDiagnostics}
                         running={runningDiagnostics}
                       />
-                      <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+                      <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
                     </>
                   )}
 
@@ -396,7 +398,7 @@ export function Header({
                       setShowOverflowMenu(false);
                       openSaveMixDialog();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-ink/5"
                     style={{ color: colors.primaryDark }}
                     role="menuitem"
                   >
@@ -426,7 +428,7 @@ export function Header({
                       setShowOverflowMenu(false);
                       onShareMix();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-ink/5"
                     style={{ color: colors.primaryDark }}
                     role="menuitem"
                   >
@@ -449,7 +451,7 @@ export function Header({
                     </svg>
                     Share current mix…
                   </button>
-                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+                  <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
 
                   {/* Saved + recent mixes now live in their own sheet. */}
                   <button
@@ -457,7 +459,7 @@ export function Header({
                       setShowOverflowMenu(false);
                       onOpenMixes();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-black/5"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left font-medium hover:bg-ink/5"
                     style={{ color: colors.primaryDark }}
                     role="menuitem"
                   >
@@ -479,14 +481,14 @@ export function Header({
                     {mixesCount > 0 && (
                       <span
                         className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: `${colors.primary}18`, color: colors.primaryDark }}
+                        style={{ backgroundColor: `${alpha(colors.primary, '18')}`, color: colors.primaryDark }}
                       >
                         {mixesCount}
                       </span>
                     )}
                   </button>
 
-                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+                  <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
 
                   {/* Settings actions */}
                   <button
@@ -494,7 +496,7 @@ export function Header({
                       setShowTips(!showTips);
                       setShowOverflowMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-black/5"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-ink/5"
                     style={{ color: colors.lightText }}
                     role="menuitem"
                   >
@@ -520,7 +522,7 @@ export function Header({
                       setShowOverflowMenu(false);
                       onShowTour();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-black/5"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-ink/5"
                     style={{ color: colors.lightText }}
                     role="menuitem"
                   >
@@ -540,7 +542,7 @@ export function Header({
                     </svg>
                     Replay tour
                   </button>
-                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+                  <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
 
                   {/* Scan Recommendations */}
                   <div className="px-4 pt-3 pb-3">
@@ -554,13 +556,13 @@ export function Header({
                     {apiKey ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-mono" style={{ color: colors.lightText + '80' }}>
+                          <span className="text-xs font-mono" style={{ color: alpha(colors.lightText, '80') }}>
                             sk-ant-••••••••
                           </span>
                           <button
                             onClick={onClearApiKey}
                             className="text-xs hover:underline"
-                            style={{ color: '#b91c1c' }}
+                            style={{ color: colors.danger }}
                           >
                             Remove
                           </button>
@@ -568,7 +570,7 @@ export function Header({
                         {/* The key used to save to localStorage only unless you
                             happened to be signed in at that exact moment, so it
                             vanished with the browser cache. Say where it lives. */}
-                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '70' }}>
+                        <p className="text-xs leading-relaxed" style={{ color: alpha(colors.lightText, '70') }}>
                           {authUser
                             ? 'Backed up to your account — restores on any device you sign in to.'
                             : 'Stored on this device only. Sign in to back it up to your account.'}
@@ -579,10 +581,10 @@ export function Header({
                             aria-checked={scanEnabled}
                             onClick={() => setScanEnabled(!scanEnabled)}
                             className="relative flex-shrink-0 w-8 h-5 rounded-full transition-colors focus:outline-none"
-                            style={{ backgroundColor: scanEnabled ? colors.primary : `${colors.primaryLight}50` }}
+                            style={{ backgroundColor: scanEnabled ? colors.primary : `${alpha(colors.primaryLight, '50')}` }}
                           >
                             <span
-                              className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                              className="absolute top-0.5 left-0.5 w-4 h-4 bg-surface rounded-full shadow transition-transform"
                               style={{ transform: scanEnabled ? 'translateX(12px)' : 'translateX(0)' }}
                             />
                           </button>
@@ -593,7 +595,7 @@ export function Header({
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '70' }}>
+                        <p className="text-xs leading-relaxed" style={{ color: alpha(colors.lightText, '70') }}>
                           Add your Claude API key to scan spray recs and auto-fill products.
                         </p>
                         <div className="flex gap-2">
@@ -607,9 +609,9 @@ export function Header({
                             placeholder="sk-ant-..."
                             className="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg border"
                             style={{
-                              borderColor: `${colors.primary}40`,
+                              borderColor: `${alpha(colors.primary, '40')}`,
                               color: colors.lightText,
-                              backgroundColor: 'white',
+                              backgroundColor: colors.surface,
                             }}
                           />
                           <button
@@ -624,7 +626,7 @@ export function Header({
                             Save
                           </button>
                         </div>
-                        <p className="text-xs leading-relaxed" style={{ color: colors.lightText + '60' }}>
+                        <p className="text-xs leading-relaxed" style={{ color: alpha(colors.lightText, '60') }}>
                           New accounts get free credits.{' '}
                           <a
                             href="https://console.anthropic.com/keys"
@@ -640,14 +642,50 @@ export function Header({
                     )}
                   </div>
 
-                  <div style={{ borderTop: `1px solid ${colors.primary}20` }} />
+                  {/* Appearance: low-key, one row. Auto follows the phone. */}
+                  <div
+                    className="px-4 py-2.5 flex items-center justify-between gap-3"
+                    style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }}
+                  >
+                    <span className="text-xs font-medium" style={{ color: alpha(colors.lightText, '99') }}>
+                      Appearance
+                    </span>
+                    <div
+                      className="flex rounded-lg p-0.5"
+                      style={{ backgroundColor: alpha(colors.lightText, '10') }}
+                      role="radiogroup"
+                      aria-label="Appearance"
+                    >
+                      {(['system', 'light', 'dark'] as ThemePref[]).map(opt => {
+                        const active = themePref === opt;
+                        return (
+                          <button
+                            key={opt}
+                            onClick={() => setThemePref(opt)}
+                            role="radio"
+                            aria-checked={active}
+                            className="px-2.5 py-1 text-xs rounded-md font-medium"
+                            style={{
+                              backgroundColor: active ? colors.surface : 'transparent',
+                              color: active ? colors.primaryDark : alpha(colors.lightText, '99'),
+                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.15)' : 'none',
+                            }}
+                          >
+                            {opt === 'system' ? 'Auto' : opt === 'light' ? 'Light' : 'Dark'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${alpha(colors.primary, '20')}` }} />
                   <button
                     onClick={() => {
                       clearSettings();
                       setShowOverflowMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-red-50"
-                    style={{ color: '#b91c1c' }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-danger-bg"
+                    style={{ color: colors.danger }}
                     role="menuitem"
                   >
                     <svg
@@ -681,7 +719,7 @@ export function Header({
           aria-label="Calculator mode"
           data-tour-id="mode-tabs"
           className="mt-2 flex items-stretch"
-          style={{ borderBottom: `1px solid ${colors.primary}25` }}
+          style={{ borderBottom: `1px solid ${alpha(colors.primary, '25')}` }}
         >
           {(['tank', 'field'] as const).map((mode) => {
             const isActive = activeTab === mode;
@@ -699,7 +737,7 @@ export function Header({
                 style={{
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: isActive ? colors.primaryDark : '#7c867c',
+                  color: isActive ? colors.primaryDark : colors.muted,
                 }}
               >
                 {label}

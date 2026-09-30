@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, colors } from '../types';
+import { Product, colors, alpha } from '../types';
 import { calculateAmount, formatOutputParts } from '../utils/calculations';
 import { displayProductName } from '../utils/productName';
 import { ExportState } from '../utils/export';
@@ -32,8 +32,8 @@ export function SummarySection({
       data-tour-id="summary"
       className="p-4 rounded-xl mb-6"
       style={{
-        backgroundColor: `${colors.primary}08`,
-        border: `1px solid ${colors.primary}25`,
+        backgroundColor: `${alpha(colors.primary, '08')}`,
+        border: `1px solid ${alpha(colors.primary, '25')}`,
       }}
     >
       <div className="flex justify-between items-center mb-3 gap-2 flex-wrap">
@@ -61,7 +61,7 @@ export function SummarySection({
               <li key={product.id}>
                 <strong>{displayProductName(product.name, idx)}:</strong> <strong>{parts.primary}</strong>
                 {parts.jugBreakdown && (
-                  <div className="text-xs leading-tight" style={{ color: `${colors.lightText}99` }}>
+                  <div className="text-xs leading-tight" style={{ color: `${alpha(colors.lightText, '99')}` }}>
                     {parts.jugBreakdown}
                   </div>
                 )}

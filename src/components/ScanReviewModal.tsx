@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScannedProduct, unitOptions, colors } from '../types';
+import { ScannedProduct, unitOptions, colors, alpha } from '../types';
 import { extractProductsFromImage } from '../utils/ocr';
 import { getPdfPageCount, renderPdfPageToBase64 } from '../utils/pdfToImage';
 import { LogoLoader } from './Logo';
@@ -151,9 +151,9 @@ export function ScanReviewModal({
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="bg-white w-full sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="bg-surface w-full sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{
-          border: `1.5px solid ${colors.primary}30`,
+          border: `1.5px solid ${alpha(colors.primary, '30')}`,
           maxWidth: 520,
           maxHeight: '92dvh',
         }}
@@ -165,15 +165,15 @@ export function ScanReviewModal({
               Scanned Products
             </h3>
             {status === 'success' && (
-              <p className="text-xs mt-0.5" style={{ color: colors.lightText + '80' }}>
+              <p className="text-xs mt-0.5" style={{ color: alpha(colors.lightText, '80') }}>
                 Review and edit before applying
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-            style={{ color: colors.lightText + '80' }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-ink/5"
+            style={{ color: alpha(colors.lightText, '80') }}
             aria-label="Close"
           >
             <svg viewBox="0 0 14 14" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -188,7 +188,7 @@ export function ScanReviewModal({
           {/* Thumbnail */}
           <div
             className="mb-3 rounded-lg overflow-hidden border flex items-center justify-center"
-            style={{ borderColor: `${colors.primary}20`, minHeight: 80, maxHeight: 140, backgroundColor: `${colors.primary}05` }}
+            style={{ borderColor: `${alpha(colors.primary, '20')}`, minHeight: 80, maxHeight: 140, backgroundColor: `${alpha(colors.primary, '05')}` }}
           >
             {thumbnailSrc ? (
               <img
@@ -199,7 +199,7 @@ export function ScanReviewModal({
               />
             ) : (
               <div className="flex items-center justify-center py-6">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke={colors.primary + '60'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke={alpha(colors.primary, '60')} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                   <line x1="16" y1="13" x2="8" y2="13" />
@@ -213,7 +213,7 @@ export function ScanReviewModal({
           {/* PDF page picker */}
           {isPdf && totalPages > 1 && (
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-medium flex-shrink-0" style={{ color: colors.lightText + 'a0' }}>
+              <span className="text-xs font-medium flex-shrink-0" style={{ color: alpha(colors.lightText, 'a0') }}>
                 Page
               </span>
               <div className="flex gap-1 flex-wrap">
@@ -227,9 +227,9 @@ export function ScanReviewModal({
                       p === selectedPage
                         ? { backgroundColor: colors.primary, color: '#fff' }
                         : {
-                            backgroundColor: `${colors.primary}12`,
+                            backgroundColor: `${alpha(colors.primary, '12')}`,
                             color: colors.primaryDark,
-                            border: `1px solid ${colors.primary}30`,
+                            border: `1px solid ${alpha(colors.primary, '30')}`,
                           }
                     }
                   >
@@ -237,7 +237,7 @@ export function ScanReviewModal({
                   </button>
                 ))}
               </div>
-              <span className="text-xs ml-auto flex-shrink-0" style={{ color: colors.lightText + '60' }}>
+              <span className="text-xs ml-auto flex-shrink-0" style={{ color: alpha(colors.lightText, '60') }}>
                 {totalPages} pages
               </span>
             </div>
@@ -258,15 +258,15 @@ export function ScanReviewModal({
             <div className="flex flex-col items-center py-6 gap-4 text-center">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: '#fee2e2' }}
+                style={{ backgroundColor: colors.dangerBg }}
               >
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#b91c1c" strokeWidth="2" strokeLinecap="round">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={colors.danger} strokeWidth="2" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
-              <p className="text-sm max-w-xs" style={{ color: '#b91c1c' }}>{errorMsg}</p>
+              <p className="text-sm max-w-xs" style={{ color: colors.danger }}>{errorMsg}</p>
               <button
                 onClick={() => { runRef.current = true; run(); }}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white"
@@ -280,7 +280,7 @@ export function ScanReviewModal({
           {status === 'success' && discarded > 0 && (
             <div
               className="mb-3 px-3 py-2 rounded-lg text-xs leading-relaxed"
-              style={{ backgroundColor: `${colors.secondary}25`, color: colors.secondaryDark }}
+              style={{ backgroundColor: `${alpha(colors.secondary, '25')}`, color: colors.secondaryDark }}
             >
               {discarded} row{discarded === 1 ? '' : 's'} could not be read reliably and{' '}
               {discarded === 1 ? 'was' : 'were'} left out. Check the printed rec and add{' '}
@@ -296,8 +296,8 @@ export function ScanReviewModal({
                   key={idx}
                   className="flex items-start gap-2 p-2 rounded-lg"
                   style={{
-                    backgroundColor: `${colors.primary}08`,
-                    border: `1px solid ${colors.primary}15`,
+                    backgroundColor: `${alpha(colors.primary, '08')}`,
+                    border: `1px solid ${alpha(colors.primary, '15')}`,
                   }}
                 >
                   <div className="flex-1 min-w-0 space-y-1.5">
@@ -306,8 +306,8 @@ export function ScanReviewModal({
                       value={p.name}
                       onChange={e => updateProduct(idx, 'name', e.target.value)}
                       placeholder="Product name"
-                      className="w-full text-base px-2 py-1.5 rounded border bg-white"
-                      style={{ borderColor: `${colors.primary}30`, color: colors.lightText }}
+                      className="w-full text-base px-2 py-1.5 rounded border bg-surface"
+                      style={{ borderColor: `${alpha(colors.primary, '30')}`, color: colors.lightText }}
                     />
                     <div className="flex gap-1.5">
                       <input
@@ -315,16 +315,16 @@ export function ScanReviewModal({
                         value={p.rate || ''}
                         onChange={e => updateProduct(idx, 'rate', parseFloat(e.target.value) || 0)}
                         placeholder="Rate"
-                        className="w-20 text-base px-2 py-1.5 rounded border bg-white"
-                        style={{ borderColor: `${colors.primary}30`, color: colors.lightText }}
+                        className="w-20 text-base px-2 py-1.5 rounded border bg-surface"
+                        style={{ borderColor: `${alpha(colors.primary, '30')}`, color: colors.lightText }}
                         min="0"
                         step="any"
                       />
                       <select
                         value={p.unit}
                         onChange={e => updateProduct(idx, 'unit', e.target.value)}
-                        className="flex-1 text-xs px-1.5 py-1.5 rounded border bg-white"
-                        style={{ borderColor: `${colors.primary}30`, color: colors.lightText }}
+                        className="flex-1 text-xs px-1.5 py-1.5 rounded border bg-surface"
+                        style={{ borderColor: `${alpha(colors.primary, '30')}`, color: colors.lightText }}
                       >
                         {unitOptions.map(u => (
                           <option key={u} value={u}>{u}</option>
@@ -334,7 +334,7 @@ export function ScanReviewModal({
                   </div>
                   <button
                     onClick={() => removeProduct(idx)}
-                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md mt-0.5 hover:bg-red-100 hover:text-red-600"
+                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md mt-0.5 hover:bg-danger-bg hover:text-danger"
                     style={{ color: colors.primaryLight }}
                     aria-label="Remove product"
                   >
@@ -346,10 +346,10 @@ export function ScanReviewModal({
               ))}
               <button
                 onClick={addRow}
-                className="w-full py-2 text-sm rounded-lg transition-colors hover:bg-black/5"
+                className="w-full py-2 text-sm rounded-lg transition-colors hover:bg-ink/5"
                 style={{
                   color: colors.primary,
-                  border: `1.5px dashed ${colors.primary}50`,
+                  border: `1.5px dashed ${alpha(colors.primary, '50')}`,
                 }}
               >
                 + Add row
@@ -362,8 +362,8 @@ export function ScanReviewModal({
                   onClick={() => setApplySprayVolume(v => !v)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
                   style={{
-                    backgroundColor: applySprayVolume ? `${colors.primary}12` : `${colors.primary}06`,
-                    border: `1px solid ${applySprayVolume ? colors.primary + '40' : colors.primary + '18'}`,
+                    backgroundColor: applySprayVolume ? `${alpha(colors.primary, '12')}` : `${alpha(colors.primary, '06')}`,
+                    border: `1px solid ${applySprayVolume ? alpha(colors.primary, '40') : alpha(colors.primary, '18')}`,
                   }}
                 >
                   {/* Checkbox */}
@@ -371,7 +371,7 @@ export function ScanReviewModal({
                     className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors"
                     style={{
                       backgroundColor: applySprayVolume ? colors.primary : 'white',
-                      border: `1.5px solid ${applySprayVolume ? colors.primary : colors.primary + '50'}`,
+                      border: `1.5px solid ${applySprayVolume ? colors.primary : alpha(colors.primary, '50')}`,
                     }}
                   >
                     {applySprayVolume && (
@@ -385,7 +385,7 @@ export function ScanReviewModal({
                       Set application rate to{' '}
                       <span className="font-bold">{sprayVolume} GPA</span>
                     </span>
-                    <span className="block text-xs mt-0.5" style={{ color: colors.lightText + '70' }}>
+                    <span className="block text-xs mt-0.5" style={{ color: alpha(colors.lightText, '70') }}>
                       Spray volume from the rec
                     </span>
                   </div>
@@ -399,12 +399,12 @@ export function ScanReviewModal({
         {status !== 'loading' && (
           <div
             className="flex gap-3 px-5 py-4 flex-shrink-0"
-            style={{ borderTop: `1px solid ${colors.primary}15` }}
+            style={{ borderTop: `1px solid ${alpha(colors.primary, '15')}` }}
           >
             <button
               onClick={onClose}
               className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-              style={{ borderColor: `${colors.primary}40`, color: colors.primaryDark }}
+              style={{ borderColor: `${alpha(colors.primary, '40')}`, color: colors.primaryDark }}
             >
               Cancel
             </button>
